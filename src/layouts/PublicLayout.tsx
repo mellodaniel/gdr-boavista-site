@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { ExternalLink, Mail, Menu, Phone } from 'lucide-react';
+import { Mail, Menu, Phone } from 'lucide-react';
 
 const navigation = [
   { label: 'Início', path: '/' },
@@ -12,6 +12,48 @@ const navigation = [
   { label: 'Patrocinadores', path: '/patrocinadores' },
   { label: 'Contactos', path: '/contactos' },
 ];
+
+function InstagramIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="4"
+        y="4"
+        width="16"
+        height="16"
+        rx="5"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="3.5"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <circle cx="17" cy="7" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M14.5 8.5V7.2c0-.6.4-1 1-1H18V3h-3.1C11.8 3 10 4.8 10 7.6v.9H7.5V12H10v9h4.1v-9h3.1l.5-3.5h-3.2Z" />
+    </svg>
+  );
+}
 
 export function PublicLayout() {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,20 +94,22 @@ export function PublicLayout() {
               href="https://www.instagram.com/gdr_boavista_oficial/"
               target="_blank"
               rel="noreferrer"
-              className="rounded-full border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-600 hover:text-red-600"
-              aria-label="Instagram"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 transition hover:border-red-600 hover:bg-red-600 hover:text-white"
+              aria-label="Instagram do GDR Boavista"
+              title="Instagram"
             >
-              IG
+              <InstagramIcon />
             </a>
 
             <a
               href="https://www.facebook.com/G.D.R.BoaVista"
               target="_blank"
               rel="noreferrer"
-              className="rounded-full border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-600 hover:text-red-600"
-              aria-label="Facebook"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 transition hover:border-red-600 hover:bg-red-600 hover:text-white"
+              aria-label="Facebook do GDR Boavista"
+              title="Facebook"
             >
-              FB
+              <FacebookIcon />
             </a>
 
             <Link
@@ -105,8 +149,9 @@ export function PublicLayout() {
                   href="https://www.instagram.com/gdr_boavista_oficial/"
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-bold"
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-600 hover:bg-red-600 hover:text-white"
                 >
+                  <InstagramIcon />
                   Instagram
                 </a>
 
@@ -114,8 +159,9 @@ export function PublicLayout() {
                   href="https://www.facebook.com/G.D.R.BoaVista"
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-bold"
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-600 hover:bg-red-600 hover:text-white"
                 >
+                  <FacebookIcon />
                   Facebook
                 </a>
               </div>
@@ -191,7 +237,7 @@ export function PublicLayout() {
                 rel="noreferrer"
                 className="flex items-center gap-2 hover:text-red-500"
               >
-                <ExternalLink size={16} className="text-red-500" />
+                <InstagramIcon />
                 Instagram
               </a>
 
@@ -201,7 +247,7 @@ export function PublicLayout() {
                 rel="noreferrer"
                 className="flex items-center gap-2 hover:text-red-500"
               >
-                <ExternalLink size={16} className="text-red-500" />
+                <FacebookIcon />
                 Facebook
               </a>
             </div>

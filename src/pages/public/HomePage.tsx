@@ -117,23 +117,24 @@ export function HomePage() {
   return (
     <div className="bg-zinc-50">
       <section className="relative min-h-[720px] overflow-hidden bg-black text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_42%,rgba(220,38,38,0.32),transparent_30%),radial-gradient(circle_at_24%_32%,rgba(220,38,38,0.16),transparent_28%),linear-gradient(135deg,rgba(3,3,4,1),rgba(12,12,14,1)_48%,rgba(3,3,4,1))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_42%,rgba(220,38,38,0.32),transparent_30%),radial-gradient(circle_at_24%_32%,rgba(220,38,38,0.12),transparent_28%),linear-gradient(135deg,rgba(3,3,4,1),rgba(10,10,12,1)_48%,rgba(3,3,4,1))]" />
 
-        <div className="absolute inset-y-0 right-0 hidden w-[60%] lg:block">
+        <div className="absolute inset-0 hidden overflow-hidden lg:block">
           <img
             src="/hero-boavista.webp"
             alt="Logo do GDR Boavista com brilho"
-            className="h-full w-full object-cover object-center opacity-85"
+            className="absolute inset-0 h-full w-full object-cover object-center opacity-70"
           />
 
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/55 to-black/10" />
-          <div className="absolute inset-0 bg-gradient-to-l from-black/30 via-transparent to-black" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/55" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/82 to-black/25" />
+          <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/10 to-black/85" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/65" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_45%,transparent_0%,rgba(0,0,0,0.24)_30%,rgba(0,0,0,0.86)_74%)]" />
         </div>
 
-        <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:64px_64px]" />
+        <div className="absolute inset-0 opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:64px_64px]" />
 
-        <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-600/10 blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-600/8 blur-3xl" />
 
         <div className="relative mx-auto flex min-h-[720px] max-w-7xl items-center px-4 py-20">
           <div className="max-w-3xl">
@@ -440,7 +441,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-red-600 py-14 text-white">
+      <section className="relative overflow-hidden bg-red-600 py-20 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(0,0,0,0.22),transparent_34%)]" />
 
         <div className="relative mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 md:flex-row md:items-center">
@@ -455,11 +456,14 @@ export function HomePage() {
           </div>
 
           <Link
-            to="/socios"
-            className="rounded-full bg-white px-6 py-3 font-black text-red-600 shadow-lg hover:bg-zinc-950 hover:text-white"
-          >
-            Quero ser sócio
-          </Link>
+  to="/socios"
+  className="group inline-flex items-center justify-center rounded-full bg-white px-10 py-5 text-lg font-black uppercase tracking-wide text-red-600 shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:bg-zinc-950 hover:text-white"
+>
+  Quero ser sócio
+  <span className="ml-3 inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white transition group-hover:bg-white group-hover:text-zinc-950">
+    →
+  </span>
+</Link>
         </div>
       </section>
     </div>
