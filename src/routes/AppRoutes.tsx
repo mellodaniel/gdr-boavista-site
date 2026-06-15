@@ -1,7 +1,8 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { PublicLayout } from '../layouts/PublicLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { ProtectedAdminRoute } from '../components/admin/ProtectedAdminRoute';
 
 import { HomePage } from '../pages/public/HomePage';
 import { ClubPage } from '../pages/public/ClubPage';
@@ -20,32 +21,64 @@ import { AdminNewsPage } from '../pages/admin/AdminNewsPage';
 import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
 import { AdminSponsorsPage } from '../pages/admin/AdminSponsorsPage';
 
+function AdminPlaceholderPage({ title }: { title: string }) {
+  return (
+    <div>
+      <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-600">
+        Administração
+      </p>
+
+      <h1 className="mt-2 text-4xl font-black text-zinc-950">{title}</h1>
+
+      <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
+        <p className="text-zinc-600">
+          Esta área será implementada na próxima fase do projeto.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function AppRoutes() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/clube" element={<ClubPage />} />
-          <Route path="/equipas" element={<TeamsPage />} />
-          <Route path="/noticias" element={<NewsPage />} />
-          <Route path="/socios" element={<MembersPage />} />
-          <Route path="/galeria" element={<GalleryPage />} />
-          <Route path="/patrocinadores" element={<SponsorsPage />} />
-          <Route path="/contactos" element={<ContactsPage />} />
-        </Route>
+    <Routes>
+      <Route element={<PublicLayout />}>
+        <Route index element={<HomePage />} />
+        <Route path="clube" element={<ClubPage />} />
+        <Route path="equipas" element={<TeamsPage />} />
+        <Route path="noticias" element={<NewsPage />} />
+        <Route path="socios" element={<MembersPage />} />
+        <Route path="galeria" element={<GalleryPage />} />
+        <Route path="patrocinadores" element={<SponsorsPage />} />
+        <Route path="contactos" element={<ContactsPage />} />
+      </Route>
 
-        <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
 
+      <Route element={<ProtectedAdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
+          <Route
+            path="conteudos"
+            element={<AdminPlaceholderPage title="Conteúdos gerais" />}
+          />
           <Route path="noticias" element={<AdminNewsPage />} />
           <Route path="equipas" element={<AdminTeamsPage />} />
+          <Route
+            path="jogos"
+            element={<AdminPlaceholderPage title="Jogos / Agenda" />}
+          />
           <Route path="patrocinadores" element={<AdminSponsorsPage />} />
           <Route path="socios" element={<AdminMembersPage />} />
           <Route path="contactos" element={<AdminContactsPage />} />
+          <Route
+            path="galeria"
+            element={<AdminPlaceholderPage title="Galeria" />}
+          />
         </Route>
-      </Routes>
-    </BrowserRouter>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
