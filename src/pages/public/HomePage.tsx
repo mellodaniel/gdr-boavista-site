@@ -157,6 +157,20 @@ function formatStatus(status: string) {
   return statusLabels[status] ?? status;
 }
 
+function getMatchTeams(match: GdrbMatch) {
+  if (match.venue_type === 'fora') {
+    return {
+      firstTeam: match.opponent,
+      secondTeam: 'GDR Boavista',
+    };
+  }
+
+  return {
+    firstTeam: 'GDR Boavista',
+    secondTeam: match.opponent,
+  };
+}
+
 export function HomePage() {
   const [latestNews, setLatestNews] = useState<GdrbNews[]>([]);
   const [weeklyMatches, setWeeklyMatches] = useState<GdrbMatch[]>([]);
@@ -393,7 +407,9 @@ export function HomePage() {
                         : 'border-white/10 bg-white/[0.035]'
                     }`}
                   >
-                    <div className={match ? 'h-2 bg-red-600' : 'h-2 bg-zinc-700'} />
+                    <div
+                      className={match ? 'h-2 bg-red-600' : 'h-2 bg-zinc-700'}
+                    />
 
                     <div className="flex h-full flex-col p-6">
                       <div className="flex flex-wrap items-center gap-2">
@@ -408,13 +424,22 @@ export function HomePage() {
 
                       {match ? (
                         <>
-                          <h3 className="mt-5 text-2xl font-black text-white">
-                            GDR Boavista
-                          </h3>
+                          {(() => {
+                            const { firstTeam, secondTeam } =
+                              getMatchTeams(match);
 
-                          <p className="text-sm font-bold uppercase tracking-[0.2em] text-zinc-400">
-                            vs {match.opponent}
-                          </p>
+                            return (
+                              <>
+                                <h3 className="mt-5 text-2xl font-black text-white">
+                                  {firstTeam}
+                                </h3>
+
+                                <p className="text-sm font-bold uppercase tracking-[0.2em] text-zinc-400">
+                                  vs {secondTeam}
+                                </p>
+                              </>
+                            );
+                          })()}
 
                           <p className="mt-4 text-sm font-semibold text-zinc-300">
                             {match.competition}
