@@ -395,7 +395,7 @@ export function HomePage() {
                 to="/resultados"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-800"
               >
-                Histórico de resultados <ChevronRight size={16} />
+                Histórico de jogos <ChevronRight size={16} />
               </Link>
             </div>
           </div>

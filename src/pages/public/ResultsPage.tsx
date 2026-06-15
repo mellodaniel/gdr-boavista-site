@@ -156,7 +156,7 @@ export function ResultsPage() {
 
             <div>
               <h2 className="font-serif text-3xl font-light text-[#24180f]">
-                Pesquisar resultados
+                Pesquisar jogos
               </h2>
 
               <p className="mt-1 text-sm text-zinc-500">
