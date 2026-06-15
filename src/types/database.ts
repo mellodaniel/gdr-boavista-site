@@ -67,3 +67,23 @@ export type GdrbSiteContent = {
   updated_at: string | null;
   created_at: string;
 };
+
+export type GdrbMatch = {
+  id: string;
+  team_name: string;
+  football_type: string;
+  competition: string;
+  opponent: string;
+  match_date: string;
+  match_time: string | null;
+  location: string | null;
+  venue_type: string;
+  status: string;
+  home_score: number | null;
+  away_score: number | null;
+  notes: string | null;
+  is_visible: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string | null;
+};

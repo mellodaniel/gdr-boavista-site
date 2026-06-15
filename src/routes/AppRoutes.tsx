@@ -21,6 +21,7 @@ import { AdminNewsPage } from '../pages/admin/AdminNewsPage';
 import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
 import { AdminSponsorsPage } from '../pages/admin/AdminSponsorsPage';
 import { AdminContentsPage } from '../pages/admin/AdminContentsPage';
+import { AdminMatchesPage } from '../pages/admin/AdminMatchesPage';
 
 function AdminPlaceholderPage({ title }: { title: string }) {
   return (
@@ -62,10 +63,7 @@ export function AppRoutes() {
           <Route path="conteudos" element={<AdminContentsPage />} />
           <Route path="noticias" element={<AdminNewsPage />} />
           <Route path="equipas" element={<AdminTeamsPage />} />
-          <Route
-            path="jogos"
-            element={<AdminPlaceholderPage title="Jogos / Agenda" />}
-          />
+          <Route path="jogos" element={<AdminMatchesPage />} />
           <Route path="patrocinadores" element={<AdminSponsorsPage />} />
           <Route path="socios" element={<AdminMembersPage />} />
           <Route path="contactos" element={<AdminContactsPage />} />
