@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CalendarDays,
@@ -11,34 +11,7 @@ import {
   Users,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { GdrbNews } from '../../types/database';
-
-const nextMatches = [
-  {
-    team: 'Seniores',
-    competition: 'Campeonato Distrital',
-    opponent: 'Adversário',
-    date: '25 Mai',
-    time: '17:00',
-    place: 'Campo do Boavista',
-  },
-  {
-    team: 'Juvenis',
-    competition: 'Campeonato Distrital',
-    opponent: 'Adversário',
-    date: '26 Mai',
-    time: '11:00',
-    place: 'Fora',
-  },
-  {
-    team: 'Iniciados',
-    competition: 'Campeonato Distrital',
-    opponent: 'Adversário',
-    date: '27 Mai',
-    time: '15:00',
-    place: 'Campo do Boavista',
-  },
-];
+import type { GdrbMatch, GdrbNews } from '../../types/database';
 
 const featuredTeams = [
   {
@@ -90,9 +63,119 @@ const missionItems = [
 
 const heroHighlights = ['Formação', 'Comunidade', 'Orgulho', 'Futebol'];
 
+const weeklyTeamSlots = [
+  {
+    teamName: 'Petizes / ABC',
+    footballType: 'Futebol 5',
+  },
+  {
+    teamName: 'Traquinas',
+    footballType: 'Futebol 5',
+  },
+  {
+    teamName: 'Benjamins',
+    footballType: 'Futebol 7',
+  },
+  {
+    teamName: 'Infantis',
+    footballType: 'Futebol 9',
+  },
+  {
+    teamName: 'Iniciados',
+    footballType: 'Futebol 11',
+  },
+  {
+    teamName: 'Juvenis',
+    footballType: 'Futebol 11',
+  },
+  {
+    teamName: 'Juniores',
+    footballType: 'Futebol 11',
+  },
+  {
+    teamName: 'Seniores',
+    footballType: 'Futebol 11',
+  },
+  {
+    teamName: 'Veteranos',
+    footballType: 'Futebol 11',
+  },
+];
+
+function getCurrentWeekRange() {
+  const today = new Date();
+  const day = today.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  return { monday, sunday };
+}
+
+function formatDateToInput(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function formatWeekLabel() {
+  const { monday, sunday } = getCurrentWeekRange();
+
+  const start = monday.toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+  });
+
+  const end = sunday.toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+  });
+
+  return `${start} a ${end}`;
+}
+
+function formatMatchDate(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('pt-PT', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+  });
+}
+
+function formatStatus(status: string) {
+  const statusLabels: Record<string, string> = {
+    agendado: 'Agendado',
+    terminado: 'Terminado',
+    adiado: 'Adiado',
+    cancelado: 'Cancelado',
+  };
+
+  return statusLabels[status] ?? status;
+}
+
 export function HomePage() {
   const [latestNews, setLatestNews] = useState<GdrbNews[]>([]);
+  const [weeklyMatches, setWeeklyMatches] = useState<GdrbMatch[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
+  const [loadingMatches, setLoadingMatches] = useState(true);
+
+  const matchesByTeam = useMemo(() => {
+    return weeklyTeamSlots.reduce<Record<string, GdrbMatch | undefined>>(
+      (acc, slot) => {
+        const match = weeklyMatches.find(
+          (item) => item.team_name === slot.teamName,
+        );
+
+        acc[slot.teamName] = match;
+        return acc;
+      },
+      {},
+    );
+  }, [weeklyMatches]);
 
   useEffect(() => {
     async function loadLatestNews() {
@@ -111,7 +194,30 @@ export function HomePage() {
       setLoadingNews(false);
     }
 
+    async function loadWeeklyMatches() {
+      const { monday, sunday } = getCurrentWeekRange();
+
+      const { data, error } = await supabase
+        .from('gdrb_matches')
+        .select('*')
+        .eq('is_visible', true)
+        .in('status', ['agendado', 'adiado', 'cancelado'])
+        .gte('match_date', formatDateToInput(monday))
+        .lte('match_date', formatDateToInput(sunday))
+        .order('match_date', { ascending: true })
+        .order('match_time', { ascending: true })
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        console.error('Erro ao carregar jogos da semana:', error);
+      }
+
+      setWeeklyMatches(data ?? []);
+      setLoadingMatches(false);
+    }
+
     loadLatestNews();
+    loadWeeklyMatches();
   }, []);
 
   return (
@@ -250,57 +356,112 @@ export function HomePage() {
         <div className="absolute -right-32 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-red-600/10 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl px-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-500">
-                Agenda
+                Agenda da semana
               </p>
-              <h2 className="mt-2 text-4xl font-black">Próximos jogos</h2>
+              <h2 className="mt-2 text-4xl font-black">Jogos por escalão</h2>
+              <p className="mt-3 text-sm font-semibold text-zinc-400">
+                Semana de {formatWeekLabel()}
+              </p>
             </div>
 
             <Link
               to="/equipas"
-              className="hidden items-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white hover:border-red-500 hover:bg-red-600 sm:flex"
+              className="inline-flex items-center justify-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white hover:border-red-500 hover:bg-red-600"
             >
-              Ver todos <ChevronRight size={16} />
+              Ver equipas <ChevronRight size={16} />
             </Link>
           </div>
 
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {nextMatches.map((match) => (
-              <article
-                key={`${match.team}-${match.date}`}
-                className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.06] shadow-2xl transition hover:-translate-y-1 hover:border-red-500/50 hover:bg-white/[0.10]"
-              >
-                <div className="h-2 bg-red-600" />
+          {loadingMatches ? (
+            <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.06] p-8 text-zinc-300">
+              A carregar jogos da semana...
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {weeklyTeamSlots.map((slot) => {
+                const match = matchesByTeam[slot.teamName];
 
-                <div className="p-6">
-                  <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-400">
-                    {match.team}
-                  </p>
+                return (
+                  <article
+                    key={slot.teamName}
+                    className={`group min-h-[285px] overflow-hidden rounded-3xl border shadow-2xl transition hover:-translate-y-1 ${
+                      match
+                        ? 'border-white/10 bg-white/[0.07] hover:border-red-500/50 hover:bg-white/[0.10]'
+                        : 'border-white/10 bg-white/[0.035]'
+                    }`}
+                  >
+                    <div className={match ? 'h-2 bg-red-600' : 'h-2 bg-zinc-700'} />
 
-                  <h3 className="mt-3 text-lg font-black text-white">
-                    {match.competition}
-                  </h3>
+                    <div className="flex h-full flex-col p-6">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-white">
+                          {slot.teamName}
+                        </span>
 
-                  <p className="mt-5 text-3xl font-black text-white">GDRB</p>
+                        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-zinc-300">
+                          {slot.footballType}
+                        </span>
+                      </div>
 
-                  <p className="text-sm font-bold uppercase tracking-[0.2em] text-zinc-400">
-                    vs {match.opponent}
-                  </p>
+                      {match ? (
+                        <>
+                          <h3 className="mt-5 text-2xl font-black text-white">
+                            GDR Boavista
+                          </h3>
 
-                  <div className="mt-6 flex items-center gap-2 text-sm text-zinc-300">
-                    <CalendarDays size={16} className="text-red-500" />
-                    {match.date} | {match.time}
-                  </div>
+                          <p className="text-sm font-bold uppercase tracking-[0.2em] text-zinc-400">
+                            vs {match.opponent}
+                          </p>
 
-                  <p className="mt-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
-                    {match.place}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
+                          <p className="mt-4 text-sm font-semibold text-zinc-300">
+                            {match.competition}
+                          </p>
+
+                          <div className="mt-5 flex items-center gap-2 text-sm text-zinc-300">
+                            <CalendarDays size={16} className="text-red-500" />
+                            {formatMatchDate(match.match_date)}
+                            {match.match_time
+                              ? ` | ${match.match_time.slice(0, 5)}`
+                              : ''}
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <span className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
+                              {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
+                            </span>
+
+                            <span className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
+                              {formatStatus(match.status)}
+                            </span>
+                          </div>
+
+                          {match.location && (
+                            <p className="mt-4 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-zinc-200">
+                              {match.location}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-1 flex-col justify-center">
+                          <p className="text-2xl font-black text-white">
+                            Sem jogos agendados
+                          </p>
+
+                          <p className="mt-3 text-sm leading-6 text-zinc-400">
+                            Não há jogos marcados para este escalão na semana
+                            corrente.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -456,14 +617,14 @@ export function HomePage() {
           </div>
 
           <Link
-  to="/socios"
-  className="group inline-flex items-center justify-center rounded-full bg-white px-10 py-5 text-lg font-black uppercase tracking-wide text-red-600 shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:bg-zinc-950 hover:text-white"
->
-  Quero ser sócio
-  <span className="ml-3 inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white transition group-hover:bg-white group-hover:text-zinc-950">
-    →
-  </span>
-</Link>
+            to="/socios"
+            className="group inline-flex items-center justify-center rounded-full bg-white px-10 py-5 text-lg font-black uppercase tracking-wide text-red-600 shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:bg-zinc-950 hover:text-white"
+          >
+            Quero ser sócio
+            <span className="ml-3 inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white transition group-hover:bg-white group-hover:text-zinc-950">
+              →
+            </span>
+          </Link>
         </div>
       </section>
     </div>
