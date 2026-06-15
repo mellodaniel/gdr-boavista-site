@@ -20,6 +20,7 @@ import { AdminContactsPage } from '../pages/admin/AdminContactsPage';
 import { AdminNewsPage } from '../pages/admin/AdminNewsPage';
 import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
 import { AdminSponsorsPage } from '../pages/admin/AdminSponsorsPage';
+import { AdminContentsPage } from '../pages/admin/AdminContentsPage';
 
 function AdminPlaceholderPage({ title }: { title: string }) {
   return (
@@ -58,10 +59,7 @@ export function AppRoutes() {
       <Route element={<ProtectedAdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
-          <Route
-            path="conteudos"
-            element={<AdminPlaceholderPage title="Conteúdos gerais" />}
-          />
+          <Route path="conteudos" element={<AdminContentsPage />} />
           <Route path="noticias" element={<AdminNewsPage />} />
           <Route path="equipas" element={<AdminTeamsPage />} />
           <Route

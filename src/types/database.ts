@@ -55,3 +55,15 @@ export type GdrbSponsor = {
   sort_order: number;
   created_at: string;
 };
+
+export type GdrbSiteContent = {
+  id: string;
+  content_key: string;
+  label: string;
+  value: string;
+  type: string;
+  group_name: string;
+  sort_order: number;
+  updated_at: string | null;
+  created_at: string;
+};
