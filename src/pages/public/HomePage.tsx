@@ -6,7 +6,6 @@ import {
   HeartHandshake,
   Newspaper,
   ShieldCheck,
-  Sparkles,
   Trophy,
   Users,
 } from 'lucide-react';
@@ -15,91 +14,75 @@ import type { GdrbMatch, GdrbNews } from '../../types/database';
 
 const featuredTeams = [
   {
-    title: 'Seniores',
-    description: 'Equipa principal',
+    title: 'Escola de Futebol',
+    description: 'Petizes, ABC e Traquinas',
   },
   {
     title: 'Formação',
-    description: 'Todos os escalões',
+    description: 'Benjamins, Infantis, Iniciados, Juvenis e Juniores',
   },
   {
-    title: 'Escola de Futebol',
-    description: 'Os mais pequenos',
+    title: 'Competição',
+    description: 'Seniores e Veteranos',
+  },
+];
+
+const valueItems = [
+  {
+    icon: Users,
+    title: 'Comunidade',
+    description:
+      'Um clube feito por atletas, famílias, sócios, treinadores e todos os que vivem o Boavista.',
+  },
+  {
+    icon: Trophy,
+    title: 'Formação',
+    description:
+      'Acompanhamos os jovens atletas dentro e fora de campo, com foco no crescimento e no espírito de equipa.',
+  },
+  {
+    icon: HeartHandshake,
+    title: 'União',
+    description:
+      'Valorizamos o compromisso, o respeito, a entreajuda e o orgulho em representar o GDR Boavista.',
   },
 ];
 
 const missionItems = [
   {
     icon: Users,
-    title: 'Comunidade',
-    description:
-      'Aproximar atletas, famílias, sócios e comunidade num só espaço digital.',
+    title: 'Família',
+    description: 'Aproximar atletas, pais, sócios e comunidade.',
   },
   {
     icon: Trophy,
-    title: 'Formação',
-    description:
-      'Dar visibilidade aos escalões, jogos, conquistas e momentos importantes do clube.',
+    title: 'Competição',
+    description: 'Valorizar jogos, resultados e conquistas.',
   },
   {
     icon: Newspaper,
     title: 'Comunicação',
-    description:
-      'Comunicar melhor as notícias do clube, da AF Leiria, da FPF e do futebol de formação.',
-  },
-  {
-    icon: HeartHandshake,
-    title: 'Parceiros',
-    description:
-      'Valorizar quem apoia o Boavista e fortalecer a ligação aos patrocinadores.',
+    description: 'Partilhar notícias, eventos e momentos importantes.',
   },
   {
     icon: ShieldCheck,
     title: 'Organização',
-    description:
-      'Organizar a gestão interna com uma área administrativa simples, moderna e eficiente.',
+    description: 'Dar ao clube uma presença digital moderna e simples.',
   },
 ];
 
 const heroHighlights = ['Formação', 'Comunidade', 'Orgulho', 'Futebol'];
 
 const weeklyTeamSlots = [
-  {
-    teamName: 'Petizes / ABC',
-    footballType: 'Futebol 5',
-  },
-  {
-    teamName: 'Traquinas',
-    footballType: 'Futebol 5',
-  },
-  {
-    teamName: 'Benjamins',
-    footballType: 'Futebol 7',
-  },
-  {
-    teamName: 'Infantis',
-    footballType: 'Futebol 9',
-  },
-  {
-    teamName: 'Iniciados',
-    footballType: 'Futebol 11',
-  },
-  {
-    teamName: 'Juvenis',
-    footballType: 'Futebol 11',
-  },
-  {
-    teamName: 'Juniores',
-    footballType: 'Futebol 11',
-  },
-  {
-    teamName: 'Seniores',
-    footballType: 'Futebol 11',
-  },
-  {
-    teamName: 'Veteranos',
-    footballType: 'Futebol 11',
-  },
+  { teamName: 'Petizes / ABC', footballType: 'Futebol 5' },
+  { teamName: 'Traquinas', footballType: 'Futebol 5' },
+  { teamName: 'Benjamins', footballType: 'Futebol 7' },
+  { teamName: 'Infantis', footballType: 'Futebol 9' },
+  { teamName: 'Iniciados', footballType: 'Futebol 11' },
+  { teamName: 'Juvenis', footballType: 'Futebol 11' },
+  { teamName: 'Juniores', footballType: 'Futebol 11' },
+  { teamName: 'Seniores', footballType: 'Futebol 11' },
+  { teamName: 'Veteranos', footballType: 'Futebol 11' },
 ];
 
 function getCurrentWeekRange() {
@@ -235,7 +218,7 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="bg-zinc-50">
+    <div className="bg-[#f6f2ec] text-zinc-950">
       <section className="relative min-h-[720px] overflow-hidden bg-black text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_42%,rgba(220,38,38,0.32),transparent_30%),radial-gradient(circle_at_24%_32%,rgba(220,38,38,0.12),transparent_28%),linear-gradient(135deg,rgba(3,3,4,1),rgba(10,10,12,1)_48%,rgba(3,3,4,1))]" />
 
@@ -251,10 +234,6 @@ export function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/65" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_45%,transparent_0%,rgba(0,0,0,0.24)_30%,rgba(0,0,0,0.86)_74%)]" />
         </div>
-
-        <div className="absolute inset-0 opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:64px_64px]" />
-
-        <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-600/8 blur-3xl" />
 
         <div className="relative mx-auto flex min-h-[720px] max-w-7xl items-center px-4 py-20">
           <div className="max-w-3xl">
@@ -278,21 +257,43 @@ export function HomePage() {
             </div>
 
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-600/10 px-4 py-2 text-sm font-bold text-red-200 backdrop-blur">
-              <Sparkles size={16} className="text-red-400" />
               Clube, formação e comunidade
             </div>
 
-            <h1 className="max-w-4xl text-5xl font-black uppercase tracking-tight md:text-7xl">
-              Formação, paixão e comunidade dentro e fora de campo
-            </h1>
-
-            <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-zinc-300">
-              O Boavista é mais do que um clube: é uma família feita de atletas,
-              sócios, pais, treinadores, patrocinadores e todos os que vivem o
-              futebol com orgulho, união e ambição.
+            <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
+              Leiria · Futebol · Formação
             </p>
 
-            <div className="mt-10 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+            <h1 className="mt-8 max-w-4xl font-serif text-6xl font-light leading-[0.96] tracking-tight md:text-8xl">
+              Formar atletas,
+              <br />
+              unir famílias.
+            </h1>
+
+            <p className="mt-8 max-w-2xl text-lg font-medium leading-8 text-zinc-300">
+              O GDR Boavista é uma casa de futebol, formação e comunidade. Um
+              clube feito por atletas, famílias, sócios, treinadores e todos os
+              que vivem o futebol com orgulho, união e ambição.
+            </p>
+
+            <div className="mt-10 flex flex-wrap items-center gap-4">
+              <Link
+                to="/socios"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-8 py-4 text-sm font-black uppercase tracking-wide text-white shadow-xl shadow-black/20 transition hover:bg-red-800"
+              >
+                Quero ser sócio
+                <ChevronRight size={17} />
+              </Link>
+
+              <Link
+                to="/equipas"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-8 py-4 text-sm font-bold text-white transition hover:border-red-500 hover:bg-white/10"
+              >
+                Ver equipas
+              </Link>
+            </div>
+
+            <div className="mt-14 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
               {heroHighlights.map((item) => (
                 <div
                   key={item}
@@ -305,58 +306,59 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-zinc-50 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#f6f2ec] to-transparent" />
       </section>
 
-      <section className="relative overflow-hidden border-b border-zinc-200 bg-white py-16">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.10),transparent_34%)]" />
+      <section className="relative overflow-hidden bg-[#f6f2ec] py-24">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mx-auto max-w-4xl">
+            <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
+              Quem somos
+            </p>
 
-        <div className="relative mx-auto max-w-7xl px-4">
-          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-            <div className="max-w-3xl">
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-600">
-                A nossa missão
+            <h2 className="mt-8 font-serif text-5xl font-light leading-tight text-[#24180f] md:text-7xl">
+              Mais do que um clube —
+              <br />
+              uma família que cresce dentro e fora de campo.
+            </h2>
+
+            <div className="mt-10 grid gap-8 text-base leading-8 text-zinc-600 md:grid-cols-2">
+              <p>
+                O GDR Boavista representa a força da formação, da dedicação e
+                da ligação à comunidade. Cada treino, cada jogo e cada conquista
+                fazem parte de uma história construída por todos.
               </p>
 
-              <h2 className="mt-3 text-4xl font-black leading-tight text-zinc-950">
-                Crescer juntos, formar melhor e representar Boavista com orgulho.
-              </h2>
-            </div>
-
-            <div className="hidden rounded-full bg-zinc-950 px-5 py-3 text-sm font-bold text-white lg:flex lg:items-center lg:gap-2">
-              <Sparkles size={17} className="text-red-500" />
-              Clube, família e comunidade
+              <p>
+                O nosso objetivo é dar aos atletas um espaço de crescimento,
+                disciplina, amizade e paixão pelo futebol, com o apoio das
+                famílias, sócios, patrocinadores e amigos do clube.
+              </p>
             </div>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-5">
-            {missionItems.map((item, index) => {
+          <div className="mt-16 grid gap-0 overflow-hidden rounded-sm bg-[#24180f] text-white md:grid-cols-3">
+            {valueItems.map((item, index) => {
               const Icon = item.icon;
 
               return (
                 <article
                   key={item.title}
-                  className="group relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-xl"
+                  className={`p-10 text-center ${
+                    index !== valueItems.length - 1
+                      ? 'border-b border-white/10 md:border-b-0 md:border-r'
+                      : ''
+                  }`}
                 >
-                  <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100 opacity-0 transition group-hover:opacity-100" />
+                  <Icon className="mx-auto text-red-500" size={30} />
 
-                  <div className="relative">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600 transition group-hover:bg-red-600 group-hover:text-white">
-                      <Icon size={22} />
-                    </div>
+                  <h3 className="mt-6 font-serif text-2xl font-light">
+                    {item.title}
+                  </h3>
 
-                    <p className="mt-5 text-xs font-black uppercase tracking-[0.3em] text-red-600">
-                      0{index + 1}
-                    </p>
-
-                    <h3 className="mt-2 text-lg font-black text-zinc-950">
-                      {item.title}
-                    </h3>
-
-                    <p className="mt-3 text-sm leading-6 text-zinc-600">
-                      {item.description}
-                    </p>
-                  </div>
+                  <p className="mt-4 text-sm uppercase leading-6 tracking-[0.14em] text-zinc-400">
+                    {item.description}
+                  </p>
                 </article>
               );
             })}
@@ -364,19 +366,19 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-zinc-950 py-16 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_left,rgba(220,38,38,0.24),transparent_34%),linear-gradient(135deg,rgba(9,9,11,1),rgba(24,24,27,1))]" />
-
-        <div className="absolute -right-32 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-red-600/10 blur-3xl" />
-
-        <div className="relative mx-auto max-w-7xl px-4">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-500">
-                Agenda da semana
+              <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
+                Agenda
               </p>
-              <h2 className="mt-2 text-4xl font-black">Jogos por escalão</h2>
-              <p className="mt-3 text-sm font-semibold text-zinc-400">
+
+              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
+                Jogos da semana
+              </h2>
+
+              <p className="mt-4 text-sm font-semibold text-zinc-500">
                 Semana de {formatWeekLabel()}
               </p>
             </div>
@@ -384,14 +386,14 @@ export function HomePage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/equipas"
-                className="inline-flex items-center justify-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white hover:border-red-500 hover:bg-red-600"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-300 px-5 py-3 text-sm font-bold text-zinc-700 transition hover:border-red-700 hover:text-red-700"
               >
                 Ver equipas <ChevronRight size={16} />
               </Link>
 
               <Link
                 to="/resultados"
-                className="inline-flex items-center justify-center gap-1 rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-800"
               >
                 Histórico de resultados <ChevronRight size={16} />
               </Link>
@@ -399,34 +401,32 @@ export function HomePage() {
           </div>
 
           {loadingMatches ? (
-            <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.06] p-8 text-zinc-300">
+            <div className="mt-10 rounded-sm border border-zinc-200 bg-[#f6f2ec] p-8 text-zinc-600">
               A carregar jogos da semana...
             </div>
           ) : (
-            <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {weeklyTeamSlots.map((slot) => {
                 const match = matchesByTeam[slot.teamName];
 
                 return (
                   <article
                     key={slot.teamName}
-                    className={`group min-h-[285px] overflow-hidden rounded-3xl border shadow-2xl transition hover:-translate-y-1 ${
-                      match
-                        ? 'border-white/10 bg-white/[0.07] hover:border-red-500/50 hover:bg-white/[0.10]'
-                        : 'border-white/10 bg-white/[0.035]'
-                    }`}
+                    className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                   >
                     <div
-                      className={match ? 'h-2 bg-red-600' : 'h-2 bg-zinc-700'}
+                      className={
+                        match ? 'h-1.5 bg-red-700' : 'h-1.5 bg-zinc-300'
+                      }
                     />
 
-                    <div className="flex h-full flex-col p-6">
+                    <div className="p-6">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-white">
+                        <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
                           {slot.teamName}
                         </span>
 
-                        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-zinc-300">
+                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
                           {slot.footballType}
                         </span>
                       </div>
@@ -439,52 +439,52 @@ export function HomePage() {
 
                             return (
                               <>
-                                <h3 className="mt-5 text-2xl font-black text-white">
+                                <h3 className="mt-6 font-serif text-3xl font-light leading-tight text-[#24180f]">
                                   {firstTeam}
                                 </h3>
 
-                                <p className="text-sm font-bold uppercase tracking-[0.2em] text-zinc-400">
+                                <p className="mt-1 text-sm font-bold uppercase tracking-[0.22em] text-zinc-500">
                                   vs {secondTeam}
                                 </p>
                               </>
                             );
                           })()}
 
-                          <p className="mt-4 text-sm font-semibold text-zinc-300">
+                          <p className="mt-5 text-sm font-semibold text-zinc-600">
                             {match.competition}
                           </p>
 
-                          <div className="mt-5 flex items-center gap-2 text-sm text-zinc-300">
-                            <CalendarDays size={16} className="text-red-500" />
+                          <div className="mt-5 flex items-center gap-2 text-sm text-zinc-600">
+                            <CalendarDays size={16} className="text-red-700" />
                             {formatMatchDate(match.match_date)}
                             {match.match_time
                               ? ` | ${match.match_time.slice(0, 5)}`
                               : ''}
                           </div>
 
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <span className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
+                          <div className="mt-5 flex flex-wrap gap-2">
+                            <span className="rounded-full bg-[#f6f2ec] px-4 py-2 text-sm font-semibold text-zinc-700">
                               {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
                             </span>
 
-                            <span className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
+                            <span className="rounded-full bg-[#f6f2ec] px-4 py-2 text-sm font-semibold text-zinc-700">
                               {formatStatus(match.status)}
                             </span>
                           </div>
 
                           {match.location && (
-                            <p className="mt-4 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-zinc-200">
+                            <p className="mt-4 text-sm font-semibold text-zinc-500">
                               {match.location}
                             </p>
                           )}
                         </>
                       ) : (
-                        <div className="flex flex-1 flex-col justify-center">
-                          <p className="text-2xl font-black text-white">
+                        <div className="py-10">
+                          <p className="font-serif text-3xl font-light text-[#24180f]">
                             Sem jogos agendados
                           </p>
 
-                          <p className="mt-3 text-sm leading-6 text-zinc-400">
+                          <p className="mt-4 text-sm leading-6 text-zinc-500">
                             Não há jogos marcados para este escalão na semana
                             corrente.
                           </p>
@@ -499,94 +499,75 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-zinc-100 py-16">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(220,38,38,0.10),transparent_35%)]" />
-
-        <div className="relative mx-auto max-w-7xl px-4">
-          <div className="flex items-center justify-between gap-4">
+      <section className="bg-[#f6f2ec] py-24">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-600">
+              <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
                 Informação
               </p>
-              <h2 className="mt-2 text-4xl font-black text-zinc-950">
+
+              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
                 Últimas notícias
               </h2>
             </div>
 
             <Link
               to="/noticias"
-              className="hidden items-center gap-1 rounded-full bg-zinc-950 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 sm:flex"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-[#24180f] px-5 py-3 text-sm font-bold text-white transition hover:bg-red-700"
             >
               Ver todas <ChevronRight size={16} />
             </Link>
           </div>
 
           {loadingNews ? (
-            <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
+            <div className="mt-10 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600">
               A carregar notícias...
             </div>
           ) : latestNews.length === 0 ? (
-            <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
+            <div className="mt-10 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600">
               Ainda não existem notícias publicadas.
             </div>
           ) : (
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              {latestNews.map((item, index) => (
+            <div className="mt-10 grid gap-6 md:grid-cols-3">
+              {latestNews.map((item) => (
                 <article
                   key={item.id}
-                  className={`group relative overflow-hidden rounded-3xl border p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${
-                    index === 0
-                      ? 'border-red-200 bg-white'
-                      : 'border-zinc-200 bg-white'
-                  }`}
+                  className="group rounded-sm border border-zinc-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
-                  {index === 0 && (
-                    <div className="absolute inset-x-0 top-0 h-2 bg-red-600" />
+                  <span className="text-xs font-bold uppercase tracking-[0.25em] text-red-700">
+                    {item.source}
+                  </span>
+
+                  <h3 className="mt-5 font-serif text-3xl font-light leading-tight text-[#24180f]">
+                    {item.title}
+                  </h3>
+
+                  {item.summary && (
+                    <p className="mt-5 text-sm leading-7 text-zinc-600">
+                      {item.summary}
+                    </p>
                   )}
 
-                  <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-red-100 opacity-70" />
-
-                  <div className="relative">
-                    <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold uppercase text-red-700">
-                      {item.source}
-                    </span>
-
-                    {index === 0 && (
-                      <span className="ml-2 rounded-full bg-zinc-950 px-3 py-1 text-xs font-bold uppercase text-white">
-                        Destaque
-                      </span>
-                    )}
-
-                    <h3 className="mt-5 text-2xl font-black leading-tight text-zinc-950">
-                      {item.title}
-                    </h3>
-
-                    {item.summary && (
-                      <p className="mt-4 text-sm leading-6 text-zinc-600">
-                        {item.summary}
+                  <div className="mt-7 flex items-center justify-between gap-3">
+                    {item.published_at && (
+                      <p className="text-xs font-semibold text-zinc-500">
+                        {new Date(item.published_at).toLocaleDateString(
+                          'pt-PT',
+                        )}
                       </p>
                     )}
 
-                    <div className="mt-6 flex items-center justify-between gap-3">
-                      {item.published_at && (
-                        <p className="text-xs font-semibold text-zinc-500">
-                          {new Date(item.published_at).toLocaleDateString(
-                            'pt-PT',
-                          )}
-                        </p>
-                      )}
-
-                      {item.external_url && (
-                        <a
-                          href={item.external_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-sm font-bold text-red-600 hover:text-red-700"
-                        >
-                          Ver notícia <ChevronRight size={15} />
-                        </a>
-                      )}
-                    </div>
+                    {item.external_url && (
+                      <a
+                        href={item.external_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-sm font-bold text-red-700 hover:text-red-900"
+                      >
+                        Ver notícia <ChevronRight size={15} />
+                      </a>
+                    )}
                   </div>
                 </article>
               ))}
@@ -595,39 +576,40 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-white py-16">
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(220,38,38,0.08),transparent_35%,rgba(24,24,27,0.05))]" />
-
-        <div className="relative mx-auto max-w-7xl px-4">
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-7xl px-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-600">
+            <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
               Futebol
             </p>
-            <h2 className="mt-2 text-4xl font-black text-zinc-950">
-              Equipas em destaque
+
+            <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
+              As nossas equipas
             </h2>
           </div>
 
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
             {featuredTeams.map((team) => (
               <Link
                 key={team.title}
                 to="/equipas"
-                className="group relative overflow-hidden rounded-3xl bg-zinc-950 p-7 text-white shadow-xl transition hover:-translate-y-1 hover:bg-red-600"
+                className="group relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white transition hover:-translate-y-1 hover:bg-red-800"
               >
                 <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-white/10" />
 
                 <div className="relative">
-                  <Trophy size={36} />
+                  <Trophy size={34} className="text-red-400" />
 
-                  <h3 className="mt-10 text-3xl font-black">{team.title}</h3>
+                  <h3 className="mt-12 font-serif text-4xl font-light">
+                    {team.title}
+                  </h3>
 
-                  <p className="mt-3 text-sm text-zinc-300 group-hover:text-white">
+                  <p className="mt-4 text-sm leading-6 text-zinc-300">
                     {team.description}
                   </p>
 
-                  <div className="mt-8 inline-flex items-center gap-1 text-sm font-bold">
-                    Ver equipa <ChevronRight size={15} />
+                  <div className="mt-10 inline-flex items-center gap-2 text-sm font-bold">
+                    Ver escalões <ChevronRight size={15} />
                   </div>
                 </div>
               </Link>
@@ -636,28 +618,55 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-red-600 py-20 text-white">
+      <section className="bg-[#24180f] py-20 text-white">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="grid gap-6 md:grid-cols-4">
+            {missionItems.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <article key={item.title} className="border border-white/10 p-6">
+                  <Icon size={26} className="text-red-500" />
+
+                  <h3 className="mt-6 font-serif text-2xl font-light">
+                    {item.title}
+                  </h3>
+
+                  <p className="mt-4 text-sm leading-6 text-zinc-400">
+                    {item.description}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden bg-red-700 py-20 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(0,0,0,0.22),transparent_34%)]" />
 
-        <div className="relative mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 md:flex-row md:items-center">
+        <div className="relative mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-4 md:flex-row md:items-center">
           <div>
-            <h2 className="text-3xl font-black uppercase">
-              Faz parte da família Boavista
+            <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-200">
+              Sócios
+            </p>
+
+            <h2 className="mt-4 font-serif text-5xl font-light">
+              Faz parte da família Boavista.
             </h2>
 
-            <p className="mt-2 text-red-100">
-              Apoia o clube, acompanha as equipas e ajuda-nos a crescer.
+            <p className="mt-4 max-w-xl text-red-100">
+              Apoia o clube, acompanha as equipas e ajuda-nos a continuar a
+              crescer dentro e fora de campo.
             </p>
           </div>
 
           <Link
             to="/socios"
-            className="group inline-flex items-center justify-center rounded-full bg-white px-10 py-5 text-lg font-black uppercase tracking-wide text-red-600 shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:bg-zinc-950 hover:text-white"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-8 py-4 text-sm font-black uppercase tracking-wide text-red-700 shadow-xl transition hover:bg-[#24180f] hover:text-white"
           >
             Quero ser sócio
-            <span className="ml-3 inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white transition group-hover:bg-white group-hover:text-zinc-950">
-              →
-            </span>
+            <ChevronRight size={17} />
           </Link>
         </div>
       </section>

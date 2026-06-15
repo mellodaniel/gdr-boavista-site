@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { Mail, Menu, Phone } from 'lucide-react';
+import { Mail, Menu, Phone, X } from 'lucide-react';
 
 const navigation = [
-  { label: 'Início', path: '/' },
   { label: 'Clube', path: '/clube' },
   { label: 'Equipas', path: '/equipas' },
+  { label: 'Jogos', path: '/resultados' },
   { label: 'Notícias', path: '/noticias' },
   { label: 'Sócios', path: '/socios' },
   { label: 'Galeria', path: '/galeria' },
@@ -13,77 +13,72 @@ const navigation = [
   { label: 'Contactos', path: '/contactos' },
 ];
 
-function InstagramIcon() {
+function InstagramIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-4 w-4"
-      fill="none"
       aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
     >
-      <rect
-        x="4"
-        y="4"
-        width="16"
-        height="16"
-        rx="5"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <circle
-        cx="12"
-        cy="12"
-        r="3.5"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <circle cx="17" cy="7" r="1.2" fill="currentColor" />
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-function FacebookIcon() {
+function FacebookIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-4 w-4"
-      fill="currentColor"
       aria-hidden="true"
+      className={className}
+      fill="currentColor"
     >
-      <path d="M14.5 8.5V7.2c0-.6.4-1 1-1H18V3h-3.1C11.8 3 10 4.8 10 7.6v.9H7.5V12H10v9h4.1v-9h3.1l.5-3.5h-3.2Z" />
+      <path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.3-1.5 1.6-1.5h1.7V4.6c-.8-.1-1.6-.2-2.4-.2-2.4 0-4.1 1.5-4.1 4.2v2.3H8V14h2.8v8h2.7Z" />
     </svg>
   );
 }
 
 export function PublicLayout() {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const navClass = ({ isActive }: { isActive: boolean }) =>
-    isActive
-      ? 'text-red-600 font-semibold'
-      : 'text-zinc-700 hover:text-red-600 transition-colors';
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-950">
-      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+    <div className="min-h-screen bg-[#f6f2ec] text-zinc-950">
+      <header className="sticky top-0 z-50 border-b border-[#eadfd2] bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-3">
-            <img
-              src="/logo-gdr-boavista-header-256.png"
-              alt="GDR Boavista"
-              className="h-16 w-16 object-contain"
-            />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
+              <img
+                src="/logo-gdr-boavista-header-256.png"
+                alt="GDR Boavista"
+                className="h-full w-full object-contain"
+              />
+            </div>
 
             <div>
-              <p className="text-lg font-black uppercase leading-tight">
+              <p className="text-lg font-black uppercase leading-tight tracking-tight text-[#24180f]">
                 GDR Boavista
               </p>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-5 text-sm lg:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {navigation.map((item) => (
-              <NavLink key={item.path} to={item.path} className={navClass}>
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    isActive
+                      ? 'bg-[#24180f] text-white'
+                      : 'text-zinc-600 hover:bg-white hover:text-red-700'
+                  }`
+                }
+              >
                 {item.label}
               </NavLink>
             ))}
@@ -94,9 +89,8 @@ export function PublicLayout() {
               href="https://www.instagram.com/gdr_boavista_oficial/"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 transition hover:border-red-600 hover:bg-red-600 hover:text-white"
-              aria-label="Instagram do GDR Boavista"
-              title="Instagram"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 transition hover:border-red-700 hover:text-red-700"
+              aria-label="Instagram GDR Boavista"
             >
               <InstagramIcon />
             </a>
@@ -105,74 +99,42 @@ export function PublicLayout() {
               href="https://www.facebook.com/G.D.R.BoaVista"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 transition hover:border-red-600 hover:bg-red-600 hover:text-white"
-              aria-label="Facebook do GDR Boavista"
-              title="Facebook"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 transition hover:border-red-700 hover:text-red-700"
+              aria-label="Facebook GDR Boavista"
             >
               <FacebookIcon />
             </a>
-
-            <Link
-              to="/admin/login"
-              className="rounded-full bg-zinc-950 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
-            >
-              Admin
-            </Link>
           </div>
 
           <button
             type="button"
-            onClick={() => setIsOpen((value) => !value)}
-            className="rounded-lg border border-zinc-200 p-2 lg:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-[#24180f] lg:hidden"
             aria-label="Abrir menu"
           >
-            <Menu size={22} />
+            {isMenuOpen ? <X size={21} /> : <Menu size={21} />}
           </button>
         </div>
 
-        {isOpen && (
-          <div className="border-t border-zinc-200 bg-white px-4 py-4 lg:hidden">
-            <nav className="flex flex-col gap-3 text-sm">
+        {isMenuOpen && (
+          <div className="border-t border-zinc-200 bg-[#f6f2ec] px-4 py-5 lg:hidden">
+            <nav className="grid gap-2">
               {navigation.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  className={navClass}
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `rounded-2xl px-4 py-3 text-sm font-bold ${
+                      isActive
+                        ? 'bg-[#24180f] text-white'
+                        : 'bg-white text-zinc-700'
+                    }`
+                  }
                 >
                   {item.label}
                 </NavLink>
               ))}
-
-              <div className="mt-2 flex gap-2">
-                <a
-                  href="https://www.instagram.com/gdr_boavista_oficial/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-600 hover:bg-red-600 hover:text-white"
-                >
-                  <InstagramIcon />
-                  Instagram
-                </a>
-
-                <a
-                  href="https://www.facebook.com/G.D.R.BoaVista"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-600 hover:bg-red-600 hover:text-white"
-                >
-                  <FacebookIcon />
-                  Facebook
-                </a>
-              </div>
-
-              <Link
-                to="/admin/login"
-                onClick={() => setIsOpen(false)}
-                className="mt-2 rounded-lg bg-zinc-950 px-4 py-2 text-center text-sm font-semibold text-white"
-              >
-                Admin
-              </Link>
             </nav>
           </div>
         )}
@@ -182,13 +144,11 @@ export function PublicLayout() {
         <Outlet />
       </main>
 
-      <footer className="relative overflow-hidden border-t border-zinc-800 bg-zinc-950 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.18),transparent_32%)]" />
-
-        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-4">
-          <div className="md:col-span-2">
+      <footer className="bg-[#24180f] text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 lg:grid-cols-[1.2fr_1fr_1fr]">
+          <div>
             <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white p-2 shadow-xl">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-2">
                 <img
                   src="/logo-gdr-boavista-header-256.png"
                   alt="GDR Boavista"
@@ -198,65 +158,74 @@ export function PublicLayout() {
 
               <div>
                 <p className="text-2xl font-black uppercase">GDR Boavista</p>
-                <p className="mt-1 text-xs font-bold uppercase tracking-[0.28em] text-red-500">
-                  Grupo Desportivo Recreativo Boavista
+                <p className="mt-1 text-xs font-black uppercase tracking-[0.28em] text-red-400">
+                  Leiria · Futebol · Formação
                 </p>
               </div>
             </div>
 
-            <p className="mt-5 max-w-xl text-sm leading-6 text-zinc-300">
-              Formação, paixão e comunidade dentro e fora de campo. Um clube
-              feito de atletas, famílias, sócios, treinadores, patrocinadores e
-              todos os que vivem o Boavista com orgulho.
+            <p className="mt-6 max-w-md text-sm leading-7 text-zinc-400">
+              Clube de formação, competição e comunidade. Uma casa feita por
+              atletas, famílias, sócios, treinadores, patrocinadores e amigos.
             </p>
           </div>
 
           <div>
-            <p className="font-bold">Contactos</p>
+            <h3 className="font-serif text-2xl font-light">Contactos</h3>
 
-            <div className="mt-4 space-y-3 text-sm text-zinc-300">
-              <p className="flex items-center gap-2">
-                <Phone size={16} className="text-red-500" />
-                913 030 249 / 912 242 196
-              </p>
-
-              <p className="flex items-center gap-2">
-                <Mail size={16} className="text-red-500" />
+            <div className="mt-5 grid gap-3 text-sm text-zinc-300">
+              <a
+                href="mailto:socios.gdrboavista@gmail.com"
+                className="flex items-center gap-3 hover:text-red-400"
+              >
+                <Mail size={17} />
                 socios.gdrboavista@gmail.com
-              </p>
+              </a>
+
+              <a
+                href="tel:+351913030249"
+                className="flex items-center gap-3 hover:text-red-400"
+              >
+                <Phone size={17} />
+                913 030 249 / 912 242 196
+              </a>
             </div>
           </div>
 
           <div>
-            <p className="font-bold">Redes sociais</p>
+            <h3 className="font-serif text-2xl font-light">Redes sociais</h3>
 
-            <div className="mt-4 flex flex-col gap-3 text-sm text-zinc-300">
+            <div className="mt-5 flex gap-3">
               <a
                 href="https://www.instagram.com/gdr_boavista_oficial/"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 hover:text-red-500"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-red-700"
+                aria-label="Instagram"
               >
                 <InstagramIcon />
-                Instagram
               </a>
 
               <a
                 href="https://www.facebook.com/G.D.R.BoaVista"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 hover:text-red-500"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-red-700"
+                aria-label="Facebook"
               >
                 <FacebookIcon />
-                Facebook
               </a>
             </div>
           </div>
         </div>
 
-        <div className="relative border-t border-white/10 px-4 py-4 text-center text-xs text-zinc-400">
-          © {new Date().getFullYear()} GDR Boavista. Todos os direitos
-          reservados.
+        <div className="border-t border-white/10 py-5">
+          <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-4 text-xs font-semibold text-zinc-500 md:flex-row">
+            <p>© {new Date().getFullYear()} GDR Boavista.</p>
+            <Link to="/admin" className="hover:text-red-400">
+              Administração
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
