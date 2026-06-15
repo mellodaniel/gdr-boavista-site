@@ -381,12 +381,21 @@ export function HomePage() {
               </p>
             </div>
 
-            <Link
-              to="/equipas"
-              className="inline-flex items-center justify-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white hover:border-red-500 hover:bg-red-600"
-            >
-              Ver equipas <ChevronRight size={16} />
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/equipas"
+                className="inline-flex items-center justify-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white hover:border-red-500 hover:bg-red-600"
+              >
+                Ver equipas <ChevronRight size={16} />
+              </Link>
+
+              <Link
+                to="/resultados"
+                className="inline-flex items-center justify-center gap-1 rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+              >
+                Histórico de resultados <ChevronRight size={16} />
+              </Link>
+            </div>
           </div>
 
           {loadingMatches ? (

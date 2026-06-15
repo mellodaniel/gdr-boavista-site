@@ -12,6 +12,7 @@ import { MembersPage } from '../pages/public/MembersPage';
 import { GalleryPage } from '../pages/public/GalleryPage';
 import { SponsorsPage } from '../pages/public/SponsorsPage';
 import { ContactsPage } from '../pages/public/ContactsPage';
+import { ResultsPage } from '../pages/public/ResultsPage';
 
 import { AdminLoginPage } from '../pages/admin/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
@@ -53,6 +54,7 @@ export function AppRoutes() {
         <Route path="galeria" element={<GalleryPage />} />
         <Route path="patrocinadores" element={<SponsorsPage />} />
         <Route path="contactos" element={<ContactsPage />} />
+        <Route path="resultados" element={<ResultsPage />} />
       </Route>
 
       <Route path="/admin/login" element={<AdminLoginPage />} />
