@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Mail, Phone, RefreshCw, UserRound } from 'lucide-react';
+import { Mail, Phone, RefreshCcw, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbMemberRequest } from '../../types/database';
 
-const memberStatuses = [
+const statusOptions = [
   { value: 'novo', label: 'Novo' },
   { value: 'em_contacto', label: 'Em contacto' },
   { value: 'pendente', label: 'Pendente' },
@@ -11,14 +11,29 @@ const memberStatuses = [
   { value: 'arquivado', label: 'Arquivado' },
 ];
 
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatStatus(status: string) {
+  const foundStatus = statusOptions.find((item) => item.value === status);
+  return foundStatus?.label ?? status;
+}
+
 export function AdminMembersPage() {
   const [requests, setRequests] = useState<GdrbMemberRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   async function loadRequests() {
-    setLoading(true);
+    setIsLoading(true);
     setErrorMessage('');
 
     const { data, error } = await supabase
@@ -29,18 +44,20 @@ export function AdminMembersPage() {
     if (error) {
       console.error('Erro ao carregar pedidos de sócio:', error);
       setErrorMessage('Não foi possível carregar os pedidos de sócio.');
+      setIsLoading(false);
+      return;
     }
 
     setRequests(data ?? []);
-    setLoading(false);
+    setIsLoading(false);
   }
 
   useEffect(() => {
     loadRequests();
   }, []);
 
-  async function updateStatus(id: string, status: string) {
-    setUpdatingId(id);
+  async function handleStatusChange(id: string, status: string) {
+    setSuccessMessage('');
     setErrorMessage('');
 
     const { error } = await supabase
@@ -48,184 +65,160 @@ export function AdminMembersPage() {
       .update({ status })
       .eq('id', id);
 
-    setUpdatingId(null);
-
     if (error) {
-      console.error('Erro ao atualizar estado do pedido:', error);
+      console.error('Erro ao atualizar pedido:', error);
       setErrorMessage('Não foi possível atualizar o estado do pedido.');
       return;
     }
 
-    setRequests((currentRequests) =>
-      currentRequests.map((request) =>
-        request.id === id ? { ...request, status } : request,
-      ),
-    );
-  }
-
-  function getStatusStyle(status: string) {
-    if (status === 'convertido') {
-      return 'bg-green-100 text-green-800';
-    }
-
-    if (status === 'arquivado') {
-      return 'bg-zinc-200 text-zinc-700';
-    }
-
-    if (status === 'pendente') {
-      return 'bg-yellow-100 text-yellow-800';
-    }
-
-    if (status === 'em_contacto') {
-      return 'bg-blue-100 text-blue-800';
-    }
-
-    return 'bg-red-100 text-red-700';
+    setSuccessMessage('Estado do pedido atualizado com sucesso.');
+    await loadRequests();
   }
 
   return (
     <div>
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-red-600">
-            Sócios
-          </p>
+      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-          <h2 className="mt-2 text-3xl font-black text-zinc-950">
-            Pedidos de sócio
-          </h2>
+        <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
+              Administração
+            </p>
 
-          <p className="mt-3 max-w-3xl text-zinc-600">
-            Lista de pessoas que preencheram o formulário para serem sócias ou
-            atualizarem os seus dados.
-          </p>
+            <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
+              Sócios.
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
+              Acompanha os pedidos de sócio recebidos através do site público do
+              GDR Boavista.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadRequests}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+          >
+            <RefreshCcw size={17} />
+            Atualizar
+          </button>
         </div>
+      </section>
 
-        <button
-          type="button"
-          onClick={loadRequests}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-950 px-5 py-3 text-sm font-bold text-white hover:bg-red-600"
-        >
-          <RefreshCw size={16} />
-          Atualizar
-        </button>
-      </div>
+      {successMessage && (
+        <div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
+          {successMessage}
+        </div>
+      )}
 
       {errorMessage && (
-        <div className="mt-6 rounded-xl bg-red-100 px-4 py-3 text-sm font-semibold text-red-800">
+        <div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
           {errorMessage}
         </div>
       )}
 
-      {loading ? (
-        <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-8 text-zinc-600">
+      {isLoading ? (
+        <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
           A carregar pedidos de sócio...
         </div>
       ) : requests.length === 0 ? (
-        <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-8 text-zinc-600">
-          Ainda não existem pedidos de sócio.
+        <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
+            <Users size={28} />
+          </div>
+
+          <h2 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
+            Sem pedidos de sócio
+          </h2>
+
+          <p className="mt-3 text-zinc-500">
+            Ainda não existem pedidos registados.
+          </p>
         </div>
       ) : (
-        <div className="mt-8 overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] text-left text-sm">
-              <thead className="bg-zinc-950 text-white">
-                <tr>
-                  <th className="px-5 py-4 font-bold">Nome</th>
-                  <th className="px-5 py-4 font-bold">Contacto</th>
-                  <th className="px-5 py-4 font-bold">NIF</th>
-                  <th className="px-5 py-4 font-bold">Observações</th>
-                  <th className="px-5 py-4 font-bold">Estado</th>
-                  <th className="px-5 py-4 font-bold">Alterar estado</th>
-                  <th className="px-5 py-4 font-bold">Data</th>
-                </tr>
-              </thead>
+        <div className="mt-8 grid gap-5">
+          {requests.map((request) => (
+            <article
+              key={request.id}
+              className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm"
+            >
+              <div className="h-1.5 bg-red-700" />
 
-              <tbody className="divide-y divide-zinc-200">
-                {requests.map((request) => (
-                  <tr key={request.id} className="hover:bg-zinc-50">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-full bg-red-100 p-2 text-red-600">
-                          <UserRound size={18} />
-                        </div>
+              <div className="grid gap-6 p-7 lg:grid-cols-[1fr_auto] lg:items-start">
+                <div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                      {formatStatus(request.status)}
+                    </span>
 
-                        <div>
-                          <p className="font-bold text-zinc-950">
-                            {request.full_name}
-                          </p>
-                          <p className="text-xs text-zinc-500">
-                            ID: {request.id.slice(0, 8)}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
+                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
+                      {formatDate(request.created_at)}
+                    </span>
+                  </div>
 
-                    <td className="px-5 py-4">
-                      <div className="space-y-1 text-zinc-600">
-                        {request.email && (
-                          <p className="flex items-center gap-2">
-                            <Mail size={14} />
-                            {request.email}
-                          </p>
-                        )}
+                  <h3 className="mt-6 font-serif text-4xl font-light text-[#24180f]">
+                    {request.full_name}
+                  </h3>
 
-                        {request.phone && (
-                          <p className="flex items-center gap-2">
-                            <Phone size={14} />
-                            {request.phone}
-                          </p>
-                        )}
-
-                        {!request.email && !request.phone && (
-                          <p className="text-zinc-400">Sem contacto</p>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-4 text-zinc-600">
-                      {request.nif || '-'}
-                    </td>
-
-                    <td className="max-w-xs px-5 py-4 text-zinc-600">
-                      {request.notes || '-'}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${getStatusStyle(
-                          request.status,
-                        )}`}
+                  <div className="mt-5 grid gap-3 text-sm text-zinc-600">
+                    {request.email && (
+                      <a
+                        href={`mailto:${request.email}`}
+                        className="flex items-center gap-3 hover:text-red-700"
                       >
-                        {request.status}
-                      </span>
-                    </td>
+                        <Mail size={17} className="text-red-700" />
+                        {request.email}
+                      </a>
+                    )}
 
-                    <td className="px-5 py-4">
-                      <select
-                        value={request.status}
-                        disabled={updatingId === request.id}
-                        onChange={(event) =>
-                          updateStatus(request.id, event.target.value)
-                        }
-                        className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    {request.phone && (
+                      <a
+                        href={`tel:${request.phone}`}
+                        className="flex items-center gap-3 hover:text-red-700"
                       >
-                        {memberStatuses.map((status) => (
-                          <option key={status.value} value={status.value}>
-                            {status.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
+                        <Phone size={17} className="text-red-700" />
+                        {request.phone}
+                      </a>
+                    )}
 
-                    <td className="px-5 py-4 text-zinc-600">
-                      {new Date(request.created_at).toLocaleDateString('pt-PT')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    {request.nif && (
+                      <p className="rounded-sm bg-[#f6f2ec] px-4 py-3 font-semibold text-zinc-700">
+                        NIF: {request.nif}
+                      </p>
+                    )}
+                  </div>
+
+                  {request.notes && (
+                    <p className="mt-5 rounded-sm bg-[#f6f2ec] px-4 py-3 text-sm leading-7 text-zinc-600">
+                      {request.notes}
+                    </p>
+                  )}
+                </div>
+
+                <div className="lg:min-w-[240px]">
+                  <label className="text-sm font-black text-zinc-800">
+                    Estado do pedido
+                  </label>
+
+                  <select
+                    value={request.status}
+                    onChange={(event) =>
+                      handleStatusChange(request.id, event.target.value)
+                    }
+                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  >
+                    {statusOptions.map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, LogIn, User } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { Lock, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const ADMIN_EMAIL_DOMAIN = 'gdrboavista.local';
@@ -19,24 +19,25 @@ function buildAdminEmail(username: string) {
 export function AdminLoginPage() {
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
+  useState(() => {
     async function checkSession() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (session) {
-        navigate('/admin', { replace: true });
-      }
+      setHasSession(Boolean(session));
+      setIsLoadingSession(false);
     }
 
     checkSession();
-  }, [navigate]);
+  });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,115 +45,204 @@ export function AdminLoginPage() {
     setErrorMessage('');
 
     if (!username.trim() || !password.trim()) {
-      setErrorMessage('Preenche o utilizador e a password.');
+      setErrorMessage('Indica o utilizador e a palavra-passe.');
       return;
     }
 
     setIsSubmitting(true);
 
-    const email = buildAdminEmail(username);
-
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: buildAdminEmail(username),
       password,
     });
 
     setIsSubmitting(false);
 
     if (error) {
-      setErrorMessage(
-        'Utilizador ou password inválidos. Confirma os dados e tenta novamente.',
-      );
+      console.error('Erro no login admin:', error);
+      setErrorMessage('Utilizador ou palavra-passe inválidos.');
       return;
     }
 
-    navigate('/admin', { replace: true });
+    navigate('/admin');
+  }
+
+  if (isLoadingSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f6f2ec]">
+        <div className="rounded-sm border border-zinc-200 bg-white px-8 py-6 shadow-xl">
+          <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-700">
+            GDR Boavista
+          </p>
+          <p className="mt-3 font-serif text-3xl font-light text-[#24180f]">
+            A validar acesso...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasSession) {
+    return <Navigate to="/admin" replace />;
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-zinc-950 px-4 py-10 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.28),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(220,38,38,0.18),transparent_34%)]" />
+    <div className="min-h-screen bg-[#f6f2ec] text-zinc-950">
+      <div className="grid min-h-screen lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="relative hidden overflow-hidden bg-[#24180f] text-white lg:block">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(220,38,38,0.32),transparent_34%),linear-gradient(135deg,#24180f,#09090b)]" />
 
-      <div className="absolute inset-0 opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:64px_64px]" />
+          <img
+            src="/hero-boavista.webp"
+            alt="GDR Boavista"
+            className="absolute inset-0 h-full w-full object-cover opacity-35"
+          />
 
-      <div className="relative w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-3xl bg-white p-3 shadow-2xl">
-            <img
-              src="/logo-gdr-boavista-header-256.png"
-              alt="GDR Boavista"
-              className="h-full w-full object-contain"
-            />
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#24180f]/85 to-black/40" />
 
-          <h1 className="mt-6 text-3xl font-black uppercase">
-            Área Administrativa
-          </h1>
+          <div className="relative flex min-h-screen flex-col justify-between p-16">
+            <div className="flex items-center gap-4">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white p-3 shadow-2xl">
+                <img
+                  src="/logo-gdr-boavista-header-256.png"
+                  alt="GDR Boavista"
+                  className="h-full w-full object-contain"
+                />
+              </div>
 
-          <p className="mt-2 text-sm text-zinc-400">
-            Acesso reservado à gestão do site do GDR Boavista.
-          </p>
-        </div>
+              <div>
+                <p className="text-3xl font-black uppercase">GDR Boavista</p>
+              </div>
+            </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur"
-        >
-          <div>
-            <label className="text-sm font-bold text-zinc-200">
-              Utilizador
-            </label>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
+                Administração
+              </p>
 
-            <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
-              <User size={18} className="text-red-500" />
+              <h1 className="mt-8 font-serif text-7xl font-light leading-[0.95]">
+                Gestão simples,
+                <br />
+                organizada e segura.
+              </h1>
 
-              <input
-                type="text"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                className="w-full bg-transparent text-white outline-none placeholder:text-zinc-500"
-                placeholder="admin"
-                autoComplete="username"
-              />
+              <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-300">
+                Área reservada para gestão de conteúdos, jogos, notícias,
+                sócios, contactos, equipas e patrocinadores do GDR Boavista.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-8 border-t border-white/10 pt-8">
+              <div>
+                <p className="font-serif text-4xl">Admin</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
+                  Acesso
+                </p>
+              </div>
+
+              <div>
+                <p className="font-serif text-4xl">Site</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
+                  Gestão
+                </p>
+              </div>
+
+              <div>
+                <p className="font-serif text-4xl">GDRB</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
+                  Boavista
+                </p>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div className="mt-5">
-            <label className="text-sm font-bold text-zinc-200">Password</label>
+        <section className="flex min-h-screen items-center justify-center px-4 py-12">
+          <div className="w-full max-w-md">
+            <div className="mb-10 flex items-center gap-4 lg:hidden">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
+                <img
+                  src="/logo-gdr-boavista-header-256.png"
+                  alt="GDR Boavista"
+                  className="h-full w-full object-contain"
+                />
+              </div>
 
-            <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
-              <Lock size={18} className="text-red-500" />
-
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full bg-transparent text-white outline-none placeholder:text-zinc-500"
-                placeholder="A tua password"
-                autoComplete="current-password"
-              />
+              <p className="text-xl font-black uppercase text-[#24180f]">
+                GDR Boavista
+              </p>
             </div>
+
+            <div className="rounded-sm border border-zinc-200 bg-white p-8 shadow-2xl shadow-zinc-950/10">
+              <div className="mb-8">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-700">
+                  <ShieldCheck size={26} />
+                </div>
+
+                <p className="mt-6 text-sm font-bold uppercase tracking-[0.35em] text-red-700">
+                  Administração
+                </p>
+
+                <h2 className="mt-4 font-serif text-5xl font-light text-[#24180f]">
+                  Entrar.
+                </h2>
+
+                <p className="mt-3 text-sm leading-7 text-zinc-500">
+                  Acesso reservado à equipa de administração do site.
+                </p>
+              </div>
+
+              {errorMessage && (
+                <div className="mb-6 rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+                  {errorMessage}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="grid gap-5">
+                <div>
+                  <label className="text-sm font-black text-zinc-800">
+                    Utilizador
+                  </label>
+
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    placeholder="admin"
+                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-black text-zinc-800">
+                    Palavra-passe
+                  </label>
+
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="••••••••"
+                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="mt-2 inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Lock size={17} />
+                  {isSubmitting ? 'A entrar...' : 'Entrar no admin'}
+                </button>
+              </form>
+            </div>
+
+            <p className="mt-6 text-center text-xs font-semibold text-zinc-500">
+              © {new Date().getFullYear()} GDR Boavista
+            </p>
           </div>
-
-          {errorMessage && (
-            <div className="mt-5 rounded-2xl border border-red-500/30 bg-red-600/15 px-4 py-3 text-sm font-semibold text-red-100">
-              {errorMessage}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-4 font-black uppercase tracking-wide text-white shadow-lg shadow-red-950/30 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <LogIn size={18} />
-            {isSubmitting ? 'A entrar...' : 'Entrar'}
-          </button>
-
-          <p className="mt-5 text-center text-xs text-zinc-500">
-            Login por utilizador interno. Não é necessário inserir e-mail.
-          </p>
-        </form>
+        </section>
       </div>
     </div>
   );

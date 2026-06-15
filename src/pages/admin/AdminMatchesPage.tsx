@@ -445,7 +445,7 @@ export function AdminMatchesPage() {
           quality: 1,
           pixelRatio: 2,
           cacheBust: true,
-          backgroundColor: '#09090b',
+          backgroundColor: '#f6f2ec',
         });
 
         const filePrefix =
@@ -472,248 +472,215 @@ export function AdminMatchesPage() {
 
   function renderWeeklyMatchesPoster() {
     return (
-      <>
-        <div className="mt-14">
-          <p className="text-2xl font-black uppercase tracking-[0.36em] text-red-400">
-            Agenda
-          </p>
+      <div className="grid grid-cols-3 gap-4">
+        {weeklyTeamSlots.map((slot) => {
+          const match = weeklyMatchesByTeam[slot.teamName];
 
-          <h1 className="mt-4 text-[88px] font-black uppercase leading-[0.92] tracking-tight">
-            Jogos da
-            <br />
-            Semana
-          </h1>
-
-          <div className="mt-7 h-2 w-52 rounded-full bg-red-600" />
-        </div>
-
-        <div className="mt-10 grid grid-cols-3 gap-4">
-          {weeklyTeamSlots.map((slot) => {
-            const match = weeklyMatchesByTeam[slot.teamName];
-
-            return (
+          return (
+            <div
+              key={slot.teamName}
+              className="relative flex min-h-[245px] flex-col overflow-hidden rounded-sm border border-zinc-200 bg-white p-5 shadow-xl"
+            >
               <div
-                key={slot.teamName}
-                className={`relative flex min-h-[245px] flex-col overflow-hidden rounded-[1.7rem] border p-5 shadow-2xl backdrop-blur ${
+                className={
                   match
-                    ? 'border-white/15 bg-white/[0.11]'
-                    : 'border-white/10 bg-white/[0.055]'
-                }`}
-              >
-                <div
-                  className={`absolute inset-x-0 top-0 h-2 ${
-                    match ? 'bg-red-600' : 'bg-zinc-600'
-                  }`}
-                />
+                    ? 'absolute inset-x-0 top-0 h-2 bg-red-700'
+                    : 'absolute inset-x-0 top-0 h-2 bg-zinc-300'
+                }
+              />
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-red-600 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">
-                    {slot.teamName}
-                  </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-700">
+                  {slot.teamName}
+                </span>
 
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase text-zinc-200">
-                    {slot.footballType}
-                  </span>
-                </div>
-
-                {match ? (
-                  <div className="mt-5 flex flex-1 flex-col">
-                    {(() => {
-                      const { firstTeam, secondTeam } = getMatchTeams(match);
-
-                      return (
-                        <>
-                          <p className="text-2xl font-black uppercase leading-tight text-white">
-                            {firstTeam}
-                          </p>
-
-                          <p className="mt-1 text-base font-black uppercase leading-tight text-zinc-300">
-                            vs {secondTeam}
-                          </p>
-                        </>
-                      );
-                    })()}
-
-                    <p className="mt-3 text-sm font-semibold leading-5 text-zinc-400">
-                      {match.competition}
-                    </p>
-
-                    <div className="mt-auto pt-4">
-                      <div className="rounded-2xl bg-white px-4 py-3 text-zinc-950">
-                        <p className="text-sm font-black uppercase text-red-600">
-                          {formatDateShort(match.match_date)}
-                        </p>
-
-                        <p className="mt-1 text-3xl font-black">
-                          {match.match_time
-                            ? match.match_time.slice(0, 5)
-                            : '--:--'}
-                        </p>
-                      </div>
-
-                      <div className="mt-3 flex gap-2">
-                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white">
-                          {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
-                        </span>
-
-                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white">
-                          {formatStatus(match.status)}
-                        </span>
-                      </div>
-
-                      {match.location && (
-                        <p className="mt-2 line-clamp-1 text-xs font-semibold text-zinc-400">
-                          {match.location}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-1 flex-col justify-center">
-                    <p className="text-2xl font-black uppercase leading-tight text-white">
-                      Sem jogos
-                      <br />
-                      agendados
-                    </p>
-
-                    <p className="mt-3 text-sm leading-5 text-zinc-400">
-                      Não há jogos marcados para este escalão na semana corrente.
-                    </p>
-                  </div>
-                )}
+                <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-bold uppercase text-zinc-600">
+                  {slot.footballType}
+                </span>
               </div>
-            );
-          })}
-        </div>
-      </>
+
+              {match ? (
+                <div className="mt-5 flex flex-1 flex-col">
+                  {(() => {
+                    const { firstTeam, secondTeam } = getMatchTeams(match);
+
+                    return (
+                      <>
+                        <p className="font-serif text-3xl font-light leading-tight text-[#24180f]">
+                          {firstTeam}
+                        </p>
+
+                        <p className="mt-1 text-sm font-black uppercase tracking-[0.18em] text-zinc-500">
+                          vs {secondTeam}
+                        </p>
+                      </>
+                    );
+                  })()}
+
+                  <p className="mt-3 text-sm font-semibold leading-5 text-zinc-600">
+                    {match.competition}
+                  </p>
+
+                  <div className="mt-auto pt-4">
+                    <div className="rounded-sm bg-[#24180f] px-4 py-3 text-white">
+                      <p className="text-sm font-black uppercase text-red-400">
+                        {formatDateShort(match.match_date)}
+                      </p>
+
+                      <p className="mt-1 text-3xl font-black">
+                        {match.match_time
+                          ? match.match_time.slice(0, 5)
+                          : '--:--'}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 flex gap-2">
+                      <span className="rounded-full bg-[#f6f2ec] px-3 py-1 text-xs font-bold text-[#24180f]">
+                        {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
+                      </span>
+
+                      <span className="rounded-full bg-[#f6f2ec] px-3 py-1 text-xs font-bold text-[#24180f]">
+                        {formatStatus(match.status)}
+                      </span>
+                    </div>
+
+                    {match.location && (
+                      <p className="mt-2 line-clamp-1 text-xs font-semibold text-zinc-500">
+                        {match.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-1 flex-col justify-center">
+                  <p className="font-serif text-3xl font-light leading-tight text-[#24180f]">
+                    Sem jogos
+                    <br />
+                    agendados
+                  </p>
+
+                  <p className="mt-3 text-sm leading-5 text-zinc-500">
+                    Não há jogos marcados para este escalão na semana corrente.
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     );
   }
 
   function renderWeeklyResultsPoster() {
     return (
-      <>
-        <div className="mt-14">
-          <p className="text-2xl font-black uppercase tracking-[0.36em] text-red-400">
-            Resultados
-          </p>
+      <div className="grid grid-cols-3 gap-4">
+        {weeklyTeamSlots.map((slot) => {
+          const match = weeklyResultsByTeam[slot.teamName];
 
-          <h1 className="mt-4 text-[84px] font-black uppercase leading-[0.92] tracking-tight">
-            Resultados da
-            <br />
-            Semana
-          </h1>
-
-          <div className="mt-7 h-2 w-52 rounded-full bg-red-600" />
-        </div>
-
-        <div className="mt-10 grid grid-cols-3 gap-4">
-          {weeklyTeamSlots.map((slot) => {
-            const match = weeklyResultsByTeam[slot.teamName];
-
-            return (
+          return (
+            <div
+              key={slot.teamName}
+              className="relative flex min-h-[245px] flex-col overflow-hidden rounded-sm border border-zinc-200 bg-white p-5 shadow-xl"
+            >
               <div
-                key={slot.teamName}
-                className={`relative flex min-h-[245px] flex-col overflow-hidden rounded-[1.7rem] border p-5 shadow-2xl backdrop-blur ${
+                className={
                   match
-                    ? 'border-white/15 bg-white/[0.11]'
-                    : 'border-white/10 bg-white/[0.055]'
-                }`}
-              >
-                <div
-                  className={`absolute inset-x-0 top-0 h-2 ${
-                    match ? 'bg-red-600' : 'bg-zinc-600'
-                  }`}
-                />
+                    ? 'absolute inset-x-0 top-0 h-2 bg-red-700'
+                    : 'absolute inset-x-0 top-0 h-2 bg-zinc-300'
+                }
+              />
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-red-600 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">
-                    {slot.teamName}
-                  </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-700">
+                  {slot.teamName}
+                </span>
 
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase text-zinc-200">
-                    {slot.footballType}
-                  </span>
-                </div>
+                <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-bold uppercase text-zinc-600">
+                  {slot.footballType}
+                </span>
+              </div>
 
-                {match ? (
-                  <div className="mt-5 flex flex-1 flex-col">
-                    {(() => {
-                      const result = getMatchResult(match);
+              {match ? (
+                <div className="mt-5 flex flex-1 flex-col">
+                  {(() => {
+                    const result = getMatchResult(match);
 
-                      return (
-                        <>
-                          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl bg-white px-4 py-4 text-zinc-950">
-                            <p className="text-left text-base font-black uppercase leading-tight">
+                    return (
+                      <>
+                        <div className="rounded-sm bg-[#24180f] px-4 py-4 text-white">
+                          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                            <p className="text-left text-sm font-black uppercase leading-tight">
                               {result.firstTeam}
                             </p>
 
-                            <p className="text-center text-4xl font-black text-red-600">
+                            <p className="text-center text-4xl font-black text-red-400">
                               {result.firstScore ?? '-'} -{' '}
                               {result.secondScore ?? '-'}
                             </p>
 
-                            <p className="text-right text-base font-black uppercase leading-tight">
+                            <p className="text-right text-sm font-black uppercase leading-tight">
                               {result.secondTeam}
                             </p>
                           </div>
+                        </div>
 
-                          <p className="mt-4 text-sm font-semibold leading-5 text-zinc-400">
-                            {match.competition}
-                          </p>
-
-                          <p className="mt-2 text-sm font-semibold text-zinc-300">
-                            {formatDateShort(match.match_date)}
-                          </p>
-                        </>
-                      );
-                    })()}
-
-                    <div className="mt-auto pt-4">
-                      <div className="flex gap-2">
-                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white">
-                          {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
-                        </span>
-
-                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white">
-                          Terminado
-                        </span>
-                      </div>
-
-                      {match.location && (
-                        <p className="mt-2 line-clamp-1 text-xs font-semibold text-zinc-400">
-                          {match.location}
+                        <p className="mt-4 text-sm font-semibold leading-5 text-zinc-600">
+                          {match.competition}
                         </p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-1 flex-col justify-center">
-                    <p className="text-2xl font-black uppercase leading-tight text-white">
-                      Sem resultado
-                    </p>
 
-                    <p className="mt-3 text-sm leading-5 text-zinc-400">
-                      Não há resultado registado para este escalão na semana
-                      corrente.
-                    </p>
+                        <p className="mt-2 text-sm font-semibold text-zinc-500">
+                          {formatDateShort(match.match_date)}
+                        </p>
+                      </>
+                    );
+                  })()}
+
+                  <div className="mt-auto pt-4">
+                    <div className="flex gap-2">
+                      <span className="rounded-full bg-[#f6f2ec] px-3 py-1 text-xs font-bold text-[#24180f]">
+                        {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
+                      </span>
+
+                      <span className="rounded-full bg-[#f6f2ec] px-3 py-1 text-xs font-bold text-[#24180f]">
+                        Terminado
+                      </span>
+                    </div>
+
+                    {match.location && (
+                      <p className="mt-2 line-clamp-1 text-xs font-semibold text-zinc-500">
+                        {match.location}
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </>
+                </div>
+              ) : (
+                <div className="flex flex-1 flex-col justify-center">
+                  <p className="font-serif text-3xl font-light leading-tight text-[#24180f]">
+                    Sem resultado
+                  </p>
+
+                  <p className="mt-3 text-sm leading-5 text-zinc-500">
+                    Não há resultado registado para este escalão na semana
+                    corrente.
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     );
   }
 
   function renderPosterPreview() {
     return (
-      <section className="mt-8 overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex flex-col justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-6 py-5 md:flex-row md:items-center">
+      <section className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+        <div className="flex flex-col justify-between gap-4 border-b border-zinc-200 bg-[#f6f2ec] px-7 py-5 md:flex-row md:items-center">
           <div>
-            <h2 className="text-xl font-black text-zinc-950">
+            <h2 className="font-serif text-3xl font-light text-[#24180f]">
               Pré-visualização da imagem
             </h2>
+
             <p className="mt-1 text-sm text-zinc-500">
               Formato vertical para redes sociais. A imagem gerada será em PNG.
             </p>
@@ -722,32 +689,28 @@ export function AdminMatchesPage() {
           <button
             type="button"
             onClick={() => setShowPosterPreview(false)}
-            className="rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-50"
+            className="rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-600 hover:border-red-700 hover:text-red-700"
           >
             Fechar pré-visualização
           </button>
         </div>
 
-        <div className="overflow-auto bg-zinc-100 p-6">
+        <div className="overflow-auto bg-[#f6f2ec] p-6">
           <div
             ref={posterRef}
-            className="relative mx-auto flex h-[1350px] w-[1080px] flex-col overflow-hidden bg-zinc-950 text-white"
+            className="relative mx-auto flex h-[1350px] w-[1080px] flex-col overflow-hidden bg-[#f6f2ec] text-[#24180f]"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(220,38,38,0.45),transparent_28%),radial-gradient(circle_at_85%_35%,rgba(220,38,38,0.32),transparent_30%),linear-gradient(135deg,#050505,#18181b_45%,#050505)]" />
-
-            <div className="absolute -right-32 top-24 h-[520px] w-[520px] rounded-full bg-red-600/20 blur-3xl" />
-            <div className="absolute -left-40 bottom-24 h-[520px] w-[520px] rounded-full bg-red-700/20 blur-3xl" />
-
-            <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,0.28)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.28)_1px,transparent_1px)] [background-size:72px_72px]" />
+            <div className="absolute inset-x-0 top-0 h-[360px] bg-[#24180f]" />
+            <div className="absolute inset-x-0 top-0 h-[360px] bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.35),transparent_36%)]" />
 
             <img
               src="/logo-gdr-boavista-header-256.png"
               alt=""
-              className="absolute right-[-90px] top-[210px] h-[620px] w-[620px] object-contain opacity-[0.09]"
+              className="absolute right-[-90px] top-[115px] h-[520px] w-[520px] object-contain opacity-[0.055]"
             />
 
-            <div className="relative flex flex-1 flex-col px-16 py-16">
-              <header className="flex items-center justify-between">
+            <div className="relative flex flex-1 flex-col px-16 py-14">
+              <header className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-5">
                   <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-white p-3 shadow-2xl">
                     <img
@@ -772,16 +735,42 @@ export function AdminMatchesPage() {
                 </div>
               </header>
 
-              {posterMode === 'matches'
-                ? renderWeeklyMatchesPoster()
-                : renderWeeklyResultsPoster()}
+              <div className="mt-16">
+                <p className="text-2xl font-black uppercase tracking-[0.36em] text-red-400">
+                  {posterMode === 'matches' ? 'Agenda' : 'Resultados'}
+                </p>
 
-              <footer className="mt-auto flex items-center justify-between border-t border-white/10 pt-7">
-                <p className="text-base font-black uppercase tracking-[0.25em] text-white">
+                <h1 className="mt-4 font-serif text-[86px] font-light leading-[0.92] tracking-tight text-white">
+                  {posterMode === 'matches' ? (
+                    <>
+                      Jogos da
+                      <br />
+                      Semana
+                    </>
+                  ) : (
+                    <>
+                      Resultados da
+                      <br />
+                      Semana
+                    </>
+                  )}
+                </h1>
+
+                <div className="mt-7 h-2 w-52 rounded-full bg-red-600" />
+              </div>
+
+              <div className="mt-14">
+                {posterMode === 'matches'
+                  ? renderWeeklyMatchesPoster()
+                  : renderWeeklyResultsPoster()}
+              </div>
+
+              <footer className="mt-auto flex items-center justify-between border-t border-zinc-300 pt-7">
+                <p className="text-base font-black uppercase tracking-[0.25em] text-[#24180f]">
                   Força, garra, união e luta
                 </p>
 
-                <p className="text-sm font-bold text-zinc-400">
+                <p className="text-sm font-bold text-zinc-500">
                   instagram.com/gdr_boavista_oficial
                 </p>
               </footer>
@@ -796,12 +785,18 @@ export function AdminMatchesPage() {
     return (
       <article
         key={match.id}
-        className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+        className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl"
       >
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+        <div
+          className={
+            match.is_visible ? 'h-1.5 bg-red-700' : 'h-1.5 bg-zinc-300'
+          }
+        />
+
+        <div className="grid gap-6 p-7 lg:grid-cols-[1fr_auto] lg:items-start">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black uppercase text-red-700">
+              <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
                 {match.team_name}
               </span>
 
@@ -809,7 +804,7 @@ export function AdminMatchesPage() {
                 {match.football_type}
               </span>
 
-              <span className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-bold uppercase text-white">
+              <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">
                 {formatStatus(match.status)}
               </span>
 
@@ -825,34 +820,34 @@ export function AdminMatchesPage() {
 
               return (
                 <>
-                  <h3 className="mt-4 text-2xl font-black text-zinc-950">
+                  <h3 className="mt-6 font-serif text-4xl font-light text-[#24180f]">
                     {firstTeam}
                   </h3>
 
-                  <p className="mt-1 text-sm font-bold uppercase tracking-[0.2em] text-zinc-500">
+                  <p className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
                     vs {secondTeam}
                   </p>
                 </>
               );
             })()}
 
-            <p className="mt-2 text-sm font-semibold text-zinc-500">
+            <p className="mt-4 text-sm font-semibold text-zinc-600">
               {match.competition}
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
-              <span className="inline-flex items-center gap-2 rounded-2xl bg-zinc-100 px-3 py-2 font-semibold">
-                <CalendarDays size={16} className="text-red-600" />
+            <div className="mt-5 flex flex-wrap gap-3 text-sm text-zinc-600">
+              <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
+                <CalendarDays size={16} className="text-red-700" />
                 {formatDate(match.match_date)}
                 {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ''}
               </span>
 
-              <span className="rounded-2xl bg-zinc-100 px-3 py-2 font-semibold">
+              <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
                 {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
               </span>
 
               {match.location && (
-                <span className="rounded-2xl bg-zinc-100 px-3 py-2 font-semibold">
+                <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
                   {match.location}
                 </span>
               )}
@@ -861,13 +856,13 @@ export function AdminMatchesPage() {
             {match.status === 'terminado' &&
               match.home_score !== null &&
               match.away_score !== null && (
-                <p className="mt-4 text-3xl font-black text-red-600">
+                <p className="mt-5 font-serif text-5xl font-light text-red-700">
                   {match.home_score} - {match.away_score}
                 </p>
               )}
 
             {match.notes && (
-              <p className="mt-4 rounded-2xl bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-600">
+              <p className="mt-5 rounded-sm bg-[#f6f2ec] px-4 py-3 text-sm leading-7 text-zinc-600">
                 {match.notes}
               </p>
             )}
@@ -877,7 +872,7 @@ export function AdminMatchesPage() {
             <button
               type="button"
               onClick={() => handleEdit(match)}
-              className="rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-600 hover:text-red-600"
+              className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
             >
               Editar
             </button>
@@ -885,7 +880,7 @@ export function AdminMatchesPage() {
             <button
               type="button"
               onClick={() => handleToggleVisibility(match)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-600 hover:text-red-600"
+              className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
             >
               {match.is_visible ? <EyeOff size={16} /> : <Eye size={16} />}
               {match.is_visible ? 'Ocultar' : 'Mostrar'}
@@ -894,7 +889,7 @@ export function AdminMatchesPage() {
             <button
               type="button"
               onClick={() => handleDelete(match)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
+              className="inline-flex items-center gap-2 rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
             >
               <Trash2 size={16} />
               Apagar
@@ -913,14 +908,17 @@ export function AdminMatchesPage() {
     items: GdrbMatch[],
   ) {
     return (
-      <section className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex w-full items-center justify-between gap-4 bg-zinc-50 px-6 py-5 text-left hover:bg-zinc-100"
+          className="flex w-full items-center justify-between gap-4 bg-[#f6f2ec] px-7 py-5 text-left hover:bg-white"
         >
           <div>
-            <h2 className="text-xl font-black text-zinc-950">{title}</h2>
+            <h2 className="font-serif text-3xl font-light text-[#24180f]">
+              {title}
+            </h2>
+
             <p className="mt-1 text-sm text-zinc-500">
               {description} · {items.length} registo(s)
             </p>
@@ -934,7 +932,7 @@ export function AdminMatchesPage() {
         {isOpen && (
           <div className="grid gap-4 p-5">
             {items.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-zinc-300 p-6 text-sm text-zinc-500">
+              <div className="rounded-sm border border-dashed border-zinc-300 p-6 text-sm text-zinc-500">
                 Não existem jogos nesta secção.
               </div>
             ) : (
@@ -948,79 +946,85 @@ export function AdminMatchesPage() {
 
   return (
     <div>
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-600">
-            Administração
-          </p>
+      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-          <h1 className="mt-2 text-4xl font-black text-zinc-950">
-            Jogos / Agenda
-          </h1>
+        <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
+              Administração
+            </p>
 
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-600">
-            Gere aqui os próximos jogos, resultados e agenda das equipas. As
-            áreas estão recolhidas para facilitar a utilização no dia a dia.
-          </p>
+            <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
+              Jogos
+              <br />
+              e agenda.
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
+              Gere os próximos jogos, resultados e agenda das equipas do GDR
+              Boavista. Também podes gerar imagens para redes sociais.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => generatePoster('matches')}
+              disabled={isGeneratingPoster}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Download size={18} />
+              {isGeneratingPoster && posterMode === 'matches'
+                ? 'A gerar...'
+                : 'Gerar Jogos da Semana'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => generatePoster('results')}
+              disabled={isGeneratingPoster}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Download size={18} />
+              {isGeneratingPoster && posterMode === 'results'
+                ? 'A gerar...'
+                : 'Gerar Resultados da Semana'}
+            </button>
+
+            <button
+              type="button"
+              onClick={loadMatches}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+            >
+              <RefreshCcw size={17} />
+              Atualizar
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setForm(initialForm);
+                setShowForm(!showForm);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:bg-red-700 hover:text-white"
+            >
+              <Plus size={18} />
+              Novo jogo
+            </button>
+          </div>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => generatePoster('matches')}
-            disabled={isGeneratingPoster}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-zinc-950/20 transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Download size={18} />
-            {isGeneratingPoster && posterMode === 'matches'
-              ? 'A gerar...'
-              : 'Gerar Jogos da Semana'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => generatePoster('results')}
-            disabled={isGeneratingPoster}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-red-950/20 transition hover:bg-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Download size={18} />
-            {isGeneratingPoster && posterMode === 'results'
-              ? 'A gerar...'
-              : 'Gerar Resultados da Semana'}
-          </button>
-
-          <button
-            type="button"
-            onClick={loadMatches}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-bold text-zinc-700 hover:border-red-600 hover:text-red-600"
-          >
-            <RefreshCcw size={17} />
-            Atualizar
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setForm(initialForm);
-              setShowForm(!showForm);
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black uppercase tracking-wide text-zinc-950 shadow-lg ring-1 ring-zinc-200 transition hover:bg-zinc-950 hover:text-white"
-          >
-            <Plus size={18} />
-            Novo jogo
-          </button>
-        </div>
-      </div>
+      </section>
 
       {successMessage && (
-        <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
+        <div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
           {successMessage}
         </div>
       )}
 
       {errorMessage && (
-        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
+        <div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
           {errorMessage}
         </div>
       )}
@@ -1030,15 +1034,15 @@ export function AdminMatchesPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="mt-8 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm"
+          className="mt-8 rounded-sm border border-zinc-200 bg-white p-7 shadow-sm"
         >
           <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-5">
             <div>
-              <h2 className="text-2xl font-black text-zinc-950">
+              <h2 className="font-serif text-4xl font-light text-[#24180f]">
                 {editingId ? 'Editar jogo' : 'Novo jogo'}
               </h2>
 
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-2 text-sm text-zinc-500">
                 Preenche os dados principais do jogo.
               </p>
             </div>
@@ -1046,7 +1050,7 @@ export function AdminMatchesPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-50"
+              className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-600 hover:border-red-700 hover:text-red-700"
             >
               Fechar
             </button>
@@ -1063,7 +1067,7 @@ export function AdminMatchesPage() {
                 onChange={(event) =>
                   handleChange('team_name', event.target.value)
                 }
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
                 <option value="">Selecionar</option>
                 {teamOptions.map((team) => (
@@ -1084,7 +1088,7 @@ export function AdminMatchesPage() {
                 onChange={(event) =>
                   handleChange('football_type', event.target.value)
                 }
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
                 {footballTypes.map((type) => (
                   <option key={type} value={type}>
@@ -1106,7 +1110,7 @@ export function AdminMatchesPage() {
                   handleChange('competition', event.target.value)
                 }
                 placeholder="Campeonato Distrital"
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
@@ -1122,7 +1126,7 @@ export function AdminMatchesPage() {
                   handleChange('opponent', event.target.value)
                 }
                 placeholder="Nome do adversário"
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
@@ -1135,7 +1139,7 @@ export function AdminMatchesPage() {
                 onChange={(event) =>
                   handleChange('match_date', event.target.value)
                 }
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
@@ -1148,7 +1152,7 @@ export function AdminMatchesPage() {
                 onChange={(event) =>
                   handleChange('match_time', event.target.value)
                 }
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
@@ -1162,7 +1166,7 @@ export function AdminMatchesPage() {
                 onChange={(event) =>
                   handleChange('venue_type', event.target.value)
                 }
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
                 <option value="casa">Casa</option>
                 <option value="fora">Fora</option>
@@ -1177,7 +1181,7 @@ export function AdminMatchesPage() {
               <select
                 value={form.status}
                 onChange={(event) => handleChange('status', event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
                 {statusOptions.map((status) => (
                   <option key={status.value} value={status.value}>
@@ -1197,7 +1201,7 @@ export function AdminMatchesPage() {
                   handleChange('location', event.target.value)
                 }
                 placeholder="Campo do Boavista"
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
@@ -1213,7 +1217,7 @@ export function AdminMatchesPage() {
                 onChange={(event) =>
                   handleChange('home_score', event.target.value)
                 }
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
@@ -1229,7 +1233,7 @@ export function AdminMatchesPage() {
                 onChange={(event) =>
                   handleChange('away_score', event.target.value)
                 }
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
@@ -1242,18 +1246,18 @@ export function AdminMatchesPage() {
                 onChange={(event) =>
                   handleChange('sort_order', Number(event.target.value))
                 }
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
-            <label className="flex items-center gap-3 rounded-2xl border border-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700">
+            <label className="flex items-center gap-3 rounded-md border border-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700">
               <input
                 type="checkbox"
                 checked={form.is_visible}
                 onChange={(event) =>
                   handleChange('is_visible', event.target.checked)
                 }
-                className="h-4 w-4 accent-red-600"
+                className="h-4 w-4 accent-red-700"
               />
               Visível no site
             </label>
@@ -1266,7 +1270,7 @@ export function AdminMatchesPage() {
                 onChange={(event) => handleChange('notes', event.target.value)}
                 rows={4}
                 placeholder="Informação adicional sobre o jogo..."
-                className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm leading-6 outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm leading-7 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
           </div>
@@ -1275,7 +1279,7 @@ export function AdminMatchesPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-2xl border border-zinc-200 px-5 py-3 text-sm font-bold text-zinc-600 hover:bg-zinc-50"
+              className="rounded-md border border-zinc-200 px-5 py-3 text-sm font-bold text-zinc-600 hover:border-red-700 hover:text-red-700"
             >
               Cancelar
             </button>
@@ -1283,7 +1287,7 @@ export function AdminMatchesPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-6 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-red-950/20 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save size={18} />
               {isSaving ? 'A guardar...' : 'Guardar jogo'}
@@ -1293,7 +1297,7 @@ export function AdminMatchesPage() {
       )}
 
       {isLoading ? (
-        <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
+        <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
           A carregar jogos...
         </div>
       ) : (

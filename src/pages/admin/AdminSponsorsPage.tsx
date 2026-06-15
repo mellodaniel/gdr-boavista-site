@@ -1,8 +1,28 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
-import { ExternalLink, Plus, RefreshCw, Upload } from 'lucide-react';
+import type { ChangeEvent, FormEvent } from 'react';
+import {
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Handshake,
+  Plus,
+  RefreshCcw,
+  Save,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbSponsor } from '../../types/database';
+
+const initialForm = {
+  name: '',
+  description: '',
+  logo_url: '',
+  website_url: '',
+  sponsor_level: 'Patrocinador oficial',
+  is_active: true,
+  sort_order: 0,
+};
 
 const sponsorLevels = [
   'Patrocinador principal',
@@ -12,465 +32,550 @@ const sponsorLevels = [
   'Outro',
 ];
 
-const SPONSORS_BUCKET = 'gdrb-sponsors';
-
 export function AdminSponsorsPage() {
   const [sponsors, setSponsors] = useState<GdrbSponsor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(initialForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [websiteUrl, setWebsiteUrl] = useState('');
-  const [sponsorLevel, setSponsorLevel] = useState('Parceiro');
-  const [sortOrder, setSortOrder] = useState('10');
-  const [isActive, setIsActive] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   async function loadSponsors() {
-    setLoading(true);
+    setIsLoading(true);
     setErrorMessage('');
 
     const { data, error } = await supabase
       .from('gdrb_sponsors')
       .select('*')
       .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true });
+      .order('name', { ascending: true });
 
     if (error) {
       console.error('Erro ao carregar patrocinadores:', error);
       setErrorMessage('Não foi possível carregar os patrocinadores.');
+      setIsLoading(false);
+      return;
     }
 
     setSponsors(data ?? []);
-    setLoading(false);
+    setIsLoading(false);
   }
 
   useEffect(() => {
     loadSponsors();
   }, []);
 
-  async function uploadSponsorLogo(file: File) {
+  function handleChange(
+    field: keyof typeof initialForm,
+    value: string | boolean | number,
+  ) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      [field]: value,
+    }));
+  }
+
+  function resetForm() {
+    setForm(initialForm);
+    setEditingId(null);
+    setShowForm(false);
+  }
+
+  function handleEdit(sponsor: GdrbSponsor) {
+    setEditingId(sponsor.id);
+    setForm({
+      name: sponsor.name,
+      description: sponsor.description ?? '',
+      logo_url: sponsor.logo_url ?? '',
+      website_url: sponsor.website_url ?? '',
+      sponsor_level: sponsor.sponsor_level,
+      is_active: sponsor.is_active,
+      sort_order: sponsor.sort_order ?? 0,
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function handleLogoUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setSuccessMessage('');
+    setErrorMessage('');
+    setIsUploadingLogo(true);
+
     const fileExtension = file.name.split('.').pop();
-    const safeFileName = `${Date.now()}-${crypto.randomUUID()}.${fileExtension}`;
-    const filePath = `logos/${safeFileName}`;
+    const fileName = `${crypto.randomUUID()}.${fileExtension}`;
+    const filePath = `logos/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from(SPONSORS_BUCKET)
+      .from('gdrb-sponsors')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false,
       });
 
     if (uploadError) {
-      throw uploadError;
+      console.error('Erro ao enviar logo:', uploadError);
+      setErrorMessage('Não foi possível enviar o logo.');
+      setIsUploadingLogo(false);
+      return;
     }
 
     const { data } = supabase.storage
-      .from(SPONSORS_BUCKET)
+      .from('gdrb-sponsors')
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    handleChange('logo_url', data.publicUrl);
+    setSuccessMessage('Logo enviado com sucesso.');
+    setIsUploadingLogo(false);
   }
 
-  async function handleCreateSponsor(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setSuccessMessage('');
     setErrorMessage('');
 
-    if (!name.trim()) {
+    if (!form.name.trim()) {
       setErrorMessage('Indica o nome do patrocinador.');
       return;
     }
 
-    setSaving(true);
+    setIsSaving(true);
 
-    try {
-      let finalLogoUrl = logoUrl.trim() || null;
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      logo_url: form.logo_url.trim() || null,
+      website_url: form.website_url.trim() || null,
+      sponsor_level: form.sponsor_level,
+      is_active: form.is_active,
+      sort_order: Number(form.sort_order) || 0,
+    };
 
-      if (logoFile) {
-        finalLogoUrl = await uploadSponsorLogo(logoFile);
-      }
+    const result = editingId
+      ? await supabase
+          .from('gdrb_sponsors')
+          .update(payload)
+          .eq('id', editingId)
+      : await supabase.from('gdrb_sponsors').insert(payload);
 
-      const { error } = await supabase.from('gdrb_sponsors').insert({
-        name: name.trim(),
-        description: description.trim() || null,
-        logo_url: finalLogoUrl,
-        website_url: websiteUrl.trim() || null,
-        sponsor_level: sponsorLevel,
-        sort_order: Number(sortOrder) || 0,
-        is_active: isActive,
-      });
+    setIsSaving(false);
 
-      if (error) {
-        throw error;
-      }
-
-      setName('');
-      setDescription('');
-      setLogoUrl('');
-      setLogoFile(null);
-      setWebsiteUrl('');
-      setSponsorLevel('Parceiro');
-      setSortOrder('10');
-      setIsActive(true);
-      setSuccessMessage('Patrocinador criado com sucesso.');
-      loadSponsors();
-    } catch (error) {
-      console.error('Erro ao criar patrocinador:', error);
-      setErrorMessage('Não foi possível criar o patrocinador.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function updateSponsor(
-    id: string,
-    changes: Partial<
-      Pick<
-        GdrbSponsor,
-        'sponsor_level' | 'sort_order' | 'is_active' | 'website_url' | 'logo_url'
-      >
-    >,
-  ) {
-    setUpdatingId(id);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    const { error } = await supabase
-      .from('gdrb_sponsors')
-      .update(changes)
-      .eq('id', id);
-
-    setUpdatingId(null);
-
-    if (error) {
-      console.error('Erro ao atualizar patrocinador:', error);
-      setErrorMessage('Não foi possível atualizar o patrocinador.');
+    if (result.error) {
+      console.error('Erro ao guardar patrocinador:', result.error);
+      setErrorMessage('Não foi possível guardar o patrocinador.');
       return;
     }
 
-    setSponsors((currentSponsors) =>
-      currentSponsors.map((sponsor) =>
-        sponsor.id === id ? { ...sponsor, ...changes } : sponsor,
-      ),
+    setSuccessMessage(
+      editingId
+        ? 'Patrocinador atualizado com sucesso.'
+        : 'Patrocinador criado com sucesso.',
     );
+
+    resetForm();
+    await loadSponsors();
   }
 
-  function getStatusStyle(isSponsorActive: boolean) {
-    return isSponsorActive
-      ? 'bg-green-100 text-green-800'
-      : 'bg-zinc-200 text-zinc-700';
+  async function handleToggleActive(sponsor: GdrbSponsor) {
+    const { error } = await supabase
+      .from('gdrb_sponsors')
+      .update({
+        is_active: !sponsor.is_active,
+      })
+      .eq('id', sponsor.id);
+
+    if (error) {
+      console.error('Erro ao alterar patrocinador:', error);
+      setErrorMessage('Não foi possível alterar o estado do patrocinador.');
+      return;
+    }
+
+    await loadSponsors();
+  }
+
+  async function handleDelete(sponsor: GdrbSponsor) {
+    const confirmDelete = window.confirm(
+      `Tens a certeza que queres apagar o patrocinador "${sponsor.name}"?`,
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('gdrb_sponsors')
+      .delete()
+      .eq('id', sponsor.id);
+
+    if (error) {
+      console.error('Erro ao apagar patrocinador:', error);
+      setErrorMessage('Não foi possível apagar o patrocinador.');
+      return;
+    }
+
+    await loadSponsors();
   }
 
   return (
     <div>
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-red-600">
-            Patrocinadores
-          </p>
+      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-          <h2 className="mt-2 text-3xl font-black text-zinc-950">
-            Gestão de patrocinadores
-          </h2>
+        <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
+              Administração
+            </p>
 
-          <p className="mt-3 max-w-3xl text-zinc-600">
-            Gere os parceiros e patrocinadores do GDR Boavista. Os patrocinadores
-            ativos aparecem automaticamente no site público.
-          </p>
+            <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
+              Patrocinadores.
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
+              Gere os patrocinadores e parceiros visíveis na página pública do
+              site.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={loadSponsors}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+            >
+              <RefreshCcw size={17} />
+              Atualizar
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setForm(initialForm);
+                setShowForm(!showForm);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
+            >
+              <Plus size={18} />
+              Novo patrocinador
+            </button>
+          </div>
         </div>
-
-        <button
-          type="button"
-          onClick={loadSponsors}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-950 px-5 py-3 text-sm font-bold text-white hover:bg-red-600"
-        >
-          <RefreshCw size={16} />
-          Atualizar
-        </button>
-      </div>
+      </section>
 
       {successMessage && (
-        <div className="mt-6 rounded-xl bg-green-100 px-4 py-3 text-sm font-semibold text-green-800">
+        <div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
           {successMessage}
         </div>
       )}
 
       {errorMessage && (
-        <div className="mt-6 rounded-xl bg-red-100 px-4 py-3 text-sm font-semibold text-red-800">
+        <div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
           {errorMessage}
         </div>
       )}
 
-      <div className="mt-8 grid gap-8 xl:grid-cols-[0.8fr_1.2fr]">
+      {showForm && (
         <form
-          onSubmit={handleCreateSponsor}
-          className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm"
+          onSubmit={handleSubmit}
+          className="mt-8 rounded-sm border border-zinc-200 bg-white p-7 shadow-sm"
         >
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-red-100 p-3 text-red-600">
-              <Plus size={22} />
+          <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-5">
+            <div>
+              <h2 className="font-serif text-4xl font-light text-[#24180f]">
+                {editingId ? 'Editar patrocinador' : 'Novo patrocinador'}
+              </h2>
+
+              <p className="mt-2 text-sm text-zinc-500">
+                Preenche os dados do patrocinador ou parceiro.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-600 hover:border-red-700 hover:text-red-700"
+            >
+              Fechar
+            </button>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-black text-zinc-800">
+                Nome *
+              </label>
+
+              <input
+                type="text"
+                value={form.name}
+                onChange={(event) => handleChange('name', event.target.value)}
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              />
             </div>
 
             <div>
-              <h3 className="text-2xl font-black">Novo patrocinador</h3>
-              <p className="text-sm text-zinc-500">
-                Criar patrocinador para aparecer no site público.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4">
-            <input
-              className="rounded-xl border border-zinc-300 px-4 py-3"
-              placeholder="Nome do patrocinador *"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-
-            <textarea
-              className="min-h-28 rounded-xl border border-zinc-300 px-4 py-3"
-              placeholder="Descrição curta"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-
-            <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4">
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl bg-white px-4 py-6 text-center hover:bg-zinc-100">
-                <Upload size={28} className="text-red-600" />
-
-                <div>
-                  <p className="font-bold text-zinc-950">
-                    Fazer upload do logotipo
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    PNG, JPG ou WEBP até 5MB
-                  </p>
-                </div>
-
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    setLogoFile(file);
-
-                    if (file) {
-                      setLogoUrl('');
-                    }
-                  }}
-                />
+              <label className="text-sm font-black text-zinc-800">
+                Nível
               </label>
 
-              {logoFile && (
-                <div className="mt-4 rounded-xl bg-green-100 px-4 py-3 text-sm font-semibold text-green-800">
-                  Imagem selecionada: {logoFile.name}
-                </div>
-              )}
+              <select
+                value={form.sponsor_level}
+                onChange={(event) =>
+                  handleChange('sponsor_level', event.target.value)
+                }
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              >
+                {sponsorLevels.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <p className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                ou
-              </p>
+            <div className="md:col-span-2">
+              <label className="text-sm font-black text-zinc-800">
+                Descrição
+              </label>
 
-              <input
-                className="mt-4 w-full rounded-xl border border-zinc-300 px-4 py-3"
-                placeholder="Colar URL do logotipo"
-                value={logoUrl}
-                onChange={(event) => {
-                  setLogoUrl(event.target.value);
-
-                  if (event.target.value.trim()) {
-                    setLogoFile(null);
-                  }
-                }}
+              <textarea
+                value={form.description}
+                onChange={(event) =>
+                  handleChange('description', event.target.value)
+                }
+                rows={4}
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm leading-7 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
 
-            <input
-              className="rounded-xl border border-zinc-300 px-4 py-3"
-              placeholder="Website do patrocinador"
-              value={websiteUrl}
-              onChange={(event) => setWebsiteUrl(event.target.value)}
-            />
+            <div>
+              <label className="text-sm font-black text-zinc-800">
+                Logo
+              </label>
 
-            <select
-              className="rounded-xl border border-zinc-300 bg-white px-4 py-3"
-              value={sponsorLevel}
-              onChange={(event) => setSponsorLevel(event.target.value)}
-            >
-              {sponsorLevels.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+              <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300 bg-[#f6f2ec] px-4 py-4 text-sm font-bold text-zinc-700 transition hover:border-red-700 hover:text-red-700">
+                <Upload size={18} />
+                {isUploadingLogo ? 'A enviar...' : 'Enviar logo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
 
-            <input
-              className="rounded-xl border border-zinc-300 px-4 py-3"
-              placeholder="Ordem de exibição"
-              type="number"
-              value={sortOrder}
-              onChange={(event) => setSortOrder(event.target.value)}
-            />
+            <div>
+              <label className="text-sm font-black text-zinc-800">
+                URL do logo
+              </label>
 
-            <label className="flex items-center gap-3 rounded-xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700">
+              <input
+                type="url"
+                value={form.logo_url}
+                onChange={(event) =>
+                  handleChange('logo_url', event.target.value)
+                }
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              />
+            </div>
+
+            {form.logo_url && (
+              <div className="md:col-span-2 rounded-sm border border-zinc-200 bg-[#f6f2ec] p-5">
+                <p className="mb-3 text-sm font-black text-zinc-800">
+                  Pré-visualização
+                </p>
+
+                <img
+                  src={form.logo_url}
+                  alt="Pré-visualização do logo"
+                  className="max-h-28 max-w-full object-contain"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm font-black text-zinc-800">
+                Website
+              </label>
+
+              <input
+                type="url"
+                value={form.website_url}
+                onChange={(event) =>
+                  handleChange('website_url', event.target.value)
+                }
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-black text-zinc-800">
+                Ordem
+              </label>
+
+              <input
+                type="number"
+                value={form.sort_order}
+                onChange={(event) =>
+                  handleChange('sort_order', Number(event.target.value))
+                }
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              />
+            </div>
+
+            <label className="flex items-center gap-3 rounded-md border border-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700">
               <input
                 type="checkbox"
-                checked={isActive}
-                onChange={(event) => setIsActive(event.target.checked)}
+                checked={form.is_active}
+                onChange={(event) =>
+                  handleChange('is_active', event.target.checked)
+                }
+                className="h-4 w-4 accent-red-700"
               />
-              Patrocinador ativo no site público
+              Visível no site
             </label>
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-red-600 px-6 py-3 font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {saving ? 'A guardar...' : 'Criar patrocinador'}
-          </button>
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-md border border-zinc-200 px-5 py-3 text-sm font-bold text-zinc-600 hover:border-red-700 hover:text-red-700"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Save size={18} />
+              {isSaving ? 'A guardar...' : 'Guardar patrocinador'}
+            </button>
+          </div>
         </form>
+      )}
 
-        <div>
-          <h3 className="text-2xl font-black text-zinc-950">
-            Patrocinadores existentes
-          </h3>
-
-          {loading ? (
-            <div className="mt-5 rounded-3xl border border-zinc-200 bg-white p-8 text-zinc-600">
-              A carregar patrocinadores...
-            </div>
-          ) : sponsors.length === 0 ? (
-            <div className="mt-5 rounded-3xl border border-zinc-200 bg-white p-8 text-zinc-600">
-              Ainda não existem patrocinadores.
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4">
-              {sponsors.map((sponsor) => (
-                <article
-                  key={sponsor.id}
-                  className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-                    <div className="flex gap-4">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-100 text-xs font-black text-zinc-400">
-                        {sponsor.logo_url ? (
-                          <img
-                            src={sponsor.logo_url}
-                            alt={sponsor.name}
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          'LOGO'
-                        )}
-                      </div>
-
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold uppercase text-zinc-700">
-                            {sponsor.sponsor_level}
-                          </span>
-
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${getStatusStyle(
-                              sponsor.is_active,
-                            )}`}
-                          >
-                            {sponsor.is_active ? 'Ativo' : 'Inativo'}
-                          </span>
-                        </div>
-
-                        <h4 className="mt-3 text-lg font-black text-zinc-950">
-                          {sponsor.name}
-                        </h4>
-
-                        {sponsor.description && (
-                          <p className="mt-2 text-sm text-zinc-600">
-                            {sponsor.description}
-                          </p>
-                        )}
-
-                        {sponsor.website_url && (
-                          <a
-                            href={sponsor.website_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-red-600 hover:text-red-700"
-                          >
-                            <ExternalLink size={15} />
-                            Website
-                          </a>
-                        )}
-
-                        <p className="mt-2 text-xs text-zinc-500">
-                          Ordem: {sponsor.sort_order}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 md:min-w-64">
-                      <select
-                        value={sponsor.sponsor_level}
-                        disabled={updatingId === sponsor.id}
-                        onChange={(event) =>
-                          updateSponsor(sponsor.id, {
-                            sponsor_level: event.target.value,
-                          })
-                        }
-                        className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {sponsorLevels.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        value={sponsor.sort_order}
-                        disabled={updatingId === sponsor.id}
-                        type="number"
-                        onChange={(event) =>
-                          updateSponsor(sponsor.id, {
-                            sort_order: Number(event.target.value) || 0,
-                          })
-                        }
-                        className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      />
-
-                      <button
-                        type="button"
-                        disabled={updatingId === sponsor.id}
-                        onClick={() =>
-                          updateSponsor(sponsor.id, {
-                            is_active: !sponsor.is_active,
-                          })
-                        }
-                        className={`rounded-full px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60 ${
-                          sponsor.is_active
-                            ? 'bg-zinc-950 text-white hover:bg-red-600'
-                            : 'bg-red-600 text-white hover:bg-red-700'
-                        }`}
-                      >
-                        {sponsor.is_active ? 'Desativar' : 'Ativar'}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
+      {isLoading ? (
+        <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
+          A carregar patrocinadores...
         </div>
-      </div>
+      ) : sponsors.length === 0 ? (
+        <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
+            <Handshake size={28} />
+          </div>
+
+          <h2 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
+            Sem patrocinadores
+          </h2>
+
+          <p className="mt-3 text-zinc-500">
+            Ainda não existem patrocinadores criados.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {sponsors.map((sponsor) => (
+            <article
+              key={sponsor.id}
+              className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm"
+            >
+              <div className={sponsor.is_active ? 'h-1.5 bg-red-700' : 'h-1.5 bg-zinc-300'} />
+
+              <div className="flex h-44 items-center justify-center bg-[#f6f2ec] p-6">
+                {sponsor.logo_url ? (
+                  <img
+                    src={sponsor.logo_url}
+                    alt={sponsor.name}
+                    className="max-h-24 max-w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#24180f] text-red-500">
+                    <Handshake size={32} />
+                  </div>
+                )}
+              </div>
+
+              <div className="p-7">
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                    {sponsor.sponsor_level}
+                  </span>
+
+                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
+                    {sponsor.is_active ? 'Visível' : 'Oculto'}
+                  </span>
+                </div>
+
+                <h3 className="mt-6 font-serif text-4xl font-light text-[#24180f]">
+                  {sponsor.name}
+                </h3>
+
+                {sponsor.description && (
+                  <p className="mt-4 text-sm leading-7 text-zinc-600">
+                    {sponsor.description}
+                  </p>
+                )}
+
+                {sponsor.website_url && (
+                  <a
+                    href={sponsor.website_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-red-700 hover:text-red-900"
+                  >
+                    Abrir website
+                    <ExternalLink size={15} />
+                  </a>
+                )}
+
+                <div className="mt-7 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(sponsor)}
+                    className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(sponsor)}
+                    className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                  >
+                    {sponsor.is_active ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {sponsor.is_active ? 'Ocultar' : 'Mostrar'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(sponsor)}
+                    className="inline-flex items-center gap-2 rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 size={16} />
+                    Apagar
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
