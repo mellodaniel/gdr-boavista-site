@@ -8,6 +8,7 @@ import { HomePage } from '../pages/public/HomePage';
 import { ClubPage } from '../pages/public/ClubPage';
 import { TeamsPage } from '../pages/public/TeamsPage';
 import { NewsPage } from '../pages/public/NewsPage';
+import { NewsDetailPage } from '../pages/public/NewsDetailPage';
 import { MembersPage } from '../pages/public/MembersPage';
 import { GalleryPage } from '../pages/public/GalleryPage';
 import { SponsorsPage } from '../pages/public/SponsorsPage';
@@ -47,6 +48,7 @@ export function AppRoutes() {
         <Route path="clube" element={<ClubPage />} />
         <Route path="equipas" element={<TeamsPage />} />
         <Route path="noticias" element={<NewsPage />} />
+        <Route path="noticias/:id" element={<NewsDetailPage />} />
         <Route path="socios" element={<MembersPage />} />
         <Route path="galeria" element={<GalleryPage />} />
         <Route path="patrocinadores" element={<SponsorsPage />} />

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, Newspaper, Search } from 'lucide-react';
+import { ChevronRight, Newspaper, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { GdrbNews } from '../../types/database';
 
@@ -166,60 +167,56 @@ export function NewsPage() {
         ) : (
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {filteredNews.map((item) => (
-              <article
+              <Link
                 key={item.id}
+                to={`/noticias/${item.id}`}
                 className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
               >
-                <div className="h-1.5 bg-red-700" />
+                <article>
+                  <div className="h-1.5 bg-red-700" />
 
-                {item.image_url ? (
-                  <div className="h-56 overflow-hidden">
-                    <img
-                      src={item.image_url}
-                      alt={item.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-56 items-center justify-center bg-[#24180f]">
-                    <Newspaper size={50} className="text-red-500" />
-                  </div>
-                )}
-
-                <div className="p-7">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                      {item.source}
-                    </span>
-
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
-                      {formatDate(item.published_at)}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-6 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                    {item.title}
-                  </h3>
-
-                  {item.summary && (
-                    <p className="mt-5 text-sm leading-7 text-zinc-600">
-                      {item.summary}
-                    </p>
+                  {item.image_url ? (
+                    <div className="h-56 overflow-hidden">
+                      <img
+                        src={item.image_url}
+                        alt={item.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-56 items-center justify-center bg-[#24180f]">
+                      <Newspaper size={50} className="text-red-500" />
+                    </div>
                   )}
 
-                  {item.external_url && (
-                    <a
-                      href={item.external_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-7 inline-flex items-center gap-2 rounded-md bg-[#24180f] px-5 py-3 text-sm font-bold text-white transition hover:bg-red-700"
-                    >
-                      Ver notícia
-                      <ExternalLink size={16} />
-                    </a>
-                  )}
-                </div>
-              </article>
+                  <div className="p-7">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                        {item.source}
+                      </span>
+
+                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
+                        {formatDate(item.published_at)}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-6 font-serif text-4xl font-light leading-tight text-[#24180f]">
+                      {item.title}
+                    </h3>
+
+                    {item.summary && (
+                      <p className="mt-5 text-sm leading-7 text-zinc-600">
+                        {item.summary}
+                      </p>
+                    )}
+
+                    <span className="mt-7 inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700">
+                      Ler notícia completa
+                      <ChevronRight size={16} />
+                    </span>
+                  </div>
+                </article>
+              </Link>
             ))}
           </div>
         )}
