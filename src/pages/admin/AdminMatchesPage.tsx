@@ -128,7 +128,7 @@ function getWeekLabel() {
   return `${start} a ${end}`;
 }
 
-function getMatchTeams(match: GdrbMatch) {
+function getPosterMatchTeams(match: GdrbMatch) {
   if (match.venue_type === 'fora') {
     return {
       firstTeam: match.opponent,
@@ -502,7 +502,8 @@ export function AdminMatchesPage() {
               {match ? (
                 <div className="mt-5 flex flex-1 flex-col">
                   {(() => {
-                    const { firstTeam, secondTeam } = getMatchTeams(match);
+                    const { firstTeam, secondTeam } =
+                      getPosterMatchTeams(match);
 
                     return (
                       <>
@@ -815,21 +816,27 @@ export function AdminMatchesPage() {
               )}
             </div>
 
-            {(() => {
-              const { firstTeam, secondTeam } = getMatchTeams(match);
+            {match.venue_type === 'fora' ? (
+              <>
+                <p className="mt-6 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
+                  {match.opponent}
+                </p>
 
-              return (
-                <>
-                  <h3 className="mt-6 font-serif text-4xl font-light text-[#24180f]">
-                    {firstTeam}
-                  </h3>
+                <h3 className="mt-2 font-serif text-4xl font-light text-[#24180f]">
+                  vs GDR Boavista
+                </h3>
+              </>
+            ) : (
+              <>
+                <h3 className="mt-6 font-serif text-4xl font-light text-[#24180f]">
+                  GDR Boavista
+                </h3>
 
-                  <p className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
-                    vs {secondTeam}
-                  </p>
-                </>
-              );
-            })()}
+                <p className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
+                  vs {match.opponent}
+                </p>
+              </>
+            )}
 
             <p className="mt-4 text-sm font-semibold text-zinc-600">
               {match.competition}

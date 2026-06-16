@@ -23,21 +23,18 @@ import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
 import { AdminSponsorsPage } from '../pages/admin/AdminSponsorsPage';
 import { AdminContentsPage } from '../pages/admin/AdminContentsPage';
 import { AdminMatchesPage } from '../pages/admin/AdminMatchesPage';
+import { AdminTournamentsPage } from '../pages/admin/AdminTournamentsPage';
 
 function AdminPlaceholderPage({ title }: { title: string }) {
   return (
-    <div>
-      <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-600">
-        Administração
+    <div className="rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
+      <h1 className="font-serif text-4xl font-light text-[#24180f]">
+        {title}
+      </h1>
+
+      <p className="mt-3 text-sm leading-7 text-zinc-500">
+        Esta área ainda está em preparação.
       </p>
-
-      <h1 className="mt-2 text-4xl font-black text-zinc-950">{title}</h1>
-
-      <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <p className="text-zinc-600">
-          Esta área será implementada na próxima fase do projeto.
-        </p>
-      </div>
     </div>
   );
 }
@@ -66,6 +63,7 @@ export function AppRoutes() {
           <Route path="noticias" element={<AdminNewsPage />} />
           <Route path="equipas" element={<AdminTeamsPage />} />
           <Route path="jogos" element={<AdminMatchesPage />} />
+          <Route path="torneios" element={<AdminTournamentsPage />} />
           <Route path="patrocinadores" element={<AdminSponsorsPage />} />
           <Route path="socios" element={<AdminMembersPage />} />
           <Route path="contactos" element={<AdminContactsPage />} />

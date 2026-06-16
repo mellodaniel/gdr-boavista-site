@@ -19,6 +19,7 @@ const adminNavigation = [
   { label: 'Notícias', path: '/admin/noticias', icon: Newspaper },
   { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
   { label: 'Jogos / Agenda', path: '/admin/jogos', icon: CalendarDays },
+  { label: 'Torneios', path: '/admin/torneios', icon: Trophy },
   { label: 'Patrocinadores', path: '/admin/patrocinadores', icon: Shield },
   { label: 'Sócios', path: '/admin/socios', icon: Users },
   { label: 'Contactos', path: '/admin/contactos', icon: Mail },

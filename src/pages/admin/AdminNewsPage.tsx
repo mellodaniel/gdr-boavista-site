@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import {
   Eye,
   EyeOff,
@@ -8,9 +8,13 @@ import {
   RefreshCcw,
   Save,
   Trash2,
+  Upload,
+  X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbNews } from '../../types/database';
+
+const NEWS_BUCKET = 'gdrb-news';
 
 const initialForm = {
   title: '',
@@ -42,10 +46,21 @@ function formatDate(date: string | null) {
   });
 }
 
+function sanitizeFileName(fileName: string) {
+  return fileName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9.\-_]/g, '-')
+    .toLowerCase();
+}
+
 export function AdminNewsPage() {
   const [news, setNews] = useState<GdrbNews[]>([]);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -89,14 +104,28 @@ export function AdminNewsPage() {
     }));
   }
 
+  function resetImage() {
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
+    setForm((currentForm) => ({
+      ...currentForm,
+      image_url: '',
+    }));
+  }
+
   function resetForm() {
     setForm(initialForm);
     setEditingId(null);
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
     setShowForm(false);
   }
 
   function handleEdit(item: GdrbNews) {
     setEditingId(item.id);
+    setSelectedImageFile(null);
+    setImagePreviewUrl(item.image_url ?? '');
+
     setForm({
       title: item.title,
       summary: item.summary ?? '',
@@ -106,8 +135,62 @@ export function AdminNewsPage() {
       external_url: item.external_url ?? '',
       is_published: item.is_published,
     });
+
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    setErrorMessage('');
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Seleciona apenas ficheiros de imagem.');
+      event.target.value = '';
+      return;
+    }
+
+    const maxSizeInMb = 5;
+    const maxSizeInBytes = maxSizeInMb * 1024 * 1024;
+
+    if (file.size > maxSizeInBytes) {
+      setErrorMessage(`A imagem deve ter no máximo ${maxSizeInMb}MB.`);
+      event.target.value = '';
+      return;
+    }
+
+    setSelectedImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  }
+
+  async function uploadNewsImage() {
+    if (!selectedImageFile) {
+      return form.image_url.trim() || null;
+    }
+
+    const safeFileName = sanitizeFileName(selectedImageFile.name);
+    const filePath = `news/${Date.now()}-${safeFileName}`;
+
+    const { error } = await supabase.storage
+      .from(NEWS_BUCKET)
+      .upload(filePath, selectedImageFile, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Erro ao fazer upload da imagem:', error);
+      throw new Error('Não foi possível fazer upload da imagem.');
+    }
+
+    const { data } = supabase.storage.from(NEWS_BUCKET).getPublicUrl(filePath);
+
+    return data.publicUrl;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -123,35 +206,49 @@ export function AdminNewsPage() {
 
     setIsSaving(true);
 
-    const payload = {
-      title: form.title.trim(),
-      summary: form.summary.trim() || null,
-      content: form.content.trim() || null,
-      source: form.source,
-      image_url: form.image_url.trim() || null,
-      external_url: form.external_url.trim() || null,
-      is_published: form.is_published,
-      published_at: form.is_published ? new Date().toISOString() : null,
-    };
+    try {
+      const imageUrl = await uploadNewsImage();
 
-    const result = editingId
-      ? await supabase.from('gdrb_news').update(payload).eq('id', editingId)
-      : await supabase.from('gdrb_news').insert(payload);
+      const payload = {
+        title: form.title.trim(),
+        summary: form.summary.trim() || null,
+        content: form.content.trim() || null,
+        source: form.source,
+        image_url: imageUrl,
+        external_url: form.external_url.trim() || null,
+        is_published: form.is_published,
+        published_at: form.is_published ? new Date().toISOString() : null,
+      };
 
-    setIsSaving(false);
+      const result = editingId
+        ? await supabase.from('gdrb_news').update(payload).eq('id', editingId)
+        : await supabase.from('gdrb_news').insert(payload);
 
-    if (result.error) {
-      console.error('Erro ao guardar notícia:', result.error);
-      setErrorMessage('Não foi possível guardar a notícia.');
-      return;
+      if (result.error) {
+        console.error('Erro ao guardar notícia:', result.error);
+        setErrorMessage('Não foi possível guardar a notícia.');
+        setIsSaving(false);
+        return;
+      }
+
+      setSuccessMessage(
+        editingId
+          ? 'Notícia atualizada com sucesso.'
+          : 'Notícia criada com sucesso.',
+      );
+
+      resetForm();
+      await loadNews();
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível guardar a notícia.',
+      );
     }
 
-    setSuccessMessage(
-      editingId ? 'Notícia atualizada com sucesso.' : 'Notícia criada com sucesso.',
-    );
-
-    resetForm();
-    await loadNews();
+    setIsSaving(false);
   }
 
   async function handleTogglePublished(item: GdrbNews) {
@@ -228,6 +325,8 @@ export function AdminNewsPage() {
               onClick={() => {
                 setEditingId(null);
                 setForm(initialForm);
+                setSelectedImageFile(null);
+                setImagePreviewUrl('');
                 setShowForm(!showForm);
               }}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
@@ -342,22 +441,64 @@ export function AdminNewsPage() {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="text-sm font-black text-zinc-800">
-                URL da imagem
+                Imagem da notícia
               </label>
 
-              <input
-                type="url"
-                value={form.image_url}
-                onChange={(event) =>
-                  handleChange('image_url', event.target.value)
-                }
-                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
-              />
+              <div className="mt-2 rounded-md border border-dashed border-zinc-300 bg-[#f6f2ec] p-5">
+                {imagePreviewUrl ? (
+                  <div className="grid gap-4 md:grid-cols-[220px_1fr] md:items-center">
+                    <img
+                      src={imagePreviewUrl}
+                      alt="Pré-visualização da notícia"
+                      className="h-36 w-full rounded-md object-cover shadow-sm"
+                    />
+
+                    <div>
+                      <p className="text-sm font-bold text-zinc-800">
+                        Imagem selecionada
+                      </p>
+
+                      <p className="mt-2 text-sm leading-6 text-zinc-500">
+                        Apenas uma imagem pode ser associada a cada notícia.
+                        Para alterar, remove a imagem atual e escolhe outra.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={resetImage}
+                        className="mt-4 inline-flex items-center gap-2 rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
+                      >
+                        <X size={16} />
+                        Remover imagem
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-md bg-white px-5 py-8 text-center transition hover:bg-zinc-50">
+                    <Upload size={30} className="text-red-700" />
+
+                    <span className="mt-4 text-sm font-black uppercase tracking-wide text-[#24180f]">
+                      Escolher imagem
+                    </span>
+
+                    <span className="mt-2 text-sm text-zinc-500">
+                      JPG, PNG ou WEBP até 5MB. Apenas 1 imagem por notícia.
+                    </span>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="text-sm font-black text-zinc-800">
                 Link externo
               </label>
@@ -368,6 +509,7 @@ export function AdminNewsPage() {
                 onChange={(event) =>
                   handleChange('external_url', event.target.value)
                 }
+                placeholder="https://..."
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
@@ -419,9 +561,25 @@ export function AdminNewsPage() {
               key={item.id}
               className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm"
             >
-              <div className={item.is_published ? 'h-1.5 bg-red-700' : 'h-1.5 bg-zinc-300'} />
+              <div
+                className={
+                  item.is_published ? 'h-1.5 bg-red-700' : 'h-1.5 bg-zinc-300'
+                }
+              />
 
-              <div className="grid gap-6 p-7 lg:grid-cols-[1fr_auto] lg:items-start">
+              <div className="grid gap-6 p-7 lg:grid-cols-[220px_1fr_auto] lg:items-start">
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    className="h-40 w-full rounded-md object-cover lg:h-36"
+                  />
+                ) : (
+                  <div className="flex h-40 w-full items-center justify-center rounded-md bg-[#f6f2ec] text-red-700 lg:h-36">
+                    <Newspaper size={30} />
+                  </div>
+                )}
+
                 <div>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
@@ -462,7 +620,11 @@ export function AdminNewsPage() {
                     onClick={() => handleTogglePublished(item)}
                     className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
                   >
-                    {item.is_published ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {item.is_published ? (
+                      <EyeOff size={16} />
+                    ) : (
+                      <Eye size={16} />
+                    )}
                     {item.is_published ? 'Despublicar' : 'Publicar'}
                   </button>
 
