@@ -18,6 +18,9 @@ import type {
   GdrbTournament,
 } from '../../types/database';
 
+const googleMapsUrl =
+  'https://www.google.com/maps/place/Campo+do+Grupo+Desportivo+e+Recreativo+da+Boavista/@39.780229,-8.7487878,17z/data=!3m1!4b1!4m6!3m5!1s0xd2271873a862cd7:0x575890ac1492b6a2!8m2!3d39.780229!4d-8.7462129!16s%2Fg%2F11bytx3sxs?entry=ttu&g_ep=EgoyMDI2MDYxMC4wIKXMDSoASAFQAw%3D%3D';
+
 const heroHighlights = ['Formação', 'Comunidade', 'Orgulho', 'Futebol'];
 
 const valueItems = [
@@ -296,9 +299,9 @@ export function HomePage() {
             </h1>
 
             <p className="mt-8 max-w-2xl text-lg leading-8 text-zinc-300">
-              O GDR Boavista é uma casa de futebol, formação e comunidade.
-              Um clube onde atletas, famílias, sócios e amigos vivem o futebol
-              com compromisso, união e orgulho.
+              O GDR Boavista é uma casa de futebol, formação e comunidade. Um
+              clube onde atletas, famílias, sócios e amigos vivem o futebol com
+              compromisso, união e orgulho.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-4">
@@ -726,6 +729,47 @@ export function HomePage() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-7xl px-4">
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="group relative block min-h-[420px] overflow-hidden rounded-sm bg-[#24180f] shadow-xl"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.35),transparent_38%)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#24180f] via-[#24180f]/90 to-red-950" />
+
+            <div className="relative flex min-h-[420px] flex-col items-center justify-center p-10 text-center text-white">
+              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white p-3 shadow-2xl">
+                <img
+                  src="/logo-gdr-boavista-header-256.png"
+                  alt="GDR Boavista"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+
+              <p className="mt-8 text-sm font-bold uppercase tracking-[0.45em] text-red-300">
+                Localização
+              </p>
+
+              <h2 className="mt-5 font-serif text-5xl font-light leading-tight md:text-6xl">
+                Visita-nos no campo.
+              </h2>
+
+              <p className="mt-5 max-w-xl text-base leading-8 text-zinc-300">
+                Campo do Grupo Desportivo e Recreativo da Boavista, em Leiria.
+              </p>
+
+              <span className="mt-8 inline-flex items-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition group-hover:bg-white group-hover:text-[#24180f]">
+                Abrir no Google Maps
+                <ChevronRight size={16} />
+              </span>
+            </div>
+          </a>
         </div>
       </section>
 

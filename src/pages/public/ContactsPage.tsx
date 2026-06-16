@@ -10,6 +10,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
+const googleMapsUrl =
+  'https://www.google.com/maps/place/Campo+do+Grupo+Desportivo+e+Recreativo+da+Boavista/@39.780229,-8.7487878,17z/data=!3m1!4b1!4m6!3m5!1s0xd2271873a862cd7:0x575890ac1492b6a2!8m2!3d39.780229!4d-8.7462129!16s%2Fg%2F11bytx3sxs?entry=ttu&g_ep=EgoyMDI2MDYxMC4wIKXMDSoASAFQAw%3D%3D';
+
 const initialForm = {
   name: '',
   email: '',
@@ -37,10 +40,16 @@ const contactItems = [
     href: 'https://www.instagram.com/gdr_boavista_oficial/',
   },
   {
+    icon: MessageCircle,
+    title: 'Facebook',
+    description: 'G.D.R. BoaVista',
+    href: 'https://www.facebook.com/G.D.R.BoaVista',
+  },
+  {
     icon: MapPin,
     title: 'Localização',
-    description: 'Leiria, Portugal',
-    href: null,
+    description: 'Campo do Grupo Desportivo e Recreativo da Boavista',
+    href: googleMapsUrl,
   },
   {
     icon: Clock,
