@@ -592,36 +592,46 @@ export function HomePage() {
           ) : (
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               {news.map((item) => (
-                <article
+                <Link
                   key={item.id}
-                  className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  to={`/noticias/${item.id}`}
+                  className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
-                  <div className="h-1.5 bg-red-700" />
+                  <article>
+                    <div className="h-1.5 bg-red-700" />
 
-                  {item.image_url && (
-                    <img
-                      src={item.image_url}
-                      alt={item.title}
-                      className="h-52 w-full object-cover"
-                    />
-                  )}
-
-                  <div className="p-7">
-                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                      {item.source}
-                    </span>
-
-                    <h3 className="mt-5 font-serif text-3xl font-light leading-tight text-[#24180f]">
-                      {item.title}
-                    </h3>
-
-                    {item.summary && (
-                      <p className="mt-4 text-sm leading-7 text-zinc-600">
-                        {item.summary}
-                      </p>
+                    {item.image_url && (
+                      <div className="h-52 overflow-hidden">
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      </div>
                     )}
-                  </div>
-                </article>
+
+                    <div className="p-7">
+                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                        {item.source}
+                      </span>
+
+                      <h3 className="mt-5 font-serif text-3xl font-light leading-tight text-[#24180f]">
+                        {item.title}
+                      </h3>
+
+                      {item.summary && (
+                        <p className="mt-4 text-sm leading-7 text-zinc-600">
+                          {item.summary}
+                        </p>
+                      )}
+
+                      <span className="mt-7 inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700">
+                        Ler notícia completa
+                        <ChevronRight size={16} />
+                      </span>
+                    </div>
+                  </article>
+                </Link>
               ))}
             </div>
           )}
