@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import {
   CalendarDays,
   ChevronDown,
@@ -11,76 +11,78 @@ import {
   RefreshCcw,
   Save,
   Trash2,
-} from 'lucide-react';
-import { toPng } from 'html-to-image';
-import { supabase } from '../../lib/supabase';
-import type { GdrbMatch } from '../../types/database';
+} from "lucide-react";
+import { toPng } from "html-to-image";
+import { supabase } from "../../lib/supabase";
+import type { GdrbMatch, GdrbTournament } from "../../types/database";
 
 const initialForm = {
-  team_name: '',
-  football_type: 'Futebol 11',
-  competition: '',
-  opponent: '',
-  match_date: '',
-  match_time: '',
-  location: '',
-  venue_type: 'casa',
-  status: 'agendado',
-  home_score: '',
-  away_score: '',
-  notes: '',
+  team_name: "",
+  football_type: "Futebol 11",
+  competition: "",
+  opponent: "",
+  match_date: "",
+  match_time: "",
+  location: "",
+  venue_type: "casa",
+  status: "agendado",
+  home_score: "",
+  away_score: "",
+  notes: "",
   is_visible: true,
   sort_order: 0,
 };
 
-const footballTypes = ['Futebol 5', 'Futebol 7', 'Futebol 9', 'Futebol 11'];
+const footballTypes = ["Futebol 5", "Futebol 7", "Futebol 9", "Futebol 11"];
 
 const teamOptions = [
-  'Petizes / ABC',
-  'Traquinas',
-  'Benjamins',
-  'Infantis',
-  'Iniciados',
-  'Juvenis',
-  'Juniores',
-  'Seniores',
-  'Veteranos',
-];
-
-const weeklyTeamSlots = [
-  { teamName: 'Petizes / ABC', footballType: 'Futebol 5' },
-  { teamName: 'Traquinas', footballType: 'Futebol 5' },
-  { teamName: 'Benjamins', footballType: 'Futebol 7' },
-  { teamName: 'Infantis', footballType: 'Futebol 9' },
-  { teamName: 'Iniciados', footballType: 'Futebol 11' },
-  { teamName: 'Juvenis', footballType: 'Futebol 11' },
-  { teamName: 'Juniores', footballType: 'Futebol 11' },
-  { teamName: 'Seniores', footballType: 'Futebol 11' },
-  { teamName: 'Veteranos', footballType: 'Futebol 11' },
+  "Petizes / ABC",
+  "Traquinas",
+  "Benjamins",
+  "Infantis",
+  "Iniciados",
+  "Juvenis",
+  "Juniores",
+  "Seniores",
+  "Veteranos",
 ];
 
 const statusOptions = [
-  { value: 'agendado', label: 'Agendado' },
-  { value: 'terminado', label: 'Terminado' },
-  { value: 'adiado', label: 'Adiado' },
-  { value: 'cancelado', label: 'Cancelado' },
+  { value: "agendado", label: "Agendado" },
+  { value: "terminado", label: "Terminado" },
+  { value: "adiado", label: "Adiado" },
+  { value: "cancelado", label: "Cancelado" },
 ];
 
-type PosterMode = 'matches' | 'results';
+type PosterMode = "matches" | "results";
+
+type AgendaPosterItem =
+  | {
+      type: "match";
+      id: string;
+      sortDate: string;
+      data: GdrbMatch;
+    }
+  | {
+      type: "tournament";
+      id: string;
+      sortDate: string;
+      data: GdrbTournament;
+    };
 
 function formatDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
+  return new Date(`${date}T00:00:00`).toLocaleDateString("pt-PT", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 }
 
 function formatDateShort(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('pt-PT', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
+  return new Date(`${date}T00:00:00`).toLocaleDateString("pt-PT", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
   });
 }
 
@@ -112,48 +114,69 @@ function isMatchInCurrentWeek(matchDate: string) {
   return date >= monday && date <= sunday;
 }
 
+function isTournamentInCurrentWeek(tournament: GdrbTournament) {
+  const { monday, sunday } = getCurrentWeekRange();
+
+  const startDate = new Date(`${tournament.start_date}T12:00:00`);
+  const endDate = tournament.end_date
+    ? new Date(`${tournament.end_date}T12:00:00`)
+    : startDate;
+
+  return startDate <= sunday && endDate >= monday;
+}
+
+function formatTournamentDate(tournament: GdrbTournament) {
+  if (!tournament.end_date || tournament.end_date === tournament.start_date) {
+    return formatDateShort(tournament.start_date);
+  }
+
+  return `${formatDateShort(tournament.start_date)} a ${formatDateShort(
+    tournament.end_date,
+  )}`;
+}
+
 function getWeekLabel() {
   const { monday, sunday } = getCurrentWeekRange();
 
-  const start = monday.toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
+  const start = monday.toLocaleDateString("pt-PT", {
+    day: "2-digit",
+    month: "short",
   });
 
-  const end = sunday.toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
+  const end = sunday.toLocaleDateString("pt-PT", {
+    day: "2-digit",
+    month: "short",
   });
 
   return `${start} a ${end}`;
 }
 
 function getPosterMatchTeams(match: GdrbMatch) {
-  if (match.venue_type === 'fora') {
+  if (match.venue_type === "fora") {
     return {
       firstTeam: match.opponent,
-      secondTeam: 'GDR Boavista',
+      secondTeam: "GDR Boavista",
     };
   }
 
   return {
-    firstTeam: 'GDR Boavista',
+    firstTeam: "GDR Boavista",
     secondTeam: match.opponent,
   };
 }
 
 function getMatchResult(match: GdrbMatch) {
-  if (match.venue_type === 'fora') {
+  if (match.venue_type === "fora") {
     return {
       firstTeam: match.opponent,
       firstScore: match.away_score,
-      secondTeam: 'GDR Boavista',
+      secondTeam: "GDR Boavista",
       secondScore: match.home_score,
     };
   }
 
   return {
-    firstTeam: 'GDR Boavista',
+    firstTeam: "GDR Boavista",
     firstScore: match.home_score,
     secondTeam: match.opponent,
     secondScore: match.away_score,
@@ -164,6 +187,7 @@ export function AdminMatchesPage() {
   const posterRef = useRef<HTMLDivElement | null>(null);
 
   const [matches, setMatches] = useState<GdrbMatch[]>([]);
+  const [tournaments, setTournaments] = useState<GdrbTournament[]>([]);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -176,46 +200,52 @@ export function AdminMatchesPage() {
   const [showFinished, setShowFinished] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [showPosterPreview, setShowPosterPreview] = useState(false);
-  const [posterMode, setPosterMode] = useState<PosterMode>('matches');
+  const [posterMode, setPosterMode] = useState<PosterMode>("matches");
 
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const scheduledMatches = useMemo(
     () =>
       matches.filter(
         (match) =>
           match.is_visible &&
-          ['agendado', 'adiado', 'cancelado'].includes(match.status),
+          ["agendado", "adiado", "cancelado"].includes(match.status),
       ),
     [matches],
   );
 
-  const weeklyMatches = useMemo(
-    () =>
-      scheduledMatches
-        .filter((match) => isMatchInCurrentWeek(match.match_date))
-        .sort((a, b) => {
-          const dateA = `${a.match_date} ${a.match_time ?? '00:00'}`;
-          const dateB = `${b.match_date} ${b.match_time ?? '00:00'}`;
-          return dateA.localeCompare(dateB);
-        }),
-    [scheduledMatches],
-  );
+  const weeklyAgendaItems = useMemo<AgendaPosterItem[]>(() => {
+    const matchItems: AgendaPosterItem[] = matches
+      .filter(
+        (match) =>
+          match.is_visible &&
+          match.status !== "terminado" &&
+          isMatchInCurrentWeek(match.match_date),
+      )
+      .map((match) => ({
+        type: "match",
+        id: match.id,
+        sortDate: `${match.match_date} ${match.match_time ?? "00:00"}`,
+        data: match,
+      }));
 
-  const weeklyMatchesByTeam = useMemo(() => {
-    return weeklyTeamSlots.reduce<Record<string, GdrbMatch | undefined>>(
-      (acc, slot) => {
-        const match = weeklyMatches.find(
-          (item) => item.team_name === slot.teamName,
-        );
+    const tournamentItems: AgendaPosterItem[] = tournaments
+      .filter(
+        (tournament) =>
+          tournament.is_visible && isTournamentInCurrentWeek(tournament),
+      )
+      .map((tournament) => ({
+        type: "tournament",
+        id: tournament.id,
+        sortDate: `${tournament.start_date} 00:00`,
+        data: tournament,
+      }));
 
-        acc[slot.teamName] = match;
-        return acc;
-      },
-      {},
+    return [...matchItems, ...tournamentItems].sort((a, b) =>
+      a.sortDate.localeCompare(b.sortDate),
     );
-  }, [weeklyMatches]);
+  }, [matches, tournaments]);
 
   const weeklyResults = useMemo(
     () =>
@@ -223,35 +253,21 @@ export function AdminMatchesPage() {
         .filter(
           (match) =>
             match.is_visible &&
-            match.status === 'terminado' &&
+            match.status === "terminado" &&
             isMatchInCurrentWeek(match.match_date),
         )
         .sort((a, b) => {
-          const dateA = `${a.match_date} ${a.match_time ?? '00:00'}`;
-          const dateB = `${b.match_date} ${b.match_time ?? '00:00'}`;
+          const dateA = `${a.match_date} ${a.match_time ?? "00:00"}`;
+          const dateB = `${b.match_date} ${b.match_time ?? "00:00"}`;
           return dateA.localeCompare(dateB);
         }),
     [matches],
   );
 
-  const weeklyResultsByTeam = useMemo(() => {
-    return weeklyTeamSlots.reduce<Record<string, GdrbMatch | undefined>>(
-      (acc, slot) => {
-        const match = weeklyResults.find(
-          (item) => item.team_name === slot.teamName,
-        );
-
-        acc[slot.teamName] = match;
-        return acc;
-      },
-      {},
-    );
-  }, [weeklyResults]);
-
   const finishedMatches = useMemo(
     () =>
       matches.filter(
-        (match) => match.is_visible && match.status === 'terminado',
+        (match) => match.is_visible && match.status === "terminado",
       ),
     [matches],
   );
@@ -263,23 +279,39 @@ export function AdminMatchesPage() {
 
   async function loadMatches() {
     setIsLoading(true);
-    setErrorMessage('');
+    setErrorMessage("");
 
-    const { data, error } = await supabase
-      .from('gdrb_matches')
-      .select('*')
-      .order('match_date', { ascending: true })
-      .order('match_time', { ascending: true })
-      .order('sort_order', { ascending: true });
+    const [matchesResult, tournamentsResult] = await Promise.all([
+      supabase
+        .from("gdrb_matches")
+        .select("*")
+        .order("match_date", { ascending: true })
+        .order("match_time", { ascending: true })
+        .order("sort_order", { ascending: true }),
 
-    if (error) {
-      console.error('Erro ao carregar jogos:', error);
-      setErrorMessage('Não foi possível carregar os jogos.');
+      supabase
+        .from("gdrb_tournaments")
+        .select("*")
+        .order("start_date", { ascending: true })
+        .order("sort_order", { ascending: true }),
+    ]);
+
+    if (matchesResult.error) {
+      console.error("Erro ao carregar jogos:", matchesResult.error);
+      setErrorMessage("Não foi possível carregar os jogos.");
       setIsLoading(false);
       return;
     }
 
-    setMatches(data ?? []);
+    if (tournamentsResult.error) {
+      console.error("Erro ao carregar torneios:", tournamentsResult.error);
+      setErrorMessage("Não foi possível carregar os torneios.");
+      setIsLoading(false);
+      return;
+    }
+
+    setMatches(matchesResult.data ?? []);
+    setTournaments(tournamentsResult.data ?? []);
     setIsLoading(false);
   }
 
@@ -311,25 +343,25 @@ export function AdminMatchesPage() {
       competition: match.competition,
       opponent: match.opponent,
       match_date: match.match_date,
-      match_time: match.match_time ?? '',
-      location: match.location ?? '',
+      match_time: match.match_time ?? "",
+      location: match.location ?? "",
       venue_type: match.venue_type,
       status: match.status,
-      home_score: match.home_score === null ? '' : String(match.home_score),
-      away_score: match.away_score === null ? '' : String(match.away_score),
-      notes: match.notes ?? '',
+      home_score: match.home_score === null ? "" : String(match.home_score),
+      away_score: match.away_score === null ? "" : String(match.away_score),
+      notes: match.notes ?? "",
       is_visible: match.is_visible,
       sort_order: match.sort_order ?? 0,
     });
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setSuccessMessage('');
-    setErrorMessage('');
+    setSuccessMessage("");
+    setErrorMessage("");
 
     if (
       !form.team_name.trim() ||
@@ -338,7 +370,7 @@ export function AdminMatchesPage() {
       !form.match_date
     ) {
       setErrorMessage(
-        'Preenche pelo menos escalão, competição, adversário e data.',
+        "Preenche pelo menos escalão, competição, adversário e data.",
       );
       return;
     }
@@ -356,9 +388,9 @@ export function AdminMatchesPage() {
       venue_type: form.venue_type,
       status: form.status,
       home_score:
-        form.home_score === '' ? null : Number.parseInt(form.home_score, 10),
+        form.home_score === "" ? null : Number.parseInt(form.home_score, 10),
       away_score:
-        form.away_score === '' ? null : Number.parseInt(form.away_score, 10),
+        form.away_score === "" ? null : Number.parseInt(form.away_score, 10),
       notes: form.notes.trim() || null,
       is_visible: form.is_visible,
       sort_order: Number(form.sort_order) || 0,
@@ -366,19 +398,19 @@ export function AdminMatchesPage() {
     };
 
     const result = editingId
-      ? await supabase.from('gdrb_matches').update(payload).eq('id', editingId)
-      : await supabase.from('gdrb_matches').insert(payload);
+      ? await supabase.from("gdrb_matches").update(payload).eq("id", editingId)
+      : await supabase.from("gdrb_matches").insert(payload);
 
     setIsSaving(false);
 
     if (result.error) {
-      console.error('Erro ao guardar jogo:', result.error);
-      setErrorMessage('Não foi possível guardar o jogo.');
+      console.error("Erro ao guardar jogo:", result.error);
+      setErrorMessage("Não foi possível guardar o jogo.");
       return;
     }
 
     setSuccessMessage(
-      editingId ? 'Jogo atualizado com sucesso.' : 'Jogo criado com sucesso.',
+      editingId ? "Jogo atualizado com sucesso." : "Jogo criado com sucesso.",
     );
 
     resetForm();
@@ -387,16 +419,16 @@ export function AdminMatchesPage() {
 
   async function handleToggleVisibility(match: GdrbMatch) {
     const { error } = await supabase
-      .from('gdrb_matches')
+      .from("gdrb_matches")
       .update({
         is_visible: !match.is_visible,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', match.id);
+      .eq("id", match.id);
 
     if (error) {
-      console.error('Erro ao alterar visibilidade:', error);
-      setErrorMessage('Não foi possível alterar a visibilidade do jogo.');
+      console.error("Erro ao alterar visibilidade:", error);
+      setErrorMessage("Não foi possível alterar a visibilidade do jogo.");
       return;
     }
 
@@ -413,13 +445,13 @@ export function AdminMatchesPage() {
     }
 
     const { error } = await supabase
-      .from('gdrb_matches')
+      .from("gdrb_matches")
       .delete()
-      .eq('id', match.id);
+      .eq("id", match.id);
 
     if (error) {
-      console.error('Erro ao apagar jogo:', error);
-      setErrorMessage('Não foi possível apagar o jogo.');
+      console.error("Erro ao apagar jogo:", error);
+      setErrorMessage("Não foi possível apagar o jogo.");
       return;
     }
 
@@ -427,14 +459,14 @@ export function AdminMatchesPage() {
   }
 
   async function generatePoster(mode: PosterMode) {
-    setSuccessMessage('');
-    setErrorMessage('');
+    setSuccessMessage("");
+    setErrorMessage("");
     setPosterMode(mode);
     setShowPosterPreview(true);
 
     window.setTimeout(async () => {
       if (!posterRef.current) {
-        setErrorMessage('Não foi possível preparar a imagem.');
+        setErrorMessage("Não foi possível preparar a imagem.");
         return;
       }
 
@@ -445,235 +477,214 @@ export function AdminMatchesPage() {
           quality: 1,
           pixelRatio: 2,
           cacheBust: true,
-          backgroundColor: '#f6f2ec',
+          backgroundColor: "#111111",
         });
 
         const filePrefix =
-          mode === 'matches'
-            ? 'gdr-boavista-jogos-da-semana'
-            : 'gdr-boavista-resultados-da-semana';
+          mode === "matches"
+            ? "gdr-boavista-jogos-da-semana"
+            : "gdr-boavista-resultados-da-semana";
 
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.download = `${filePrefix}-${new Date()
           .toISOString()
           .slice(0, 10)}.png`;
         link.href = dataUrl;
         link.click();
 
-        setSuccessMessage('Imagem gerada com sucesso.');
+        setSuccessMessage("Imagem gerada com sucesso.");
       } catch (error) {
-        console.error('Erro ao gerar imagem:', error);
-        setErrorMessage('Não foi possível gerar a imagem.');
+        console.error("Erro ao gerar imagem:", error);
+        setErrorMessage("Não foi possível gerar a imagem.");
       } finally {
         setIsGeneratingPoster(false);
       }
     }, 300);
   }
 
-  function renderWeeklyMatchesPoster() {
-    return (
-      <div className="grid grid-cols-3 gap-4">
-        {weeklyTeamSlots.map((slot) => {
-          const match = weeklyMatchesByTeam[slot.teamName];
+  function renderPosterAgendaCard(item: AgendaPosterItem) {
+    if (item.type === "tournament") {
+      const tournament = item.data;
 
-          return (
-            <div
-              key={slot.teamName}
-              className="relative flex min-h-[245px] flex-col overflow-hidden rounded-sm border border-zinc-200 bg-white p-5 shadow-xl"
-            >
-              <div
-                className={
-                  match
-                    ? 'absolute inset-x-0 top-0 h-2 bg-red-700'
-                    : 'absolute inset-x-0 top-0 h-2 bg-zinc-300'
-                }
-              />
+      return (
+        <div
+          key={`tournament-${tournament.id}`}
+          className="relative overflow-hidden rounded-2xl border border-white/15 bg-white text-[#24180f] shadow-xl"
+        >
+          <div className="absolute inset-y-0 left-0 w-2 bg-red-700" />
 
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-700">
-                  {slot.teamName}
+          <div className="grid min-h-[112px] grid-cols-[82px_1fr]">
+            <div className="flex items-center justify-center bg-[#24180f] px-3 text-center text-white">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300">
+                Torneio
+              </p>
+            </div>
+
+            <div className="p-4">
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-red-700">
+                  {tournament.team_name}
                 </span>
 
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-bold uppercase text-zinc-600">
-                  {slot.footballType}
+                <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[9px] font-bold uppercase text-zinc-600">
+                  {tournament.football_type}
                 </span>
               </div>
 
-              {match ? (
-                <div className="mt-5 flex flex-1 flex-col">
-                  {(() => {
-                    const { firstTeam, secondTeam } =
-                      getPosterMatchTeams(match);
+              <h3 className="mt-2 truncate font-serif text-2xl font-light leading-tight">
+                {tournament.name}
+              </h3>
 
-                    return (
-                      <>
-                        <p className="font-serif text-3xl font-light leading-tight text-[#24180f]">
-                          {firstTeam}
-                        </p>
+              <p className="mt-2 text-xs font-black uppercase text-red-700">
+                {formatTournamentDate(tournament)}
+              </p>
 
-                        <p className="mt-1 text-sm font-black uppercase tracking-[0.18em] text-zinc-500">
-                          vs {secondTeam}
-                        </p>
-                      </>
-                    );
-                  })()}
-
-                  <p className="mt-3 text-sm font-semibold leading-5 text-zinc-600">
-                    {match.competition}
-                  </p>
-
-                  <div className="mt-auto pt-4">
-                    <div className="rounded-sm bg-[#24180f] px-4 py-3 text-white">
-                      <p className="text-sm font-black uppercase text-red-400">
-                        {formatDateShort(match.match_date)}
-                      </p>
-
-                      <p className="mt-1 text-3xl font-black">
-                        {match.match_time
-                          ? match.match_time.slice(0, 5)
-                          : '--:--'}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 flex gap-2">
-                      <span className="rounded-full bg-[#f6f2ec] px-3 py-1 text-xs font-bold text-[#24180f]">
-                        {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
-                      </span>
-
-                      <span className="rounded-full bg-[#f6f2ec] px-3 py-1 text-xs font-bold text-[#24180f]">
-                        {formatStatus(match.status)}
-                      </span>
-                    </div>
-
-                    {match.location && (
-                      <p className="mt-2 line-clamp-1 text-xs font-semibold text-zinc-500">
-                        {match.location}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-1 flex-col justify-center">
-                  <p className="font-serif text-3xl font-light leading-tight text-[#24180f]">
-                    Sem jogos
-                    <br />
-                    agendados
-                  </p>
-
-                  <p className="mt-3 text-sm leading-5 text-zinc-500">
-                    Não há jogos marcados para este escalão na semana corrente.
-                  </p>
-                </div>
+              {tournament.location && (
+                <p className="mt-1 truncate text-xs font-semibold text-zinc-500">
+                  {tournament.location}
+                </p>
               )}
             </div>
-          );
-        })}
+          </div>
+        </div>
+      );
+    }
+
+    const match = item.data;
+    const { firstTeam, secondTeam } = getPosterMatchTeams(match);
+
+    return (
+      <div
+        key={`match-${match.id}`}
+        className="relative overflow-hidden rounded-2xl border border-white/15 bg-white text-[#24180f] shadow-xl"
+      >
+        <div className="absolute inset-y-0 left-0 w-2 bg-red-700" />
+
+        <div className="grid min-h-[112px] grid-cols-[82px_1fr]">
+          <div className="flex items-center justify-center bg-[#24180f] px-3 text-center text-white">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300">
+              Jogo
+            </p>
+          </div>
+
+          <div className="p-4">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-red-700">
+                {match.team_name}
+              </span>
+
+              <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[9px] font-bold uppercase text-zinc-600">
+                {match.football_type}
+              </span>
+
+              <span className="rounded-full bg-[#24180f] px-2.5 py-1 text-[9px] font-bold uppercase text-white">
+                {match.venue_type === "casa" ? "Casa" : "Fora"}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_36px_minmax(0,1fr)] items-center gap-2">
+              <h3 className="whitespace-normal break-normal text-center font-serif text-[17px] font-light leading-[1.05] text-[#24180f]">
+                {firstTeam}
+              </h3>
+
+              <span className="flex h-8 w-9 items-center justify-center rounded-lg bg-red-700 text-[10px] font-black uppercase leading-none text-white">
+                VS
+              </span>
+
+              <h3 className="whitespace-normal break-normal text-center font-serif text-[17px] font-light leading-[1.05] text-[#24180f]">
+                {secondTeam}
+              </h3>
+            </div>
+
+            <p className="mt-1 truncate text-xs font-semibold text-zinc-600">
+              {match.competition}
+            </p>
+
+            <div className="mt-2 grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-2">
+              <span className="rounded-lg bg-[#24180f] px-3 py-1.5 text-[11px] font-black uppercase text-white">
+                {formatDateShort(match.match_date)}
+              </span>
+
+              <span className="rounded-lg bg-red-700 px-3 py-1.5 text-sm font-black text-white">
+                {match.match_time ? match.match_time.slice(0, 5) : "--:--"}
+              </span>
+
+              {match.location && (
+                <span className="truncate text-[11px] font-semibold text-zinc-500">
+                  {match.location}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  function renderWeeklyResultsPoster() {
+  function renderPosterResultCard(match: GdrbMatch) {
+    const { firstTeam, firstScore, secondTeam, secondScore } =
+      getMatchResult(match);
+
     return (
-      <div className="grid grid-cols-3 gap-4">
-        {weeklyTeamSlots.map((slot) => {
-          const match = weeklyResultsByTeam[slot.teamName];
+      <div
+        key={match.id}
+        className="relative overflow-hidden rounded-2xl border border-white/15 bg-white text-[#24180f] shadow-xl"
+      >
+        <div className="absolute inset-y-0 left-0 w-2 bg-red-700" />
 
-          return (
-            <div
-              key={slot.teamName}
-              className="relative flex min-h-[245px] flex-col overflow-hidden rounded-sm border border-zinc-200 bg-white p-5 shadow-xl"
-            >
-              <div
-                className={
-                  match
-                    ? 'absolute inset-x-0 top-0 h-2 bg-red-700'
-                    : 'absolute inset-x-0 top-0 h-2 bg-zinc-300'
-                }
-              />
+        <div className="grid min-h-[112px] grid-cols-[82px_1fr]">
+          <div className="flex items-center justify-center bg-[#24180f] px-3 text-center text-white">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300">
+              Final
+            </p>
+          </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-700">
-                  {slot.teamName}
+          <div className="p-4">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-red-700">
+                {match.team_name}
+              </span>
+
+              <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[9px] font-bold uppercase text-zinc-600">
+                {match.football_type}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+              <h3 className="whitespace-normal break-normal text-center font-serif text-[16px] font-light leading-[1.05] text-[#24180f]">
+                {firstTeam}
+              </h3>
+
+              <div className="flex shrink-0 items-center gap-1">
+                <span className="rounded-lg bg-[#24180f] px-3 py-1.5 text-2xl font-black text-white">
+                  {firstScore ?? "-"}
                 </span>
 
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-bold uppercase text-zinc-600">
-                  {slot.footballType}
+                <span className="text-xl font-black text-zinc-400">-</span>
+
+                <span className="rounded-lg bg-red-700 px-3 py-1.5 text-2xl font-black text-white">
+                  {secondScore ?? "-"}
                 </span>
               </div>
 
-              {match ? (
-                <div className="mt-5 flex flex-1 flex-col">
-                  {(() => {
-                    const result = getMatchResult(match);
-
-                    return (
-                      <>
-                        <div className="rounded-sm bg-[#24180f] px-4 py-4 text-white">
-                          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                            <p className="text-left text-sm font-black uppercase leading-tight">
-                              {result.firstTeam}
-                            </p>
-
-                            <p className="text-center text-4xl font-black text-red-400">
-                              {result.firstScore ?? '-'} -{' '}
-                              {result.secondScore ?? '-'}
-                            </p>
-
-                            <p className="text-right text-sm font-black uppercase leading-tight">
-                              {result.secondTeam}
-                            </p>
-                          </div>
-                        </div>
-
-                        <p className="mt-4 text-sm font-semibold leading-5 text-zinc-600">
-                          {match.competition}
-                        </p>
-
-                        <p className="mt-2 text-sm font-semibold text-zinc-500">
-                          {formatDateShort(match.match_date)}
-                        </p>
-                      </>
-                    );
-                  })()}
-
-                  <div className="mt-auto pt-4">
-                    <div className="flex gap-2">
-                      <span className="rounded-full bg-[#f6f2ec] px-3 py-1 text-xs font-bold text-[#24180f]">
-                        {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
-                      </span>
-
-                      <span className="rounded-full bg-[#f6f2ec] px-3 py-1 text-xs font-bold text-[#24180f]">
-                        Terminado
-                      </span>
-                    </div>
-
-                    {match.location && (
-                      <p className="mt-2 line-clamp-1 text-xs font-semibold text-zinc-500">
-                        {match.location}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-1 flex-col justify-center">
-                  <p className="font-serif text-3xl font-light leading-tight text-[#24180f]">
-                    Sem resultado
-                  </p>
-
-                  <p className="mt-3 text-sm leading-5 text-zinc-500">
-                    Não há resultado registado para este escalão na semana
-                    corrente.
-                  </p>
-                </div>
-              )}
+              <h3 className="whitespace-normal break-normal text-center font-serif text-[16px] font-light leading-[1.05] text-[#24180f]">
+                {secondTeam}
+              </h3>
             </div>
-          );
-        })}
+
+            <p className="mt-2 truncate text-xs font-semibold text-zinc-600">
+              {match.competition} · {formatDateShort(match.match_date)}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   function renderPosterPreview() {
+    const hasAgendaItems = weeklyAgendaItems.length > 0;
+    const hasResults = weeklyResults.length > 0;
+
     return (
       <section className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-4 border-b border-zinc-200 bg-[#f6f2ec] px-7 py-5 md:flex-row md:items-center">
@@ -683,7 +694,7 @@ export function AdminMatchesPage() {
             </h2>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Formato vertical para redes sociais. A imagem gerada será em PNG.
+              Formato vertical 1080x1350, adequado para redes sociais.
             </p>
           </div>
 
@@ -699,19 +710,14 @@ export function AdminMatchesPage() {
         <div className="overflow-auto bg-[#f6f2ec] p-6">
           <div
             ref={posterRef}
-            className="relative mx-auto flex h-[1350px] w-[1080px] flex-col overflow-hidden bg-[#f6f2ec] text-[#24180f]"
+            className="relative mx-auto h-[1350px] w-[1080px] overflow-hidden bg-[#111111] text-white"
           >
-            <div className="absolute inset-x-0 top-0 h-[360px] bg-[#24180f]" />
-            <div className="absolute inset-x-0 top-0 h-[360px] bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.35),transparent_36%)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-black via-[#24180f] to-red-950" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.5),transparent_35%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.12),transparent_30%)]" />
 
-            <img
-              src="/logo-gdr-boavista-header-256.png"
-              alt=""
-              className="absolute right-[-90px] top-[115px] h-[520px] w-[520px] object-contain opacity-[0.055]"
-            />
-
-            <div className="relative flex flex-1 flex-col px-16 py-14">
-              <header className="flex items-center justify-between text-white">
+            <div className="relative flex h-full flex-col px-14 py-12">
+              <header className="flex items-center justify-between">
                 <div className="flex items-center gap-5">
                   <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-white p-3 shadow-2xl">
                     <img
@@ -722,56 +728,102 @@ export function AdminMatchesPage() {
                   </div>
 
                   <div>
-                    <p className="text-3xl font-black uppercase leading-tight">
+                    <p className="text-4xl font-black uppercase leading-tight">
                       GDR Boavista
-                    </p>
-                    <p className="mt-1 text-sm font-black uppercase tracking-[0.28em] text-red-400">
-                      Leiria
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-full border border-white/15 bg-white/10 px-6 py-3 text-right text-sm font-black uppercase tracking-[0.22em] text-white">
+                <div className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-right text-sm font-black uppercase tracking-[0.22em]">
                   {getWeekLabel()}
                 </div>
               </header>
 
-              <div className="mt-16">
-                <p className="text-2xl font-black uppercase tracking-[0.36em] text-red-400">
-                  {posterMode === 'matches' ? 'Agenda' : 'Resultados'}
+              <div className="mt-12">
+                <p className="text-2xl font-black uppercase tracking-[0.42em] text-red-400">
+                  {posterMode === "matches" ? "Agenda semanal" : "Resultados"}
                 </p>
 
-                <h1 className="mt-4 font-serif text-[86px] font-light leading-[0.92] tracking-tight text-white">
-                  {posterMode === 'matches' ? (
+                <h1 className="mt-4 font-serif text-[82px] font-light leading-[0.88] tracking-tight">
+                  {posterMode === "matches" ? (
                     <>
-                      Jogos da
-                      <br />
-                      Semana
+                      Jogos
+                      <br />e Torneios
                     </>
                   ) : (
                     <>
-                      Resultados da
+                      Resultados
                       <br />
-                      Semana
+                      da Semana
                     </>
                   )}
                 </h1>
 
-                <div className="mt-7 h-2 w-52 rounded-full bg-red-600" />
+                <div className="mt-7 h-2 w-56 rounded-full bg-red-600" />
               </div>
 
-              <div className="mt-14">
-                {posterMode === 'matches'
-                  ? renderWeeklyMatchesPoster()
-                  : renderWeeklyResultsPoster()}
+              <div className="mt-9 flex-1">
+                {posterMode === "matches" ? (
+                  hasAgendaItems ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        {weeklyAgendaItems
+                          .slice(0, 12)
+                          .map((item) => renderPosterAgendaCard(item))}
+                      </div>
+
+                      {weeklyAgendaItems.length > 12 && (
+                        <div className="mt-5 rounded-2xl bg-white/10 px-6 py-4 text-center text-sm font-bold text-white">
+                          Existem mais eventos agendados. Consulta a agenda
+                          completa no site.
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="rounded-3xl border border-white/15 bg-white p-10 text-center text-[#24180f] shadow-2xl">
+                      <p className="font-serif text-5xl font-light">
+                        Sem jogos ou torneios agendados
+                      </p>
+
+                      <p className="mt-4 text-lg text-zinc-600">
+                        Não existem eventos visíveis para esta semana.
+                      </p>
+                    </div>
+                  )
+                ) : hasResults ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      {weeklyResults
+                        .slice(0, 12)
+                        .map((match) => renderPosterResultCard(match))}
+                    </div>
+
+                    {weeklyResults.length > 12 && (
+                      <div className="mt-5 rounded-2xl bg-white/10 px-6 py-4 text-center text-sm font-bold text-white">
+                        Existem mais resultados. Consulta a agenda completa no
+                        site.
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-white/15 bg-white p-10 text-center text-[#24180f] shadow-2xl">
+                    <p className="font-serif text-5xl font-light">
+                      Sem resultados registados
+                    </p>
+
+                    <p className="mt-4 text-lg text-zinc-600">
+                      Não existem resultados visíveis para esta semana.
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <footer className="mt-auto flex items-center justify-between border-t border-zinc-300 pt-7">
-                <p className="text-base font-black uppercase tracking-[0.25em] text-[#24180f]">
+              <footer className="mt-8 flex items-center justify-between border-t border-white/15 pt-7">
+                <p className="text-base font-black uppercase tracking-[0.25em] text-red-300">
                   Força, garra, união e luta
                 </p>
 
-                <p className="text-sm font-bold text-zinc-500">
+                <p className="text-sm font-bold text-zinc-300">
                   instagram.com/gdr_boavista_oficial
                 </p>
               </footer>
@@ -790,7 +842,7 @@ export function AdminMatchesPage() {
       >
         <div
           className={
-            match.is_visible ? 'h-1.5 bg-red-700' : 'h-1.5 bg-zinc-300'
+            match.is_visible ? "h-1.5 bg-red-700" : "h-1.5 bg-zinc-300"
           }
         />
 
@@ -816,7 +868,7 @@ export function AdminMatchesPage() {
               )}
             </div>
 
-            {match.venue_type === 'fora' ? (
+            {match.venue_type === "fora" ? (
               <>
                 <p className="mt-6 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
                   {match.opponent}
@@ -846,11 +898,11 @@ export function AdminMatchesPage() {
               <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
                 <CalendarDays size={16} className="text-red-700" />
                 {formatDate(match.match_date)}
-                {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ''}
+                {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ""}
               </span>
 
               <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
-                {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
+                {match.venue_type === "casa" ? "Casa" : "Fora"}
               </span>
 
               {match.location && (
@@ -860,7 +912,7 @@ export function AdminMatchesPage() {
               )}
             </div>
 
-            {match.status === 'terminado' &&
+            {match.status === "terminado" &&
               match.home_score !== null &&
               match.away_score !== null && (
                 <p className="mt-5 font-serif text-5xl font-light text-red-700">
@@ -890,7 +942,7 @@ export function AdminMatchesPage() {
               className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
             >
               {match.is_visible ? <EyeOff size={16} /> : <Eye size={16} />}
-              {match.is_visible ? 'Ocultar' : 'Mostrar'}
+              {match.is_visible ? "Ocultar" : "Mostrar"}
             </button>
 
             <button
@@ -964,39 +1016,38 @@ export function AdminMatchesPage() {
 
             <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
               Jogos
-              <br />
-              e agenda.
+              <br />e agenda.
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
               Gere os próximos jogos, resultados e agenda das equipas do GDR
-              Boavista. Também podes gerar imagens para redes sociais.
+              Boavista. O poster de agenda inclui jogos e torneios da semana.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => generatePoster('matches')}
+              onClick={() => generatePoster("matches")}
               disabled={isGeneratingPoster}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Download size={18} />
-              {isGeneratingPoster && posterMode === 'matches'
-                ? 'A gerar...'
-                : 'Gerar Jogos da Semana'}
+              {isGeneratingPoster && posterMode === "matches"
+                ? "A gerar..."
+                : "Gerar Jogos da Semana"}
             </button>
 
             <button
               type="button"
-              onClick={() => generatePoster('results')}
+              onClick={() => generatePoster("results")}
               disabled={isGeneratingPoster}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Download size={18} />
-              {isGeneratingPoster && posterMode === 'results'
-                ? 'A gerar...'
-                : 'Gerar Resultados da Semana'}
+              {isGeneratingPoster && posterMode === "results"
+                ? "A gerar..."
+                : "Gerar Resultados da Semana"}
             </button>
 
             <button
@@ -1046,7 +1097,7 @@ export function AdminMatchesPage() {
           <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-5">
             <div>
               <h2 className="font-serif text-4xl font-light text-[#24180f]">
-                {editingId ? 'Editar jogo' : 'Novo jogo'}
+                {editingId ? "Editar jogo" : "Novo jogo"}
               </h2>
 
               <p className="mt-2 text-sm text-zinc-500">
@@ -1072,7 +1123,7 @@ export function AdminMatchesPage() {
               <select
                 value={form.team_name}
                 onChange={(event) =>
-                  handleChange('team_name', event.target.value)
+                  handleChange("team_name", event.target.value)
                 }
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
@@ -1093,7 +1144,7 @@ export function AdminMatchesPage() {
               <select
                 value={form.football_type}
                 onChange={(event) =>
-                  handleChange('football_type', event.target.value)
+                  handleChange("football_type", event.target.value)
                 }
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
@@ -1114,7 +1165,7 @@ export function AdminMatchesPage() {
                 type="text"
                 value={form.competition}
                 onChange={(event) =>
-                  handleChange('competition', event.target.value)
+                  handleChange("competition", event.target.value)
                 }
                 placeholder="Campeonato Distrital"
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
@@ -1130,7 +1181,7 @@ export function AdminMatchesPage() {
                 type="text"
                 value={form.opponent}
                 onChange={(event) =>
-                  handleChange('opponent', event.target.value)
+                  handleChange("opponent", event.target.value)
                 }
                 placeholder="Nome do adversário"
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
@@ -1144,7 +1195,7 @@ export function AdminMatchesPage() {
                 type="date"
                 value={form.match_date}
                 onChange={(event) =>
-                  handleChange('match_date', event.target.value)
+                  handleChange("match_date", event.target.value)
                 }
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
@@ -1157,7 +1208,7 @@ export function AdminMatchesPage() {
                 type="time"
                 value={form.match_time}
                 onChange={(event) =>
-                  handleChange('match_time', event.target.value)
+                  handleChange("match_time", event.target.value)
                 }
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
@@ -1171,7 +1222,7 @@ export function AdminMatchesPage() {
               <select
                 value={form.venue_type}
                 onChange={(event) =>
-                  handleChange('venue_type', event.target.value)
+                  handleChange("venue_type", event.target.value)
                 }
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
@@ -1181,13 +1232,11 @@ export function AdminMatchesPage() {
             </div>
 
             <div>
-              <label className="text-sm font-black text-zinc-800">
-                Estado
-              </label>
+              <label className="text-sm font-black text-zinc-800">Estado</label>
 
               <select
                 value={form.status}
-                onChange={(event) => handleChange('status', event.target.value)}
+                onChange={(event) => handleChange("status", event.target.value)}
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
                 {statusOptions.map((status) => (
@@ -1205,7 +1254,7 @@ export function AdminMatchesPage() {
                 type="text"
                 value={form.location}
                 onChange={(event) =>
-                  handleChange('location', event.target.value)
+                  handleChange("location", event.target.value)
                 }
                 placeholder="Campo do Boavista"
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
@@ -1222,7 +1271,7 @@ export function AdminMatchesPage() {
                 min="0"
                 value={form.home_score}
                 onChange={(event) =>
-                  handleChange('home_score', event.target.value)
+                  handleChange("home_score", event.target.value)
                 }
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
@@ -1238,7 +1287,7 @@ export function AdminMatchesPage() {
                 min="0"
                 value={form.away_score}
                 onChange={(event) =>
-                  handleChange('away_score', event.target.value)
+                  handleChange("away_score", event.target.value)
                 }
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
@@ -1251,7 +1300,7 @@ export function AdminMatchesPage() {
                 type="number"
                 value={form.sort_order}
                 onChange={(event) =>
-                  handleChange('sort_order', Number(event.target.value))
+                  handleChange("sort_order", Number(event.target.value))
                 }
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
@@ -1262,7 +1311,7 @@ export function AdminMatchesPage() {
                 type="checkbox"
                 checked={form.is_visible}
                 onChange={(event) =>
-                  handleChange('is_visible', event.target.checked)
+                  handleChange("is_visible", event.target.checked)
                 }
                 className="h-4 w-4 accent-red-700"
               />
@@ -1274,7 +1323,7 @@ export function AdminMatchesPage() {
 
               <textarea
                 value={form.notes}
-                onChange={(event) => handleChange('notes', event.target.value)}
+                onChange={(event) => handleChange("notes", event.target.value)}
                 rows={4}
                 placeholder="Informação adicional sobre o jogo..."
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm leading-7 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
@@ -1297,7 +1346,7 @@ export function AdminMatchesPage() {
               className="inline-flex items-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save size={18} />
-              {isSaving ? 'A guardar...' : 'Guardar jogo'}
+              {isSaving ? "A guardar..." : "Guardar jogo"}
             </button>
           </div>
         </form>
@@ -1310,24 +1359,24 @@ export function AdminMatchesPage() {
       ) : (
         <div className="mt-8 space-y-6">
           {renderSection(
-            'Próximos jogos',
-            'Jogos ainda por realizar, adiados ou cancelados',
+            "Próximos jogos",
+            "Jogos ainda por realizar, adiados ou cancelados",
             showScheduled,
             setShowScheduled,
             scheduledMatches,
           )}
 
           {renderSection(
-            'Resultados',
-            'Jogos terminados e respetivos resultados',
+            "Resultados",
+            "Jogos terminados e respetivos resultados",
             showFinished,
             setShowFinished,
             finishedMatches,
           )}
 
           {renderSection(
-            'Ocultos',
-            'Jogos guardados no sistema, mas não visíveis no site',
+            "Ocultos",
+            "Jogos guardados no sistema, mas não visíveis no site",
             showHidden,
             setShowHidden,
             hiddenMatches,
