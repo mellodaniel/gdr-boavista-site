@@ -6,7 +6,6 @@ import {
   MapPin,
   Newspaper,
   ShieldCheck,
-  Trophy,
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -14,7 +13,6 @@ import { supabase } from '../../lib/supabase';
 import type {
   GdrbMatch,
   GdrbNews,
-  GdrbTeam,
   GdrbTournament,
 } from '../../types/database';
 
@@ -166,46 +164,37 @@ export function HomePage() {
   const [matches, setMatches] = useState<GdrbMatch[]>([]);
   const [tournaments, setTournaments] = useState<GdrbTournament[]>([]);
   const [news, setNews] = useState<GdrbNews[]>([]);
-  const [teams, setTeams] = useState<GdrbTeam[]>([]);
   const [isLoadingAgenda, setIsLoadingAgenda] = useState(true);
 
   useEffect(() => {
     async function loadHomeData() {
       setIsLoadingAgenda(true);
 
-      const [matchesResult, tournamentsResult, newsResult, teamsResult] =
-        await Promise.all([
-          supabase
-            .from('gdrb_matches')
-            .select('*')
-            .eq('is_visible', true)
-            .in('status', ['agendado', 'adiado', 'cancelado'])
-            .order('match_date', { ascending: true })
-            .order('match_time', { ascending: true }),
+      const [matchesResult, tournamentsResult, newsResult] = await Promise.all([
+        supabase
+          .from('gdrb_matches')
+          .select('*')
+          .eq('is_visible', true)
+          .in('status', ['agendado', 'adiado', 'cancelado'])
+          .order('match_date', { ascending: true })
+          .order('match_time', { ascending: true }),
 
-          supabase
-            .from('gdrb_tournaments')
-            .select('*')
-            .eq('is_visible', true)
-            .order('start_date', { ascending: true })
-            .order('sort_order', { ascending: true }),
+        supabase
+          .from('gdrb_tournaments')
+          .select('*')
+          .eq('is_visible', true)
+          .order('start_date', { ascending: true })
+          .order('sort_order', { ascending: true }),
 
-          supabase
-            .from('gdrb_news')
-            .select('*')
-            .eq('is_published', true)
-            .order('published_at', { ascending: false, nullsFirst: false })
-            .order('created_at', { ascending: false })
-            .limit(3),
-
-          supabase
-            .from('gdrb_teams')
-            .select('*')
-            .eq('is_active', true)
-            .order('sort_order', { ascending: true })
-            .order('name', { ascending: true })
-            .limit(6),
-        ]);
+        supabase
+          .from('gdrb_news')
+          .select('*')
+          .eq('is_published', true)
+          .order('sort_order', { ascending: true })
+          .order('published_at', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
 
       if (matchesResult.error) {
         console.error('Erro ao carregar jogos:', matchesResult.error);
@@ -219,14 +208,9 @@ export function HomePage() {
         console.error('Erro ao carregar notícias:', newsResult.error);
       }
 
-      if (teamsResult.error) {
-        console.error('Erro ao carregar equipas:', teamsResult.error);
-      }
-
       setMatches(matchesResult.data ?? []);
       setTournaments(tournamentsResult.data ?? []);
       setNews(newsResult.data ?? []);
-      setTeams(teamsResult.data ?? []);
       setIsLoadingAgenda(false);
     }
 
@@ -635,76 +619,6 @@ export function HomePage() {
                     </div>
                   </article>
                 </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
-                Equipas
-              </p>
-
-              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
-                As nossas equipas
-              </h2>
-            </div>
-
-            <Link
-              to="/equipas"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-800"
-            >
-              Ver todas <ChevronRight size={16} />
-            </Link>
-          </div>
-
-          {teams.length === 0 ? (
-            <div className="mt-10 rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-10 text-center">
-              <Trophy className="mx-auto text-red-700" size={32} />
-
-              <h3 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
-                Equipas em preparação
-              </h3>
-
-              <p className="mt-3 text-zinc-500">
-                As equipas ativas no admin aparecem automaticamente aqui.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {teams.map((team) => (
-                <article
-                  key={team.id}
-                  className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="h-1.5 bg-red-700" />
-
-                  <div className="p-7">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                        {team.name}
-                      </span>
-
-                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                        {team.football_type}
-                      </span>
-                    </div>
-
-                    <h3 className="mt-6 font-serif text-4xl font-light text-[#24180f]">
-                      {team.category}
-                    </h3>
-
-                    {team.description && (
-                      <p className="mt-4 text-sm leading-7 text-zinc-600">
-                        {team.description}
-                      </p>
-                    )}
-                  </div>
-                </article>
               ))}
             </div>
           )}

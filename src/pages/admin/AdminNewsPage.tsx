@@ -24,6 +24,7 @@ const initialForm = {
   image_url: '',
   external_url: '',
   is_published: true,
+  sort_order: 0,
 };
 
 const sourceOptions = [
@@ -76,6 +77,7 @@ export function AdminNewsPage() {
     const { data, error } = await supabase
       .from('gdrb_news')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
@@ -96,7 +98,7 @@ export function AdminNewsPage() {
 
   function handleChange(
     field: keyof typeof initialForm,
-    value: string | boolean,
+    value: string | boolean | number,
   ) {
     setForm((currentForm) => ({
       ...currentForm,
@@ -134,6 +136,7 @@ export function AdminNewsPage() {
       image_url: item.image_url ?? '',
       external_url: item.external_url ?? '',
       is_published: item.is_published,
+      sort_order: item.sort_order ?? 0,
     });
 
     setShowForm(true);
@@ -218,6 +221,7 @@ export function AdminNewsPage() {
         external_url: form.external_url.trim() || null,
         is_published: form.is_published,
         published_at: form.is_published ? new Date().toISOString() : null,
+        sort_order: Number(form.sort_order) || 0,
       };
 
       const result = editingId
@@ -305,8 +309,8 @@ export function AdminNewsPage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
-              Cria, edita e publica notícias na área pública do site do GDR
-              Boavista.
+              Cria, edita, posiciona e publica notícias na área pública do site
+              do GDR Boavista.
             </p>
           </div>
 
@@ -405,7 +409,27 @@ export function AdminNewsPage() {
               </select>
             </div>
 
-            <label className="flex items-center gap-3 rounded-md border border-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700">
+            <div>
+              <label className="text-sm font-black text-zinc-800">
+                Ordem / posição
+              </label>
+
+              <input
+                type="number"
+                min="0"
+                value={form.sort_order}
+                onChange={(event) =>
+                  handleChange('sort_order', Number(event.target.value))
+                }
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              />
+
+              <p className="mt-2 text-xs leading-5 text-zinc-500">
+                0 aparece primeiro, depois 1, 2, 3...
+              </p>
+            </div>
+
+            <label className="flex items-center gap-3 rounded-md border border-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700 md:col-span-2">
               <input
                 type="checkbox"
                 checked={form.is_published}
@@ -582,6 +606,10 @@ export function AdminNewsPage() {
 
                 <div>
                   <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                      Posição {item.sort_order ?? 0}
+                    </span>
+
                     <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
                       {item.source}
                     </span>

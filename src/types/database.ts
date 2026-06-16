@@ -20,6 +20,7 @@ export type GdrbNews = {
   external_url: string | null;
   is_published: boolean;
   published_at: string | null;
+  sort_order: number;
   created_at: string;
 };
 

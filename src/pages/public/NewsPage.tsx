@@ -57,6 +57,7 @@ export function NewsPage() {
         .from('gdrb_news')
         .select('*')
         .eq('is_published', true)
+        .order('sort_order', { ascending: true })
         .order('published_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
