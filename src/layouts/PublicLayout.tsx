@@ -85,6 +85,19 @@ export function PublicLayout() {
           </nav>
 
           <div className="hidden items-center gap-3 lg:flex">
+            <NavLink
+              to="/loja"
+              className={({ isActive }) =>
+                `inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-black uppercase tracking-wide shadow-sm transition ${
+                  isActive
+                    ? 'bg-[#24180f] text-white'
+                    : 'bg-red-700 text-white hover:bg-[#24180f]'
+                }`
+              }
+            >
+              Loja
+            </NavLink>
+
             <a
               href="https://www.instagram.com/gdr_boavista_oficial/"
               target="_blank"
@@ -135,6 +148,20 @@ export function PublicLayout() {
                   {item.label}
                 </NavLink>
               ))}
+
+              <NavLink
+                to="/loja"
+                onClick={() => setIsMenuOpen(false)}
+                className={({ isActive }) =>
+                  `rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-wide ${
+                    isActive
+                      ? 'bg-[#24180f] text-white'
+                      : 'bg-red-700 text-white'
+                  }`
+                }
+              >
+                Loja Online
+              </NavLink>
             </nav>
           </div>
         )}
