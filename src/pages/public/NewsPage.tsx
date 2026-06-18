@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Newspaper, Search } from 'lucide-react';
+import { ChevronRight, ExternalLink, Newspaper, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
-import { trackAnalyticsEvent } from '../../lib/analytics';
-import type { GdrbNews } from '../../types/database';
+import type { GdrbNews, GdrbNewsStatus } from '../../types/database';
 
 const sourceFilters = [
   'Todas',
@@ -14,6 +13,8 @@ const sourceFilters = [
   'Futebol de formação',
   'Outra fonte',
 ];
+
+type NewsViewMode = 'published' | 'archived';
 
 function formatDate(date: string | null) {
   if (!date) {
@@ -27,14 +28,25 @@ function formatDate(date: string | null) {
   });
 }
 
+function getNewsStatus(item: GdrbNews): GdrbNewsStatus {
+  if (item.status) {
+    return item.status;
+  }
+
+  return item.is_published ? 'published' : 'draft';
+}
+
 export function NewsPage() {
   const [news, setNews] = useState<GdrbNews[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState('Todas');
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<NewsViewMode>('published');
 
   const filteredNews = useMemo(() => {
     return news.filter((item) => {
+      const matchesMode = getNewsStatus(item) === viewMode;
+
       const matchesSource =
         sourceFilter === 'Todas' || item.source === sourceFilter;
 
@@ -47,9 +59,19 @@ export function NewsPage() {
       const matchesSearch =
         !search.trim() || searchableText.includes(search.toLowerCase().trim());
 
-      return matchesSource && matchesSearch;
+      return matchesMode && matchesSource && matchesSearch;
     });
-  }, [news, sourceFilter, search]);
+  }, [news, sourceFilter, search, viewMode]);
+
+  const publishedCount = useMemo(
+    () => news.filter((item) => getNewsStatus(item) === 'published').length,
+    [news],
+  );
+
+  const archivedCount = useMemo(
+    () => news.filter((item) => getNewsStatus(item) === 'archived').length,
+    [news],
+  );
 
   useEffect(() => {
     async function loadNews() {
@@ -59,6 +81,7 @@ export function NewsPage() {
         .from('gdrb_news')
         .select('*')
         .eq('is_published', true)
+        .in('status', ['published', 'archived'])
         .order('sort_order', { ascending: true })
         .order('published_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -108,7 +131,8 @@ export function NewsPage() {
               </h2>
 
               <p className="mt-2 text-sm text-zinc-500">
-                Filtra por fonte ou pesquisa por palavra-chave.
+                Filtra por fonte, pesquisa por palavra-chave ou consulta as
+                notícias antigas arquivadas.
               </p>
             </div>
 
@@ -142,7 +166,33 @@ export function NewsPage() {
             </div>
           </div>
 
-          <div className="mt-6 border-t border-zinc-200 pt-5">
+          <div className="mt-6 flex flex-col justify-between gap-4 border-t border-zinc-200 pt-5 md:flex-row md:items-center">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode('published')}
+                className={`rounded-full px-4 py-2 text-sm font-black transition ${
+                  viewMode === 'published'
+                    ? 'bg-red-700 text-white'
+                    : 'bg-zinc-100 text-zinc-700 hover:bg-red-50 hover:text-red-700'
+                }`}
+              >
+                Notícias recentes · {publishedCount}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('archived')}
+                className={`rounded-full px-4 py-2 text-sm font-black transition ${
+                  viewMode === 'archived'
+                    ? 'bg-[#24180f] text-white'
+                    : 'bg-zinc-100 text-zinc-700 hover:bg-red-50 hover:text-red-700'
+                }`}
+              >
+                Notícias antigas · {archivedCount}
+              </button>
+            </div>
+
             <p className="text-sm font-semibold text-zinc-500">
               {filteredNews.length} notícia(s) encontrada(s)
             </p>
@@ -164,28 +214,25 @@ export function NewsPage() {
             </h3>
 
             <p className="mt-3 text-zinc-500">
-              Não existem notícias publicadas para os filtros selecionados.
+              {viewMode === 'archived'
+                ? 'Ainda não existem notícias arquivadas para os filtros selecionados.'
+                : 'Não existem notícias publicadas para os filtros selecionados.'}
             </p>
           </div>
         ) : (
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {filteredNews.map((item) => (
-              <Link
+              <article
                 key={item.id}
-                to={`/noticias/${item.id}`}
-                onClick={() =>
-                  trackAnalyticsEvent({
-                    eventName: 'news_card_click',
-                    entityType: 'news',
-                    entityId: item.id,
-                    entityName: item.title,
-                  })
-                }
                 className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
               >
-                <article>
-                  <div className="h-1.5 bg-red-700" />
+                <div
+                  className={
+                    viewMode === 'archived' ? 'h-1.5 bg-[#24180f]' : 'h-1.5 bg-red-700'
+                  }
+                />
 
+                <Link to={`/noticias/${item.id}`} className="block">
                   {item.image_url ? (
                     <div className="h-56 overflow-hidden">
                       <img
@@ -205,6 +252,12 @@ export function NewsPage() {
                       <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
                         {item.source}
                       </span>
+
+                      {viewMode === 'archived' && (
+                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-zinc-700">
+                          Notícia antiga
+                        </span>
+                      )}
 
                       <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
                         {formatDate(item.published_at)}
@@ -230,8 +283,22 @@ export function NewsPage() {
                       </span>
                     </div>
                   </div>
-                </article>
-              </Link>
+                </Link>
+
+                {item.external_url && (
+                  <div className="px-7 pb-7">
+                    <a
+                      href={item.external_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-md bg-[#24180f] px-5 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+                    >
+                      Ver fonte externa
+                      <ExternalLink size={16} />
+                    </a>
+                  </div>
+                )}
+              </article>
             ))}
           </div>
         )}

@@ -11,7 +11,6 @@ import {
 import { Link } from 'react-router-dom';
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
-import { trackAnalyticsEvent } from '../../lib/analytics';
 import type { GdrbMatch, GdrbNews, GdrbTournament } from '../../types/database';
 
 const googleMapsUrl =
@@ -186,10 +185,11 @@ export function HomePage() {
           .from('gdrb_news')
           .select('*')
           .eq('is_published', true)
+          .eq('status', 'published')
           .order('sort_order', { ascending: true })
           .order('published_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
-          .limit(3),
+          .limit(12),
       ]);
 
       if (matchesResult.error) {
@@ -239,14 +239,6 @@ export function HomePage() {
       .slice(0, 6);
   }, [matches, tournaments]);
 
-  function trackHomeClick(eventName: string, entityName: string, entityType = 'homepage') {
-    trackAnalyticsEvent({
-      eventName,
-      entityType,
-      entityName,
-    });
-  }
-
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
       <section className="relative min-h-[760px] overflow-hidden bg-[#24180f] text-white">
@@ -295,7 +287,6 @@ export function HomePage() {
             <div className="mt-10 flex flex-wrap gap-4">
               <Link
                 to="/socios"
-                onClick={() => trackHomeClick('member_cta_click', 'Quero ser sócio - hero', 'member')}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
               >
                 Quero ser sócio
@@ -304,7 +295,6 @@ export function HomePage() {
 
               <Link
                 to="/equipas"
-                onClick={() => trackHomeClick('teams_click', 'Ver equipas - hero', 'navigation')}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:bg-zinc-100"
               >
                 Ver equipas
@@ -394,7 +384,6 @@ export function HomePage() {
 
             <Link
               to="/resultados"
-              onClick={() => trackHomeClick('matches_click', 'Histórico de jogos - homepage', 'navigation')}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-800"
             >
               Histórico de jogos <ChevronRight size={16} />
@@ -565,7 +554,6 @@ export function HomePage() {
 
             <Link
               to="/noticias"
-              onClick={() => trackHomeClick('news_list_click', 'Ver notícias - homepage', 'news')}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-[#24180f] px-5 py-3 text-sm font-bold text-white transition hover:bg-red-700"
             >
               Ver notícias <ChevronRight size={16} />
@@ -585,19 +573,11 @@ export function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {news.map((item) => (
                 <Link
                   key={item.id}
                   to={`/noticias/${item.id}`}
-                  onClick={() =>
-                    trackAnalyticsEvent({
-                      eventName: 'news_card_click',
-                      entityType: 'news',
-                      entityId: item.id,
-                      entityName: item.title,
-                    })
-                  }
                   className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
                   <article>
@@ -670,7 +650,6 @@ export function HomePage() {
         <div className="mx-auto max-w-7xl px-4">
           <a
             href={googleMapsUrl}
-            onClick={() => trackHomeClick('maps_click', 'Google Maps - homepage', 'contact')}
             target="_blank"
             rel="noreferrer"
             className="group relative block min-h-[420px] overflow-hidden rounded-sm bg-[#24180f] shadow-xl"
@@ -722,7 +701,6 @@ export function HomePage() {
 
           <Link
             to="/socios"
-            onClick={() => trackHomeClick('member_cta_click', 'Tornar-me sócio - homepage final', 'member')}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-red-700 transition hover:bg-[#24180f] hover:text-white"
           >
             Tornar-me sócio
