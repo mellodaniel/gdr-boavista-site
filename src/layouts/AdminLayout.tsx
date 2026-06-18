@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   CalendarDays,
+  LineChart,
   FileText,
   Image,
   LogOut,
@@ -15,6 +16,7 @@ import { supabase } from '../lib/supabase';
 
 const adminNavigation = [
   { label: 'Dashboard', path: '/admin', icon: BarChart3 },
+  { label: 'Analytics', path: '/admin/analytics', icon: LineChart },
   { label: 'Conteúdos', path: '/admin/conteudos', icon: FileText },
   { label: 'Notícias', path: '/admin/noticias', icon: Newspaper },
   { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
