@@ -145,6 +145,13 @@ function filterSince(events: AnalyticsEvent[], days: number) {
   return events.filter((event) => new Date(event.created_at).getTime() >= start);
 }
 
+function getLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function getDailyCounts(events: AnalyticsEvent[], days: number) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -152,15 +159,22 @@ function getDailyCounts(events: AnalyticsEvent[], days: number) {
   const daysList = Array.from({ length: days }).map((_, index) => {
     const date = new Date(today);
     date.setDate(today.getDate() - (days - 1 - index));
-    const key = date.toISOString().slice(0, 10);
+    const key = getLocalDateKey(date);
     return { key, label: date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }), count: 0 };
   });
 
   const byDay = new Map(daysList.map((day) => [day.key, day]));
 
   events.forEach((event) => {
-    const key = new Date(event.created_at).toISOString().slice(0, 10);
+    const eventDate = new Date(event.created_at);
+
+    if (Number.isNaN(eventDate.getTime())) {
+      return;
+    }
+
+    const key = getLocalDateKey(eventDate);
     const day = byDay.get(key);
+
     if (day) {
       day.count += 1;
     }
@@ -307,10 +321,16 @@ function DailyActivityCard({ events, days }: { events: AnalyticsEvent[]; days: n
           <div key={day.key} className="flex min-w-0 flex-1 flex-col items-center gap-2">
             <div className="flex h-40 w-full items-end rounded-t-2xl bg-zinc-50 px-1">
               <div
-                className="w-full rounded-t-2xl bg-red-700 transition-all"
+                className="relative w-full rounded-t-2xl bg-red-700 transition-all"
                 style={{ height: `${Math.max((day.count / max) * 100, day.count > 0 ? 8 : 0)}%` }}
                 title={`${day.label}: ${day.count}`}
-              />
+              >
+                {day.count > 0 ? (
+                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-black text-red-700">
+                    {day.count}
+                  </span>
+                ) : null}
+              </div>
             </div>
             <p className="text-[10px] font-bold text-zinc-400">{day.label}</p>
           </div>
