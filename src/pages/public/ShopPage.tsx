@@ -1,5 +1,6 @@
 import { ChevronRight, Clock, Package, ShieldCheck, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { trackAnalyticsEvent } from '../../lib/analytics';
 
 const productExamples = [
   {
@@ -59,6 +60,14 @@ const shopHighlights = [
 ];
 
 export function ShopPage() {
+  function trackShopClick(entityName: string) {
+    trackAnalyticsEvent({
+      eventName: 'shop_click',
+      entityType: 'shop',
+      entityName,
+    });
+  }
+
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#24180f] py-24 text-white">
@@ -98,6 +107,7 @@ export function ShopPage() {
 
                 <Link
                   to="/contactos"
+                  onClick={() => trackShopClick('Contactos - loja')}
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:bg-zinc-100"
                 >
                   Falar com o clube
@@ -281,6 +291,7 @@ export function ShopPage() {
 
           <Link
             to="/contactos"
+            onClick={() => trackShopClick('Contactos - loja final')}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:bg-red-700 hover:text-white"
           >
             Contactar o clube

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Heart } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { trackAnalyticsEvent } from '../../lib/analytics';
 
 type NewsLikeButtonProps = {
   newsId: string;
@@ -81,6 +82,11 @@ export function NewsLikeButton({ newsId, compact = false }: NewsLikeButtonProps)
 
       setHasLiked(false);
       setLikesCount((currentCount) => Math.max(0, currentCount - 1));
+      trackAnalyticsEvent({
+        eventName: 'news_unlike',
+        entityType: 'news',
+        entityId: newsId,
+      });
       setIsSaving(false);
       return;
     }
@@ -98,6 +104,11 @@ export function NewsLikeButton({ newsId, compact = false }: NewsLikeButtonProps)
 
     setHasLiked(true);
     setLikesCount((currentCount) => currentCount + 1);
+    trackAnalyticsEvent({
+      eventName: 'news_like',
+      entityType: 'news',
+      entityId: newsId,
+    });
     setIsSaving(false);
   }
 

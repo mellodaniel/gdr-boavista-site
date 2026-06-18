@@ -3,6 +3,7 @@ import { ChevronRight, Newspaper, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
+import { trackAnalyticsEvent } from '../../lib/analytics';
 import type { GdrbNews } from '../../types/database';
 
 const sourceFilters = [
@@ -172,6 +173,14 @@ export function NewsPage() {
               <Link
                 key={item.id}
                 to={`/noticias/${item.id}`}
+                onClick={() =>
+                  trackAnalyticsEvent({
+                    eventName: 'news_card_click',
+                    entityType: 'news',
+                    entityId: item.id,
+                    entityName: item.title,
+                  })
+                }
                 className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
               >
                 <article>

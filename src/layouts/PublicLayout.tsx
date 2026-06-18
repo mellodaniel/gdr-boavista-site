@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { Mail, Menu, Phone, X } from 'lucide-react';
+import { AnalyticsTracker } from '../components/public/AnalyticsTracker';
+import { CookieConsentBanner } from '../components/public/CookieConsentBanner';
+import { trackAnalyticsEvent } from '../lib/analytics';
 
 const navigation = [
   { label: 'Clube', path: '/clube' },
@@ -46,11 +49,24 @@ function FacebookIcon({ className = 'h-4 w-4' }: { className?: string }) {
 export function PublicLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  function trackHeaderClick(eventName: string, entityName: string) {
+    trackAnalyticsEvent({
+      eventName,
+      entityType: 'navigation',
+      entityName,
+    });
+  }
+
   return (
     <div className="min-h-screen bg-[#f6f2ec] text-zinc-950">
+      <AnalyticsTracker />
       <header className="sticky top-0 z-50 border-b border-[#eadfd2] bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-3">
+          <Link
+            to="/"
+            onClick={() => trackHeaderClick('navigation_click', 'Logo / Home')}
+            className="flex items-center gap-3"
+          >
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
               <img
                 src="/logo-gdr-boavista-header-256.png"
@@ -71,6 +87,7 @@ export function PublicLayout() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                onClick={() => trackHeaderClick('navigation_click', item.label)}
                 className={({ isActive }) =>
                   `rounded-full px-4 py-2 text-sm font-semibold transition ${
                     isActive
@@ -87,6 +104,7 @@ export function PublicLayout() {
           <div className="hidden items-center gap-3 lg:flex">
             <NavLink
               to="/loja"
+              onClick={() => trackHeaderClick('shop_click', 'Loja - menu principal')}
               className={({ isActive }) =>
                 `inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-black uppercase tracking-wide shadow-sm transition ${
                   isActive
@@ -104,6 +122,7 @@ export function PublicLayout() {
               rel="noreferrer"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 transition hover:border-red-700 hover:text-red-700"
               aria-label="Instagram GDR Boavista"
+              onClick={() => trackHeaderClick('social_click', 'Instagram - header')}
             >
               <InstagramIcon />
             </a>
@@ -114,6 +133,7 @@ export function PublicLayout() {
               rel="noreferrer"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 transition hover:border-red-700 hover:text-red-700"
               aria-label="Facebook GDR Boavista"
+              onClick={() => trackHeaderClick('social_click', 'Facebook - header')}
             >
               <FacebookIcon />
             </a>
@@ -136,7 +156,10 @@ export function PublicLayout() {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    trackHeaderClick('navigation_click', item.label);
+                  }}
                   className={({ isActive }) =>
                     `rounded-2xl px-4 py-3 text-sm font-bold ${
                       isActive
@@ -151,7 +174,10 @@ export function PublicLayout() {
 
               <NavLink
                 to="/loja"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  trackHeaderClick('shop_click', 'Loja - menu mobile');
+                }}
                 className={({ isActive }) =>
                   `rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-wide ${
                     isActive
@@ -203,6 +229,7 @@ export function PublicLayout() {
             <div className="mt-5 grid gap-3 text-sm text-zinc-300">
               <a
                 href="mailto:socios.gdrboavista@gmail.com"
+                onClick={() => trackHeaderClick('contact_click', 'Email - footer')}
                 className="flex items-center gap-3 hover:text-red-400"
               >
                 <Mail size={17} />
@@ -211,6 +238,7 @@ export function PublicLayout() {
 
               <a
                 href="tel:+351913030249"
+                onClick={() => trackHeaderClick('contact_click', 'Telefone - footer')}
                 className="flex items-center gap-3 hover:text-red-400"
               >
                 <Phone size={17} />
@@ -229,6 +257,7 @@ export function PublicLayout() {
                 rel="noreferrer"
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-red-700"
                 aria-label="Instagram"
+                onClick={() => trackHeaderClick('social_click', 'Instagram - footer')}
               >
                 <InstagramIcon />
               </a>
@@ -239,6 +268,7 @@ export function PublicLayout() {
                 rel="noreferrer"
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-red-700"
                 aria-label="Facebook"
+                onClick={() => trackHeaderClick('social_click', 'Facebook - footer')}
               >
                 <FacebookIcon />
               </a>
@@ -249,12 +279,18 @@ export function PublicLayout() {
         <div className="border-t border-white/10 py-5">
           <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-4 text-xs font-semibold text-zinc-500 md:flex-row">
             <p>© {new Date().getFullYear()} GDR Boavista.</p>
-            <Link to="/admin" className="hover:text-red-400">
+            <Link
+              to="/admin"
+              onClick={() => trackHeaderClick('admin_click', 'Admin - footer')}
+              className="hover:text-red-400"
+            >
               Administração
             </Link>
           </div>
         </div>
       </footer>
+
+      <CookieConsentBanner />
     </div>
   );
 }

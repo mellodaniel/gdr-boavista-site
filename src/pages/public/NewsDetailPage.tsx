@@ -3,6 +3,7 @@ import { ArrowLeft, ExternalLink, Newspaper } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
+import { trackAnalyticsEvent } from '../../lib/analytics';
 import type { GdrbNews } from '../../types/database';
 
 function formatDate(date: string | null) {
@@ -64,6 +65,19 @@ export function NewsDetailPage() {
     loadNewsItem();
   }, [id]);
 
+  useEffect(() => {
+    if (!newsItem) {
+      return;
+    }
+
+    trackAnalyticsEvent({
+      eventName: 'news_view',
+      entityType: 'news',
+      entityId: newsItem.id,
+      entityName: newsItem.title,
+    });
+  }, [newsItem]);
+
   if (isLoading) {
     return (
       <div className="bg-[#f6f2ec] px-4 py-24 text-zinc-950">
@@ -112,6 +126,13 @@ export function NewsDetailPage() {
         <div className="relative mx-auto max-w-5xl px-4">
           <Link
             to="/noticias"
+            onClick={() =>
+              trackAnalyticsEvent({
+                eventName: 'news_back_click',
+                entityType: 'news',
+                entityName: 'Voltar às notícias',
+              })
+            }
             className="inline-flex items-center gap-2 rounded-md border border-white/10 px-4 py-2 text-sm font-bold text-zinc-300 transition hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft size={16} />
@@ -180,6 +201,14 @@ export function NewsDetailPage() {
             {newsItem.external_url && (
               <a
                 href={newsItem.external_url}
+                onClick={() =>
+                  trackAnalyticsEvent({
+                    eventName: 'external_news_click',
+                    entityType: 'news',
+                    entityId: newsItem.id,
+                    entityName: newsItem.title,
+                  })
+                }
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-[#24180f]"
