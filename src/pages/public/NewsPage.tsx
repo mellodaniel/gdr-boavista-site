@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Newspaper, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
 import type { GdrbNews } from '../../types/database';
 
@@ -211,10 +212,14 @@ export function NewsPage() {
                       </p>
                     )}
 
-                    <span className="mt-7 inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700">
-                      Ler notícia completa
-                      <ChevronRight size={16} />
-                    </span>
+                    <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
+                      <NewsLikeButton newsId={item.id} compact />
+
+                      <span className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700">
+                        Ler notícia completa
+                        <ChevronRight size={16} />
+                      </span>
+                    </div>
                   </div>
                 </article>
               </Link>

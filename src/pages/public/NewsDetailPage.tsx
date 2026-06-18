@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Newspaper } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
 import type { GdrbNews } from '../../types/database';
 
@@ -136,6 +137,10 @@ export function NewsDetailPage() {
               {newsItem.summary}
             </p>
           )}
+
+          <div className="mt-8">
+            <NewsLikeButton newsId={newsItem.id} />
+          </div>
         </div>
       </section>
 
@@ -169,8 +174,10 @@ export function NewsDetailPage() {
             </p>
           )}
 
-          {newsItem.external_url && (
-            <div className="mt-10 border-t border-zinc-200 pt-8">
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-zinc-200 pt-8">
+            <NewsLikeButton newsId={newsItem.id} />
+
+            {newsItem.external_url && (
               <a
                 href={newsItem.external_url}
                 target="_blank"
@@ -180,8 +187,8 @@ export function NewsDetailPage() {
                 Abrir link externo
                 <ExternalLink size={16} />
               </a>
-            </div>
-          )}
+            )}
+          </div>
         </article>
       </section>
     </div>

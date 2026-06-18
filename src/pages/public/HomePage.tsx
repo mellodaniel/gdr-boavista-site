@@ -9,12 +9,9 @@ import {
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
-import type {
-  GdrbMatch,
-  GdrbNews,
-  GdrbTournament,
-} from '../../types/database';
+import type { GdrbMatch, GdrbNews, GdrbTournament } from '../../types/database';
 
 const googleMapsUrl =
   'https://www.google.com/maps/place/Campo+do+Grupo+Desportivo+e+Recreativo+da+Boavista/@39.780229,-8.7487878,17z/data=!3m1!4b1!4m6!3m5!1s0xd2271873a862cd7:0x575890ac1492b6a2!8m2!3d39.780229!4d-8.7462129!16s%2Fg%2F11bytx3sxs?entry=ttu&g_ep=EgoyMDI2MDYxMC4wIKXMDSoASAFQAw%3D%3D';
@@ -112,9 +109,7 @@ function formatTournamentDate(tournament: GdrbTournament) {
     return formatDate(tournament.start_date);
   }
 
-  return `${formatDate(tournament.start_date)} a ${formatDate(
-    tournament.end_date,
-  )}`;
+  return `${formatDate(tournament.start_date)} a ${formatDate(tournament.end_date)}`;
 }
 
 function getWeekLabel() {
@@ -612,10 +607,14 @@ export function HomePage() {
                         </p>
                       )}
 
-                      <span className="mt-7 inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700">
-                        Ler notícia completa
-                        <ChevronRight size={16} />
-                      </span>
+                      <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
+                        <NewsLikeButton newsId={item.id} compact />
+
+                        <span className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700">
+                          Ler notícia completa
+                          <ChevronRight size={16} />
+                        </span>
+                      </div>
                     </div>
                   </article>
                 </Link>
