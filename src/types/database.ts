@@ -10,6 +10,8 @@ export type GdrbTeam = {
   created_at: string;
 };
 
+export type GdrbNewsStatus = 'published' | 'draft' | 'archived';
+
 export type GdrbNews = {
   id: string;
   title: string;
@@ -19,6 +21,7 @@ export type GdrbNews = {
   image_url: string | null;
   external_url: string | null;
   is_published: boolean;
+  status: GdrbNewsStatus;
   published_at: string | null;
   sort_order: number;
   created_at: string;
