@@ -327,40 +327,48 @@ export function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#24180f]/80 to-black/30" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_35%)]" />
 
-        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-4 py-24">
-          <div className="max-w-4xl">
-            <div className="mb-10 flex items-center gap-4">
-              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white p-3 shadow-2xl">
+        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-6 py-24 sm:px-8 lg:px-16 xl:px-28">
+          <div className="max-w-3xl lg:ml-8 xl:ml-10">
+            <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center md:mb-12">
+              <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-[2rem] bg-white p-4 shadow-2xl ring-4 ring-white/15 md:h-36 md:w-36 md:rounded-[2.35rem] md:p-5">
+                <div className="absolute -inset-2 rounded-[2.25rem] bg-red-700/20 blur-xl md:rounded-[2.65rem]" />
                 <img
                   src="/logo-gdr-boavista-header-256.png"
                   alt="GDR Boavista"
-                  className="h-full w-full object-contain"
+                  className="relative h-full w-full object-contain"
                 />
               </div>
 
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.4em] text-red-400">
+              <div className="max-w-2xl">
+                <p className="text-base font-black uppercase tracking-[0.45em] text-red-400 md:text-xl">
                   GDR Boavista
                 </p>
-                <p className="mt-2 text-sm font-semibold text-zinc-300">
-                  Leiria · Formação · Comunidade
+                <p className="mt-3 max-w-xl font-serif text-2xl font-light leading-tight text-white md:text-3xl">
+                  Grupo Desportivo e Recreativo Boavista
                 </p>
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.22em] text-zinc-200">
+                  <span>Leiria</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                  <span>Formação</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                  <span>Comunidade</span>
+                </div>
               </div>
             </div>
 
-            <h1 className="font-serif text-6xl font-light leading-[0.95] tracking-tight md:text-8xl">
+            <h1 className="max-w-3xl font-serif text-5xl font-light leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
               Formar atletas,
               <br />
               unir famílias.
             </h1>
 
-            <p className="mt-8 max-w-2xl text-lg leading-8 text-zinc-300">
+            <p className="mt-8 max-w-xl text-base leading-8 text-zinc-300 md:text-lg">
               O GDR Boavista é uma casa de futebol, formação e comunidade. Um
               clube onde atletas, famílias, sócios e amigos vivem o futebol com
               compromisso, união e orgulho.
             </p>
 
-            <div className="mt-10 flex flex-wrap gap-4">
+            <div className="mt-9 flex flex-wrap gap-4">
               <Link
                 to="/socios"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
@@ -378,7 +386,7 @@ export function HomePage() {
               </Link>
             </div>
 
-            <div className="mt-12 flex flex-wrap gap-3">
+            <div className="mt-10 flex flex-wrap gap-3">
               {heroHighlights.map((item) => (
                 <span
                   key={item}
