@@ -12,7 +12,7 @@ const navigation = [
   { label: 'Notícias', path: '/noticias' },
   { label: 'Sócios', path: '/socios' },
   { label: 'Galeria', path: '/galeria' },
-  { label: 'Patrocinadores', path: '/patrocinadores' },
+  { label: 'Parceiros', path: '/patrocinadores' },
   { label: 'Contactos', path: '/contactos' },
 ];
 
@@ -219,7 +219,7 @@ export function PublicLayout() {
 
             <p className="mt-6 max-w-md text-sm leading-7 text-zinc-400">
               Clube de formação, competição e comunidade. Uma casa feita por
-              atletas, famílias, sócios, treinadores, patrocinadores e amigos.
+              atletas, famílias, sócios, treinadores, parceiros e amigos.
             </p>
           </div>
 

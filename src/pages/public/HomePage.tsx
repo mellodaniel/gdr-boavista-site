@@ -149,10 +149,13 @@ function formatSponsorLevel(level: string) {
     bronze: 'Parceiro Bronze',
     apoio: 'Apoio Oficial',
     partner: 'Parceiro Oficial',
-    sponsor: 'Patrocinador',
+    sponsor: 'Parceiro Oficial',
+    'Patrocinador principal': 'Parceiro principal',
+    'Patrocinador oficial': 'Parceiro oficial',
+    'Patrocinador': 'Parceiro',
   };
 
-  return labels[level] ?? 'Parceiro Oficial';
+  return (labels[level] ?? level) || 'Parceiro Oficial';
 }
 
 function getSponsorInitials(name: string) {
@@ -255,7 +258,7 @@ export function HomePage() {
       }
 
       if (sponsorsResult.error) {
-        console.error('Erro ao carregar patrocinadores:', sponsorsResult.error);
+        console.error('Erro ao carregar parceiros:', sponsorsResult.error);
       }
 
       setMatches(matchesResult.data ?? []);
@@ -768,7 +771,7 @@ export function HomePage() {
                     </h3>
 
                     <p className="mt-4 text-sm leading-7 text-zinc-300">
-                      Os patrocinadores ativos no admin aparecerão automaticamente
+                      Os parceiros ativos no admin aparecerão automaticamente
                       nesta área da página principal.
                     </p>
                   </div>

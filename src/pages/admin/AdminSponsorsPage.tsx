@@ -19,18 +19,29 @@ const initialForm = {
   description: '',
   logo_url: '',
   website_url: '',
-  sponsor_level: 'Patrocinador oficial',
+  sponsor_level: 'Parceiro oficial',
   is_active: true,
   sort_order: 0,
 };
 
 const sponsorLevels = [
-  'Patrocinador principal',
-  'Patrocinador oficial',
+  'Parceiro principal',
+  'Parceiro oficial',
   'Parceiro',
   'Apoio institucional',
   'Outro',
 ];
+
+function normalizePartnerLevel(level: string | null | undefined) {
+  const normalized: Record<string, string> = {
+    'Patrocinador principal': 'Parceiro principal',
+    'Patrocinador oficial': 'Parceiro oficial',
+    Patrocinador: 'Parceiro',
+  };
+
+  return normalized[level ?? ''] ?? level ?? 'Parceiro oficial';
+}
+
 
 export function AdminSponsorsPage() {
   const [sponsors, setSponsors] = useState<GdrbSponsor[]>([]);
@@ -56,8 +67,8 @@ export function AdminSponsorsPage() {
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('Erro ao carregar patrocinadores:', error);
-      setErrorMessage('Não foi possível carregar os patrocinadores.');
+      console.error('Erro ao carregar parceiros:', error);
+      setErrorMessage('Não foi possível carregar os parceiros.');
       setIsLoading(false);
       return;
     }
@@ -93,7 +104,7 @@ export function AdminSponsorsPage() {
       description: sponsor.description ?? '',
       logo_url: sponsor.logo_url ?? '',
       website_url: sponsor.website_url ?? '',
-      sponsor_level: sponsor.sponsor_level,
+      sponsor_level: normalizePartnerLevel(sponsor.sponsor_level),
       is_active: sponsor.is_active,
       sort_order: sponsor.sort_order ?? 0,
     });
@@ -146,7 +157,7 @@ export function AdminSponsorsPage() {
     setErrorMessage('');
 
     if (!form.name.trim()) {
-      setErrorMessage('Indica o nome do patrocinador.');
+      setErrorMessage('Indica o nome do parceiro.');
       return;
     }
 
@@ -172,15 +183,15 @@ export function AdminSponsorsPage() {
     setIsSaving(false);
 
     if (result.error) {
-      console.error('Erro ao guardar patrocinador:', result.error);
-      setErrorMessage('Não foi possível guardar o patrocinador.');
+      console.error('Erro ao guardar parceiro:', result.error);
+      setErrorMessage('Não foi possível guardar o parceiro.');
       return;
     }
 
     setSuccessMessage(
       editingId
-        ? 'Patrocinador atualizado com sucesso.'
-        : 'Patrocinador criado com sucesso.',
+        ? 'Parceiro atualizado com sucesso.'
+        : 'Parceiro criado com sucesso.',
     );
 
     resetForm();
@@ -196,8 +207,8 @@ export function AdminSponsorsPage() {
       .eq('id', sponsor.id);
 
     if (error) {
-      console.error('Erro ao alterar patrocinador:', error);
-      setErrorMessage('Não foi possível alterar o estado do patrocinador.');
+      console.error('Erro ao alterar parceiro:', error);
+      setErrorMessage('Não foi possível alterar o estado do parceiro.');
       return;
     }
 
@@ -206,7 +217,7 @@ export function AdminSponsorsPage() {
 
   async function handleDelete(sponsor: GdrbSponsor) {
     const confirmDelete = window.confirm(
-      `Tens a certeza que queres apagar o patrocinador "${sponsor.name}"?`,
+      `Tens a certeza que queres apagar o parceiro "${sponsor.name}"?`,
     );
 
     if (!confirmDelete) {
@@ -219,8 +230,8 @@ export function AdminSponsorsPage() {
       .eq('id', sponsor.id);
 
     if (error) {
-      console.error('Erro ao apagar patrocinador:', error);
-      setErrorMessage('Não foi possível apagar o patrocinador.');
+      console.error('Erro ao apagar parceiro:', error);
+      setErrorMessage('Não foi possível apagar o parceiro.');
       return;
     }
 
@@ -239,11 +250,11 @@ export function AdminSponsorsPage() {
             </p>
 
             <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
-              Patrocinadores.
+              Parceiros.
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
-              Gere os patrocinadores e parceiros visíveis na página pública do
+              Gere as marcas, empresas e entidades parceiras visíveis na página pública do
               site.
             </p>
           </div>
@@ -268,7 +279,7 @@ export function AdminSponsorsPage() {
               className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
             >
               <Plus size={18} />
-              Novo patrocinador
+              Novo parceiro
             </button>
           </div>
         </div>
@@ -294,11 +305,11 @@ export function AdminSponsorsPage() {
           <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-5">
             <div>
               <h2 className="font-serif text-4xl font-light text-[#24180f]">
-                {editingId ? 'Editar patrocinador' : 'Novo patrocinador'}
+                {editingId ? 'Editar parceiro' : 'Novo parceiro'}
               </h2>
 
               <p className="mt-2 text-sm text-zinc-500">
-                Preenche os dados do patrocinador ou parceiro.
+                Preenche os dados da marca, empresa ou entidade parceira.
               </p>
             </div>
 
@@ -327,7 +338,7 @@ export function AdminSponsorsPage() {
 
             <div>
               <label className="text-sm font-black text-zinc-800">
-                Nível
+                Tipo de parceria
               </label>
 
               <select
@@ -464,7 +475,7 @@ export function AdminSponsorsPage() {
               className="inline-flex items-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save size={18} />
-              {isSaving ? 'A guardar...' : 'Guardar patrocinador'}
+              {isSaving ? 'A guardar...' : 'Guardar parceiro'}
             </button>
           </div>
         </form>
@@ -472,7 +483,7 @@ export function AdminSponsorsPage() {
 
       {isLoading ? (
         <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
-          A carregar patrocinadores...
+          A carregar parceiros...
         </div>
       ) : sponsors.length === 0 ? (
         <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
@@ -481,11 +492,11 @@ export function AdminSponsorsPage() {
           </div>
 
           <h2 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
-            Sem patrocinadores
+            Sem parceiros
           </h2>
 
           <p className="mt-3 text-zinc-500">
-            Ainda não existem patrocinadores criados.
+            Ainda não existem parceiros criados.
           </p>
         </div>
       ) : (
@@ -514,7 +525,7 @@ export function AdminSponsorsPage() {
               <div className="p-7">
                 <div className="flex flex-wrap gap-2">
                   <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                    {sponsor.sponsor_level}
+                    {normalizePartnerLevel(sponsor.sponsor_level)}
                   </span>
 
                   <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
