@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   CalendarDays,
   ChevronRight,
+  ExternalLink,
   HeartHandshake,
   MapPin,
   Newspaper,
@@ -11,7 +12,8 @@ import {
 import { Link } from 'react-router-dom';
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
-import type { GdrbMatch, GdrbNews, GdrbTournament } from '../../types/database';
+import { trackAnalyticsEvent } from '../../lib/analytics';
+import type { GdrbMatch, GdrbNews, GdrbSponsor, GdrbTournament } from '../../types/database';
 
 const googleMapsUrl =
   'https://www.google.com/maps/place/Campo+do+Grupo+Desportivo+e+Recreativo+da+Boavista/@39.780229,-8.7487878,17z/data=!3m1!4b1!4m6!3m5!1s0xd2271873a862cd7:0x575890ac1492b6a2!8m2!3d39.780229!4d-8.7462129!16s%2Fg%2F11bytx3sxs?entry=ttu&g_ep=EgoyMDI2MDYxMC4wIKXMDSoASAFQAw%3D%3D';
@@ -139,6 +141,45 @@ function formatMatchStatus(status: string) {
   return labels[status] ?? status;
 }
 
+function formatSponsorLevel(level: string) {
+  const labels: Record<string, string> = {
+    premium: 'Parceiro Premium',
+    ouro: 'Parceiro Ouro',
+    prata: 'Parceiro Prata',
+    bronze: 'Parceiro Bronze',
+    apoio: 'Apoio Oficial',
+    partner: 'Parceiro Oficial',
+    sponsor: 'Patrocinador',
+  };
+
+  return labels[level] ?? 'Parceiro Oficial';
+}
+
+function getSponsorInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase();
+}
+
+function trackSponsorClick(sponsor: GdrbSponsor, position: string) {
+  return trackAnalyticsEvent({
+    eventName: 'sponsor_click',
+    entityType: 'sponsor',
+    entityId: sponsor.id,
+    entityName: sponsor.name,
+    metadata: {
+      sponsor_level: sponsor.sponsor_level,
+      position,
+      website_url: sponsor.website_url,
+    },
+  });
+}
+
+
 type AgendaItem =
   | {
       type: 'match';
@@ -159,13 +200,14 @@ export function HomePage() {
   const [matches, setMatches] = useState<GdrbMatch[]>([]);
   const [tournaments, setTournaments] = useState<GdrbTournament[]>([]);
   const [news, setNews] = useState<GdrbNews[]>([]);
+  const [sponsors, setSponsors] = useState<GdrbSponsor[]>([]);
   const [isLoadingAgenda, setIsLoadingAgenda] = useState(true);
 
   useEffect(() => {
     async function loadHomeData() {
       setIsLoadingAgenda(true);
 
-      const [matchesResult, tournamentsResult, newsResult] = await Promise.all([
+      const [matchesResult, tournamentsResult, newsResult, sponsorsResult] = await Promise.all([
         supabase
           .from('gdrb_matches')
           .select('*')
@@ -190,6 +232,14 @@ export function HomePage() {
           .order('published_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
           .limit(12),
+
+        supabase
+          .from('gdrb_sponsors')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: false })
+          .limit(12),
       ]);
 
       if (matchesResult.error) {
@@ -204,9 +254,14 @@ export function HomePage() {
         console.error('Erro ao carregar notícias:', newsResult.error);
       }
 
+      if (sponsorsResult.error) {
+        console.error('Erro ao carregar patrocinadores:', sponsorsResult.error);
+      }
+
       setMatches(matchesResult.data ?? []);
       setTournaments(tournamentsResult.data ?? []);
       setNews(newsResult.data ?? []);
+      setSponsors(sponsorsResult.data ?? []);
       setIsLoadingAgenda(false);
     }
 
@@ -238,6 +293,24 @@ export function HomePage() {
       .sort((a, b) => a.sortDate.localeCompare(b.sortDate))
       .slice(0, 6);
   }, [matches, tournaments]);
+
+  useEffect(() => {
+    if (sponsors.length === 0) {
+      return;
+    }
+
+    void trackAnalyticsEvent({
+      eventName: 'sponsor_section_view',
+      entityType: 'sponsor_section',
+      entityName: 'Homepage parceiros em destaque',
+      metadata: {
+        sponsors_count: sponsors.length,
+        position: 'homepage_highlight',
+      },
+    });
+  }, [sponsors.length]);
+
+  const marqueeSponsors = sponsors.length > 0 ? [...sponsors, ...sponsors] : [];
 
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
@@ -622,6 +695,147 @@ export function HomePage() {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="overflow-hidden bg-white py-24">
+        <style>{`
+          @keyframes gdrb-sponsor-marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+
+          .gdrb-sponsor-marquee {
+            animation: gdrb-sponsor-marquee 34s linear infinite;
+          }
+
+          .gdrb-sponsor-marquee:hover {
+            animation-play-state: paused;
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .gdrb-sponsor-marquee {
+              animation: none;
+              transform: none;
+            }
+          }
+        `}</style>
+
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="relative overflow-hidden rounded-sm bg-[#24180f] text-white shadow-2xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.32),transparent_34%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_28%)]" />
+
+            <div className="relative grid gap-10 p-8 md:p-12 lg:grid-cols-[0.9fr_1.4fr] lg:items-center">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.38em] text-red-300">
+                  Parceiros em destaque
+                </p>
+
+                <h2 className="mt-5 font-serif text-5xl font-light leading-tight md:text-6xl">
+                  Marcas que apoiam o Boavista.
+                </h2>
+
+                <p className="mt-5 text-base leading-8 text-zinc-300">
+                  Os nossos parceiros ajudam a fortalecer a formação, o desporto
+                  e a comunidade. Cada apoio faz a diferença dentro e fora de campo.
+                </p>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link
+                    to="/patrocinadores"
+                    className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#24180f]"
+                  >
+                    Ver parceiros
+                    <ChevronRight size={16} />
+                  </Link>
+
+                  <Link
+                    to="/contactos"
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-white/15 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#24180f]"
+                  >
+                    Tornar-se parceiro
+                    <ChevronRight size={16} />
+                  </Link>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-sm border border-white/10 bg-white/10 p-4">
+                {sponsors.length === 0 ? (
+                  <div className="rounded-sm border border-dashed border-white/20 bg-white/10 p-10 text-center">
+                    <h3 className="font-serif text-3xl font-light">
+                      Espaço reservado aos parceiros
+                    </h3>
+
+                    <p className="mt-4 text-sm leading-7 text-zinc-300">
+                      Os patrocinadores ativos no admin aparecerão automaticamente
+                      nesta área da página principal.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[#24180f] to-transparent" />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[#24180f] to-transparent" />
+
+                    <div className="gdrb-sponsor-marquee flex w-max gap-4 py-2">
+                      {marqueeSponsors.map((sponsor, index) => {
+                        const content = (
+                          <div className="flex h-full min-h-[170px] w-[230px] flex-col justify-between rounded-sm border border-white/10 bg-white p-5 text-[#24180f] shadow-xl transition hover:-translate-y-1 hover:shadow-2xl">
+                            <div>
+                              <div className="flex h-20 items-center justify-center rounded-sm bg-[#f6f2ec] p-4">
+                                {sponsor.logo_url ? (
+                                  <img
+                                    src={sponsor.logo_url}
+                                    alt={sponsor.name}
+                                    className="max-h-full max-w-full object-contain"
+                                  />
+                                ) : (
+                                  <span className="font-serif text-3xl font-light text-red-700">
+                                    {getSponsorInitials(sponsor.name)}
+                                  </span>
+                                )}
+                              </div>
+
+                              <h3 className="mt-4 line-clamp-2 font-serif text-2xl font-light leading-tight">
+                                {sponsor.name}
+                              </h3>
+
+                              <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                                {formatSponsorLevel(sponsor.sponsor_level)}
+                              </p>
+                            </div>
+
+                            <span className="mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide text-[#24180f]">
+                              {sponsor.website_url ? 'Visitar parceiro' : 'Parceiro do clube'}
+                              {sponsor.website_url && <ExternalLink size={13} />}
+                            </span>
+                          </div>
+                        );
+
+                        if (!sponsor.website_url) {
+                          return <div key={`${sponsor.id}-${index}`}>{content}</div>;
+                        }
+
+                        return (
+                          <a
+                            key={`${sponsor.id}-${index}`}
+                            href={sponsor.website_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={() => {
+                              void trackSponsorClick(sponsor, 'homepage_carousel');
+                            }}
+                          >
+                            {content}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
