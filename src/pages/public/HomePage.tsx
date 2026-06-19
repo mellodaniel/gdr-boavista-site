@@ -733,7 +733,7 @@ export function HomePage() {
                 </p>
 
                 <h2 className="mt-5 font-serif text-5xl font-light leading-tight md:text-6xl">
-                  Marcas que apoiam o Boavista.
+                  Marcas que apoiam o GDR Boavista.
                 </h2>
 
                 <p className="mt-5 text-base leading-8 text-zinc-300">
