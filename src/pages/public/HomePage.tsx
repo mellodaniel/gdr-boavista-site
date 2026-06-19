@@ -106,6 +106,14 @@ function formatDateShort(date: string) {
   });
 }
 
+function formatDayHeading(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('pt-PT', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+  });
+}
+
 function formatTournamentDate(tournament: GdrbTournament) {
   if (!tournament.end_date || tournament.end_date === tournament.start_date) {
     return formatDate(tournament.start_date);
@@ -152,7 +160,7 @@ function formatSponsorLevel(level: string) {
     sponsor: 'Parceiro Oficial',
     'Patrocinador principal': 'Parceiro principal',
     'Patrocinador oficial': 'Parceiro oficial',
-    'Patrocinador': 'Parceiro',
+    Patrocinador: 'Parceiro',
   };
 
   return (labels[level] ?? level) || 'Parceiro Oficial';
@@ -182,6 +190,27 @@ function trackSponsorClick(sponsor: GdrbSponsor, position: string) {
   });
 }
 
+function getMatchMotivation(match: GdrbMatch) {
+  if (match.venue_type === 'fora') {
+    return {
+      eyebrow: 'Jogo fora',
+      title: 'O Boavista vai à luta',
+      phrase: 'Fora de casa, a garra é a mesma.',
+      badgeClass: 'bg-zinc-950 text-white',
+      borderClass: 'border-zinc-900/20',
+      topClass: 'bg-zinc-950',
+    };
+  }
+
+  return {
+    eyebrow: 'Jogo em casa',
+    title: 'Todos ao Campo da Boavista',
+    phrase: 'Em casa, joga-se com todos nós.',
+    badgeClass: 'bg-red-700 text-white',
+    borderClass: 'border-red-200',
+    topClass: 'bg-red-700',
+  };
+}
 
 type AgendaItem =
   | {
@@ -198,6 +227,11 @@ type AgendaItem =
       sortDate: string;
       data: GdrbTournament;
     };
+
+type GroupedAgendaItems = {
+  date: string;
+  items: AgendaItem[];
+};
 
 export function HomePage() {
   const [matches, setMatches] = useState<GdrbMatch[]>([]);
@@ -233,8 +267,7 @@ export function HomePage() {
           .eq('status', 'published')
           .order('sort_order', { ascending: true })
           .order('published_at', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false })
-          .limit(12),
+          .order('created_at', { ascending: false }),
 
         supabase
           .from('gdrb_sponsors')
@@ -292,10 +325,25 @@ export function HomePage() {
         data: tournament,
       }));
 
-    return [...weeklyMatches, ...weeklyTournaments]
-      .sort((a, b) => a.sortDate.localeCompare(b.sortDate))
-      .slice(0, 6);
+    return [...weeklyMatches, ...weeklyTournaments].sort((a, b) =>
+      a.sortDate.localeCompare(b.sortDate),
+    );
   }, [matches, tournaments]);
+
+  const groupedAgendaItems = useMemo<GroupedAgendaItems[]>(() => {
+    const groups = agendaItems.reduce<Record<string, AgendaItem[]>>((acc, item) => {
+      if (!acc[item.date]) {
+        acc[item.date] = [];
+      }
+
+      acc[item.date].push(item);
+      return acc;
+    }, {});
+
+    return Object.entries(groups)
+      .map(([date, items]) => ({ date, items }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [agendaItems]);
 
   useEffect(() => {
     if (sponsors.length === 0) {
@@ -321,57 +369,52 @@ export function HomePage() {
         <img
           src="/hero-boavista.webp"
           alt="GDR Boavista"
-          className="absolute inset-0 h-full w-full object-cover opacity-45"
+          className="absolute inset-0 h-full w-full object-cover opacity-45 motion-safe:animate-[pulse_14s_ease-in-out_infinite]"
         />
 
         <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#24180f]/80 to-black/30" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_35%)]" />
 
-        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-6 py-24 sm:px-8 lg:px-16 xl:px-28">
-          <div className="max-w-3xl lg:ml-8 xl:ml-10">
-            <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center md:mb-12">
-              <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-[2rem] bg-white p-4 shadow-2xl ring-4 ring-white/15 md:h-36 md:w-36 md:rounded-[2.35rem] md:p-5">
-                <div className="absolute -inset-2 rounded-[2.25rem] bg-red-700/20 blur-xl md:rounded-[2.65rem]" />
+        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-4 py-24 lg:px-10">
+          <div className="max-w-4xl motion-safe:animate-[fadeIn_0.8s_ease-out]">
+            <div className="mb-10 flex items-center gap-5">
+              <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-white p-3 shadow-2xl shadow-red-950/30 md:h-32 md:w-32">
                 <img
                   src="/logo-gdr-boavista-header-256.png"
                   alt="GDR Boavista"
-                  className="relative h-full w-full object-contain"
+                  className="h-full w-full object-contain"
                 />
               </div>
 
-              <div className="max-w-2xl">
-                <p className="text-base font-black uppercase tracking-[0.45em] text-red-400 md:text-xl">
+              <div>
+                <p className="text-base font-black uppercase tracking-[0.4em] text-red-400">
                   GDR Boavista
                 </p>
-                <p className="mt-3 max-w-xl font-serif text-2xl font-light leading-tight text-white md:text-3xl">
-                  Grupo Desportivo e Recreativo Boavista
+                <p className="mt-2 max-w-sm text-sm font-semibold text-zinc-300">
+                  Grupo Desportivo e Recreativo da Boavista
                 </p>
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.22em] text-zinc-200">
-                  <span>Leiria</span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                  <span>Formação</span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                  <span>Comunidade</span>
-                </div>
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.22em] text-zinc-400">
+                  Leiria · Formação · Comunidade
+                </p>
               </div>
             </div>
 
-            <h1 className="max-w-3xl font-serif text-5xl font-light leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
+            <h1 className="font-serif text-6xl font-light leading-[0.95] tracking-tight md:text-8xl">
               Formar atletas,
               <br />
               unir famílias.
             </h1>
 
-            <p className="mt-8 max-w-xl text-base leading-8 text-zinc-300 md:text-lg">
+            <p className="mt-8 max-w-2xl text-lg leading-8 text-zinc-300">
               O GDR Boavista é uma casa de futebol, formação e comunidade. Um
               clube onde atletas, famílias, sócios e amigos vivem o futebol com
               compromisso, união e orgulho.
             </p>
 
-            <div className="mt-9 flex flex-wrap gap-4">
+            <div className="mt-10 flex flex-wrap gap-4">
               <Link
                 to="/socios"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:-translate-y-0.5 hover:bg-red-800 hover:shadow-xl hover:shadow-red-950/30"
               >
                 Quero ser sócio
                 <ChevronRight size={18} />
@@ -379,18 +422,18 @@ export function HomePage() {
 
               <Link
                 to="/equipas"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:bg-zinc-100"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:-translate-y-0.5 hover:bg-zinc-100 hover:shadow-xl hover:shadow-black/20"
               >
                 Ver equipas
                 <ChevronRight size={18} />
               </Link>
             </div>
 
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-12 flex flex-wrap gap-3">
               {heroHighlights.map((item) => (
                 <span
                   key={item}
-                  className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white"
+                  className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm"
                 >
                   {item}
                 </span>
@@ -462,16 +505,14 @@ export function HomePage() {
               </p>
 
               <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
-                Jogos e torneios da semana
+                Agenda semanal
               </h2>
-            </div>
 
-            <Link
-              to="/resultados"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-800"
-            >
-              Histórico de jogos <ChevronRight size={16} />
-            </Link>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-600">
+                Todos os jogos e torneios visíveis desta semana, organizados por
+                dia e com destaque para o espírito do GDR Boavista.
+              </p>
+            </div>
           </div>
 
           {isLoadingAgenda ? (
@@ -489,135 +530,174 @@ export function HomePage() {
               </h3>
 
               <p className="mt-3 text-zinc-500">
-                Quando forem criados no admin, os jogos e torneios visíveis
+                Quando existirem jogos ou torneios visíveis para esta semana,
                 aparecem automaticamente aqui.
               </p>
             </div>
           ) : (
-            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {agendaItems.map((item) => {
-                if (item.type === 'tournament') {
-                  const tournament = item.data;
+            <div className="mt-12 space-y-10">
+              {groupedAgendaItems.map((group) => (
+                <div key={group.date}>
+                  <div className="mb-5 flex items-center gap-4">
+                    <div className="h-px flex-1 bg-zinc-200" />
+                    <h3 className="text-sm font-black uppercase tracking-[0.3em] text-[#24180f]">
+                      {formatDayHeading(group.date)}
+                    </h3>
+                    <div className="h-px flex-1 bg-zinc-200" />
+                  </div>
 
-                  return (
-                    <article
-                      key={`tournament-${item.id}`}
-                      className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                    >
-                      <div className="h-1.5 bg-red-700" />
+                  <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    {group.items.map((item) => {
+                      if (item.type === 'tournament') {
+                        const tournament = item.data;
 
-                      <div className="p-7">
-                        <div className="flex flex-wrap gap-2">
-                          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                            {tournament.team_name}
-                          </span>
+                        return (
+                          <article
+                            key={`tournament-${item.id}`}
+                            className="group relative overflow-hidden rounded-sm border border-amber-200 bg-gradient-to-br from-[#24180f] via-[#3a2415] to-red-950 text-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-red-950/20"
+                          >
+                            <img
+                              src="/logo-gdr-boavista-header-256.png"
+                              alt=""
+                              className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 object-contain opacity-[0.08] transition duration-500 group-hover:scale-110 group-hover:opacity-[0.12]"
+                            />
+                            <div className="h-1.5 bg-amber-400" />
 
-                          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                            {tournament.football_type}
-                          </span>
+                            <div className="relative p-7">
+                              <div className="flex flex-wrap gap-2">
+                                <span className="rounded-full bg-amber-400 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-[#24180f]">
+                                  Torneio
+                                </span>
 
-                          <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">
-                            Torneio
-                          </span>
-                        </div>
+                                <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
+                                  {tournament.team_name}
+                                </span>
 
-                        <h3 className="mt-6 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                          {tournament.name}
-                        </h3>
+                                <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
+                                  {tournament.football_type}
+                                </span>
+                              </div>
 
-                        <div className="mt-5 grid gap-3 text-sm text-zinc-600">
-                          <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
-                            <CalendarDays size={16} className="text-red-700" />
-                            {formatTournamentDate(tournament)}
-                          </span>
+                              <p className="mt-6 text-sm font-black uppercase tracking-[0.24em] text-amber-200">
+                                Dia de competição
+                              </p>
 
-                          {tournament.location && (
-                            <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
-                              <MapPin size={16} className="text-red-700" />
-                              {tournament.location}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </article>
-                  );
-                }
+                              <h4 className="mt-2 font-serif text-4xl font-light leading-tight">
+                                {tournament.name}
+                              </h4>
 
-                const match = item.data;
+                              <p className="mt-4 text-sm font-semibold leading-6 text-zinc-300">
+                                Vários jogos, uma só camisola.
+                              </p>
 
-                return (
-                  <article
-                    key={`match-${item.id}`}
-                    className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                  >
-                    <div className="h-1.5 bg-red-700" />
+                              <div className="mt-6 grid gap-3 text-sm text-zinc-100">
+                                <span className="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-3 font-semibold">
+                                  <CalendarDays size={16} className="text-amber-300" />
+                                  {formatTournamentDate(tournament)}
+                                </span>
 
-                    <div className="p-7">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                          {match.team_name}
-                        </span>
+                                {tournament.location && (
+                                  <span className="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-3 font-semibold">
+                                    <MapPin size={16} className="text-amber-300" />
+                                    {tournament.location}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      }
 
-                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                          {match.football_type}
-                        </span>
+                      const match = item.data;
+                      const motivation = getMatchMotivation(match);
 
-                        <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">
-                          {formatMatchStatus(match.status)}
-                        </span>
-                      </div>
+                      return (
+                        <article
+                          key={`match-${item.id}`}
+                          className={`group relative overflow-hidden rounded-sm border ${motivation.borderClass} bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-red-950/10`}
+                        >
+                          <img
+                            src="/logo-gdr-boavista-header-256.png"
+                            alt=""
+                            className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 object-contain opacity-[0.045] transition duration-500 group-hover:scale-110 group-hover:opacity-[0.09]"
+                          />
+                          <div className={`h-1.5 ${motivation.topClass}`} />
 
-                      {match.venue_type === 'fora' ? (
-                        <>
-                          <p className="mt-6 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
-                            {match.opponent}
-                          </p>
+                          <div className="relative p-7">
+                            <div className="flex flex-wrap gap-2">
+                              <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${motivation.badgeClass}`}>
+                                {motivation.eyebrow}
+                              </span>
 
-                          <h3 className="mt-2 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                            vs GDR Boavista
-                          </h3>
-                        </>
-                      ) : (
-                        <>
-                          <h3 className="mt-6 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                            GDR Boavista
-                          </h3>
+                              <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                                {match.team_name}
+                              </span>
 
-                          <p className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
-                            vs {match.opponent}
-                          </p>
-                        </>
-                      )}
+                              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
+                                {match.football_type}
+                              </span>
+                            </div>
 
-                      <p className="mt-4 text-sm font-semibold text-zinc-600">
-                        {match.competition}
-                      </p>
+                            <p className="mt-6 text-sm font-black uppercase tracking-[0.24em] text-red-700">
+                              {motivation.title}
+                            </p>
 
-                      <div className="mt-5 grid gap-3 text-sm text-zinc-600">
-                        <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
-                          <CalendarDays size={16} className="text-red-700" />
-                          {formatDateShort(match.match_date)}
-                          {match.match_time
-                            ? ` | ${match.match_time.slice(0, 5)}`
-                            : ''}
-                        </span>
+                            {match.venue_type === 'fora' ? (
+                              <div className="mt-4">
+                                <p className="text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
+                                  {match.opponent}
+                                </p>
+                                <h4 className="mt-1 font-serif text-4xl font-light leading-tight text-[#24180f]">
+                                  vs GDR Boavista
+                                </h4>
+                              </div>
+                            ) : (
+                              <div className="mt-4">
+                                <h4 className="font-serif text-4xl font-light leading-tight text-[#24180f]">
+                                  GDR Boavista
+                                </h4>
+                                <p className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
+                                  vs {match.opponent}
+                                </p>
+                              </div>
+                            )}
 
-                        <div className="flex flex-wrap gap-3">
-                          <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
-                            {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
-                          </span>
+                            <p className="mt-4 text-sm font-semibold text-zinc-600">
+                              {match.competition}
+                            </p>
 
-                          {match.location && (
-                            <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
-                              {match.location}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
+                            <p className="mt-3 rounded-md bg-[#f6f2ec] px-4 py-3 text-sm font-black text-[#24180f]">
+                              {motivation.phrase}
+                            </p>
+
+                            <div className="mt-5 grid gap-3 text-sm text-zinc-600">
+                              <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
+                                <CalendarDays size={16} className="text-red-700" />
+                                {formatDateShort(match.match_date)}
+                                {match.match_time
+                                  ? ` | ${match.match_time.slice(0, 5)}`
+                                  : ''}
+                              </span>
+
+                              <div className="flex flex-wrap gap-3">
+                                <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
+                                  {formatMatchStatus(match.status)}
+                                </span>
+
+                                {match.location && (
+                                  <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
+                                    {match.location}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -632,7 +712,7 @@ export function HomePage() {
               </p>
 
               <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
-                Últimas novidades
+                Notícias publicadas
               </h2>
             </div>
 
@@ -640,7 +720,7 @@ export function HomePage() {
               to="/noticias"
               className="inline-flex items-center justify-center gap-2 rounded-md bg-[#24180f] px-5 py-3 text-sm font-bold text-white transition hover:bg-red-700"
             >
-              Ver notícias <ChevronRight size={16} />
+              Pesquisar notícias <ChevronRight size={16} />
             </Link>
           </div>
 
@@ -653,11 +733,11 @@ export function HomePage() {
               </h3>
 
               <p className="mt-3 text-zinc-500">
-                As notícias publicadas no admin aparecem automaticamente aqui.
+                As notícias publicadas aparecem automaticamente aqui.
               </p>
             </div>
           ) : (
-            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-10 grid gap-6 md:grid-cols-3">
               {news.map((item) => (
                 <Link
                   key={item.id}
@@ -779,8 +859,8 @@ export function HomePage() {
                     </h3>
 
                     <p className="mt-4 text-sm leading-7 text-zinc-300">
-                      Os parceiros ativos no admin aparecerão automaticamente
-                      nesta área da página principal.
+                      Os parceiros ativos aparecerão automaticamente nesta área
+                      da página principal.
                     </p>
                   </div>
                 ) : (

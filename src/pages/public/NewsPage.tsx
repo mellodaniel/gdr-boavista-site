@@ -115,8 +115,7 @@ export function NewsPage() {
             </h1>
 
             <p className="mt-8 max-w-2xl text-lg leading-8 text-zinc-300">
-              Acompanha as novidades do GDR Boavista, informações da formação,
-              notícias do clube e conteúdos relevantes do futebol distrital.
+              Acompanha as novidades publicadas do GDR Boavista e consulta o arquivo sempre que precisares.
             </p>
           </div>
         </div>
@@ -177,7 +176,7 @@ export function NewsPage() {
                     : 'bg-zinc-100 text-zinc-700 hover:bg-red-50 hover:text-red-700'
                 }`}
               >
-                Notícias recentes · {publishedCount}
+                Publicadas · {publishedCount}
               </button>
 
               <button
@@ -189,7 +188,7 @@ export function NewsPage() {
                     : 'bg-zinc-100 text-zinc-700 hover:bg-red-50 hover:text-red-700'
                 }`}
               >
-                Notícias antigas · {archivedCount}
+                Arquivo · {archivedCount}
               </button>
             </div>
 
