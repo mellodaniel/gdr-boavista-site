@@ -49,7 +49,9 @@ const teamOptions = [
 
 const statusOptions = [
   { value: "agendado", label: "Agendado" },
-  { value: "terminado", label: "Terminado" },
+  { value: "aguardar_resultado", label: "Aguardar resultado" },
+  { value: "terminado", label: "Resultado inserido" },
+  { value: "arquivado", label: "Arquivado" },
   { value: "adiado", label: "Adiado" },
   { value: "cancelado", label: "Cancelado" },
 ];
@@ -112,6 +114,40 @@ function isMatchInCurrentWeek(matchDate: string) {
   const date = new Date(`${matchDate}T12:00:00`);
 
   return date >= monday && date <= sunday;
+}
+
+function getMatchDateTime(match: GdrbMatch) {
+  return new Date(`${match.match_date}T${match.match_time || "00:00"}`);
+}
+
+function shouldMoveToAwaitingResult(match: GdrbMatch) {
+  if (!match.is_visible || match.status !== "agendado") {
+    return false;
+  }
+
+  const matchDateTime = getMatchDateTime(match);
+  const twoHoursAfterKickoff = new Date(matchDateTime);
+  twoHoursAfterKickoff.setHours(twoHoursAfterKickoff.getHours() + 2);
+
+  return twoHoursAfterKickoff < new Date();
+}
+
+function shouldArchiveMatch(match: GdrbMatch) {
+  if (!match.is_visible || match.status !== "terminado") {
+    return false;
+  }
+
+  const hasResult = match.home_score !== null && match.away_score !== null;
+
+  if (!hasResult) {
+    return false;
+  }
+
+  const matchDate = new Date(`${match.match_date}T00:00:00`);
+  const sevenDaysAfterMatch = new Date(matchDate);
+  sevenDaysAfterMatch.setDate(sevenDaysAfterMatch.getDate() + 7);
+
+  return sevenDaysAfterMatch < new Date();
 }
 
 function isTournamentInCurrentWeek(tournament: GdrbTournament) {
@@ -197,7 +233,9 @@ export function AdminMatchesPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [showScheduled, setShowScheduled] = useState(true);
+  const [showAwaitingResult, setShowAwaitingResult] = useState(true);
   const [showFinished, setShowFinished] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [showPosterPreview, setShowPosterPreview] = useState(false);
   const [posterMode, setPosterMode] = useState<PosterMode>("matches");
@@ -220,7 +258,7 @@ export function AdminMatchesPage() {
       .filter(
         (match) =>
           match.is_visible &&
-          match.status !== "terminado" &&
+          ["agendado", "adiado", "cancelado"].includes(match.status) &&
           isMatchInCurrentWeek(match.match_date),
       )
       .map((match) => ({
@@ -253,7 +291,7 @@ export function AdminMatchesPage() {
         .filter(
           (match) =>
             match.is_visible &&
-            match.status === "terminado" &&
+            ["terminado", "arquivado"].includes(match.status) &&
             isMatchInCurrentWeek(match.match_date),
         )
         .sort((a, b) => {
@@ -261,6 +299,14 @@ export function AdminMatchesPage() {
           const dateB = `${b.match_date} ${b.match_time ?? "00:00"}`;
           return dateA.localeCompare(dateB);
         }),
+    [matches],
+  );
+
+  const awaitingResultMatches = useMemo(
+    () =>
+      matches.filter(
+        (match) => match.is_visible && match.status === "aguardar_resultado",
+      ),
     [matches],
   );
 
@@ -272,10 +318,55 @@ export function AdminMatchesPage() {
     [matches],
   );
 
+  const archivedMatches = useMemo(
+    () =>
+      matches.filter(
+        (match) => match.is_visible && match.status === "arquivado",
+      ),
+    [matches],
+  );
+
   const hiddenMatches = useMemo(
     () => matches.filter((match) => !match.is_visible),
     [matches],
   );
+
+  async function syncMatchLifecycle(loadedMatches: GdrbMatch[]) {
+    const now = new Date().toISOString();
+
+    const matchesToAwaitResult = loadedMatches.filter(shouldMoveToAwaitingResult);
+    const matchesToArchive = loadedMatches.filter(shouldArchiveMatch);
+
+    if (matchesToAwaitResult.length === 0 && matchesToArchive.length === 0) {
+      return false;
+    }
+
+    const updates = [
+      ...matchesToAwaitResult.map((match) =>
+        supabase
+          .from("gdrb_matches")
+          .update({ status: "aguardar_resultado", updated_at: now })
+          .eq("id", match.id),
+      ),
+      ...matchesToArchive.map((match) =>
+        supabase
+          .from("gdrb_matches")
+          .update({ status: "arquivado", updated_at: now })
+          .eq("id", match.id),
+      ),
+    ];
+
+    const results = await Promise.all(updates);
+    const firstError = results.find((result) => result.error)?.error;
+
+    if (firstError) {
+      console.error("Erro ao atualizar ciclo de vida dos jogos:", firstError);
+      setErrorMessage("Não foi possível atualizar automaticamente o estado dos jogos.");
+      return false;
+    }
+
+    return true;
+  }
 
   async function loadMatches() {
     setIsLoading(true);
@@ -310,7 +401,27 @@ export function AdminMatchesPage() {
       return;
     }
 
-    setMatches(matchesResult.data ?? []);
+    const loadedMatches = matchesResult.data ?? [];
+    const lifecycleWasUpdated = await syncMatchLifecycle(loadedMatches);
+
+    if (lifecycleWasUpdated) {
+      const refreshedMatchesResult = await supabase
+        .from("gdrb_matches")
+        .select("*")
+        .order("match_date", { ascending: true })
+        .order("match_time", { ascending: true })
+        .order("sort_order", { ascending: true });
+
+      if (refreshedMatchesResult.error) {
+        console.error("Erro ao recarregar jogos:", refreshedMatchesResult.error);
+        setMatches(loadedMatches);
+      } else {
+        setMatches(refreshedMatchesResult.data ?? []);
+      }
+    } else {
+      setMatches(loadedMatches);
+    }
+
     setTournaments(tournamentsResult.data ?? []);
     setIsLoading(false);
   }
@@ -377,6 +488,15 @@ export function AdminMatchesPage() {
 
     setIsSaving(true);
 
+    const hasResult = form.home_score !== "" && form.away_score !== "";
+    const nextStatus = form.status === "aguardar_resultado" && hasResult ? "terminado" : form.status;
+
+    if (nextStatus === "terminado" && !hasResult) {
+      setErrorMessage("Para marcar como resultado inserido, preenche os golos do GDRB e do adversário.");
+      setIsSaving(false);
+      return;
+    }
+
     const payload = {
       team_name: form.team_name.trim(),
       football_type: form.football_type,
@@ -386,7 +506,7 @@ export function AdminMatchesPage() {
       match_time: form.match_time || null,
       location: form.location.trim() || null,
       venue_type: form.venue_type,
-      status: form.status,
+      status: nextStatus,
       home_score:
         form.home_score === "" ? null : Number.parseInt(form.home_score, 10),
       away_score:
@@ -933,7 +1053,7 @@ export function AdminMatchesPage() {
               onClick={() => handleEdit(match)}
               className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
             >
-              Editar
+              {match.status === "aguardar_resultado" ? "Inserir resultado" : "Editar"}
             </button>
 
             <button
@@ -956,6 +1076,75 @@ export function AdminMatchesPage() {
           </div>
         </div>
       </article>
+    );
+  }
+
+  function renderArchiveNotice(count: number) {
+    const searchCriteria = [
+      "Data inicial e data final",
+      "Adversário",
+      "Escalão",
+      "Tipo de futebol",
+      "Competição",
+      "Local do jogo",
+      "Casa ou fora",
+      "Resultado",
+    ];
+
+    return (
+      <section className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setShowArchived(!showArchived)}
+          className="flex w-full items-center justify-between gap-4 bg-[#f6f2ec] px-7 py-5 text-left hover:bg-white"
+        >
+          <div>
+            <h2 className="font-serif text-3xl font-light text-[#24180f]">
+              Arquivo de jogos
+            </h2>
+
+            <p className="mt-1 text-sm text-zinc-500">
+              Jogos antigos ficam guardados para consulta · {count} registo(s) arquivado(s)
+            </p>
+          </div>
+
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-zinc-700 shadow-sm">
+            {showArchived ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+        </button>
+
+        {showArchived && (
+          <div className="p-6">
+            <div className="rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-6">
+              <p className="text-sm font-semibold leading-7 text-zinc-700">
+                Os jogos arquivados não precisam de visualização em cards no admin.
+                Eles ficam disponíveis apenas para consulta através da página pública
+                de jogos e resultados, usando filtros de pesquisa.
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {searchCriteria.map((criterion) => (
+                  <span
+                    key={criterion}
+                    className="rounded-full bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-zinc-600"
+                  >
+                    {criterion}
+                  </span>
+                ))}
+              </div>
+
+              <a
+                href="/resultados"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-6 inline-flex items-center justify-center rounded-md bg-[#24180f] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700"
+              >
+                Abrir consulta de jogos
+              </a>
+            </div>
+          </div>
+        )}
+      </section>
     );
   }
 
@@ -1245,6 +1434,10 @@ export function AdminMatchesPage() {
                   </option>
                 ))}
               </select>
+
+              <p className="mt-2 text-xs leading-5 text-zinc-500">
+                Fluxo automático: jogo futuro fica em Agendado; depois da hora do jogo passa para Aguardar resultado; ao inserir os golos passa para Resultado recente; após 7 dias da data do jogo é arquivado automaticamente e fica apenas para consulta.
+              </p>
             </div>
 
             <div className="xl:col-span-2">
@@ -1360,19 +1553,29 @@ export function AdminMatchesPage() {
         <div className="mt-8 space-y-6">
           {renderSection(
             "Próximos jogos",
-            "Jogos ainda por realizar, adiados ou cancelados",
+            "Jogos futuros ou ainda visíveis na agenda pública",
             showScheduled,
             setShowScheduled,
             scheduledMatches,
           )}
 
           {renderSection(
-            "Resultados",
-            "Jogos terminados e respetivos resultados",
+            "A aguardar resultado",
+            "Jogos que já passaram e precisam do resultado",
+            showAwaitingResult,
+            setShowAwaitingResult,
+            awaitingResultMatches,
+          )}
+
+          {renderSection(
+            "Resultados recentes",
+            "Jogos com resultado inserido. Ficam no site por 7 dias e depois vão para o arquivo",
             showFinished,
             setShowFinished,
             finishedMatches,
           )}
+
+          {renderArchiveNotice(archivedMatches.length)}
 
           {renderSection(
             "Ocultos",

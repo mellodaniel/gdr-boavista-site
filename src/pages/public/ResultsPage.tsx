@@ -24,6 +24,19 @@ const footballTypeOptions = [
   'Futebol 11',
 ];
 
+const statusFilterOptions = [
+  { value: 'Todos', label: 'Todos' },
+  { value: 'agenda', label: 'Agenda' },
+  { value: 'resultados', label: 'Resultados e histórico' },
+  { value: 'arquivados', label: 'Arquivados' },
+];
+
+const venueFilterOptions = [
+  { value: 'Todos', label: 'Casa/Fora' },
+  { value: 'casa', label: 'Casa' },
+  { value: 'fora', label: 'Fora' },
+];
+
 function formatDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('pt-PT', {
     weekday: 'long',
@@ -54,7 +67,9 @@ function formatTournamentDate(tournament: GdrbTournament) {
 function formatMatchStatus(status: string) {
   const labels: Record<string, string> = {
     agendado: 'Agendado',
-    terminado: 'Terminado',
+    aguardar_resultado: 'Aguardar resultado',
+    terminado: 'Resultado',
+    arquivado: 'Arquivado',
     adiado: 'Adiado',
     cancelado: 'Cancelado',
   };
@@ -126,6 +141,8 @@ export function ResultsPage() {
 
   const [teamFilter, setTeamFilter] = useState('Todos');
   const [footballTypeFilter, setFootballTypeFilter] = useState('Todos');
+  const [statusFilter, setStatusFilter] = useState('Todos');
+  const [venueFilter, setVenueFilter] = useState('Todos');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
@@ -183,14 +200,26 @@ export function ResultsPage() {
       const matchesSearch =
         !search.trim() || matchSearch.includes(search.toLowerCase().trim());
 
+      const matchesVenue =
+        venueFilter === 'Todos' || match.venue_type === venueFilter;
+
+      const matchesStatus =
+        statusFilter === 'Todos' ||
+        (statusFilter === 'agenda' &&
+          ['agendado', 'adiado', 'cancelado'].includes(match.status)) ||
+        (statusFilter === 'resultados' && match.status === 'terminado') ||
+        (statusFilter === 'arquivados' && match.status === 'arquivado');
+
       return (
         matchesTeam &&
         matchesFootballType &&
+        matchesVenue &&
+        matchesStatus &&
         matchesDateRange(match.match_date, startDate, endDate) &&
         matchesSearch
       );
     });
-  }, [matches, teamFilter, footballTypeFilter, startDate, endDate, search]);
+  }, [matches, teamFilter, footballTypeFilter, statusFilter, venueFilter, startDate, endDate, search]);
 
   const filteredTournaments = useMemo(() => {
     return tournaments.filter((tournament) => {
@@ -220,7 +249,7 @@ export function ResultsPage() {
 
   const agendaMatches = useMemo(() => {
     return filteredMatches
-      .filter((match) => match.status !== 'terminado')
+      .filter((match) => ['agendado', 'adiado', 'cancelado'].includes(match.status))
       .sort((a, b) =>
         `${a.match_date} ${a.match_time ?? '00:00'}`.localeCompare(
           `${b.match_date} ${b.match_time ?? '00:00'}`,
@@ -230,7 +259,7 @@ export function ResultsPage() {
 
   const resultMatches = useMemo(() => {
     return filteredMatches
-      .filter((match) => match.status === 'terminado')
+      .filter((match) => ['terminado', 'arquivado'].includes(match.status))
       .sort((a, b) =>
         `${b.match_date} ${b.match_time ?? '00:00'}`.localeCompare(
           `${a.match_date} ${a.match_time ?? '00:00'}`,
@@ -241,6 +270,8 @@ export function ResultsPage() {
   function clearFilters() {
     setTeamFilter('Todos');
     setFootballTypeFilter('Todos');
+    setStatusFilter('Todos');
+    setVenueFilter('Todos');
     setStartDate('');
     setEndDate('');
     setSearch('');
@@ -259,18 +290,17 @@ export function ResultsPage() {
         <div className="relative mx-auto max-w-7xl px-4">
           <div className="max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
-              Agenda · Torneios · Resultados
+              Jogos · Resultados · Consulta
             </p>
 
             <h1 className="mt-8 font-serif text-6xl font-light leading-[0.95] tracking-tight md:text-8xl">
               Jogos e
               <br />
-              torneios.
+              resultados.
             </h1>
 
             <p className="mt-8 max-w-2xl text-lg leading-8 text-zinc-300">
-              Consulta a agenda do GDR Boavista, os torneios dos nossos escalões
-              e o histórico de resultados dos jogos terminados.
+              Consulta próximos jogos, torneios e resultados antigos por data, adversário, escalão, competição ou local.
             </p>
           </div>
         </div>
@@ -285,16 +315,16 @@ export function ResultsPage() {
 
             <div>
               <h2 className="font-serif text-3xl font-light text-[#24180f]">
-                Pesquisar jogos e torneios
+                Consultar jogos e histórico
               </h2>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Usa os filtros para consultar agenda, torneios e resultados.
+                Pesquisa por data, adversário, escalão, tipo de futebol, casa/fora ou estado do jogo.
               </p>
             </div>
           </div>
 
-          <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
             <div>
               <label className="text-sm font-black text-zinc-800">
                 Data inicial
@@ -359,6 +389,42 @@ export function ResultsPage() {
 
             <div>
               <label className="text-sm font-black text-zinc-800">
+                Estado
+              </label>
+
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              >
+                {statusFilterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-black text-zinc-800">
+                Casa/Fora
+              </label>
+
+              <select
+                value={venueFilter}
+                onChange={(event) => setVenueFilter(event.target.value)}
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              >
+                {venueFilterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-black text-zinc-800">
                 Pesquisa livre
               </label>
 
@@ -382,7 +448,7 @@ export function ResultsPage() {
           <div className="mt-6 flex flex-col justify-between gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:items-center">
             <p className="text-sm font-semibold text-zinc-500">
               {agendaMatches.length} jogo(s) na agenda · {filteredTournaments.length}{' '}
-              torneio(s) · {resultMatches.length} resultado(s)
+              torneio(s) · {resultMatches.length} resultado(s)/arquivo
             </p>
 
             <button
@@ -412,8 +478,7 @@ export function ResultsPage() {
                   </h2>
                 </div>
                 <p className="max-w-xl text-sm leading-6 text-zinc-500">
-                  Jogos agendados, adiados ou cancelados que continuam visíveis
-                  para consulta pública.
+                  Jogos futuros ou ainda visíveis para consulta pública.
                 </p>
               </div>
 
@@ -595,14 +660,14 @@ export function ResultsPage() {
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-700">
-                    Histórico
+                    Consulta
                   </p>
                   <h2 className="mt-3 font-serif text-5xl font-light text-[#24180f]">
-                    Resultados
+                    Resultados e histórico
                   </h2>
                 </div>
                 <p className="max-w-xl text-sm leading-6 text-zinc-500">
-                  Jogos terminados com resultados disponíveis para consulta.
+                  Resultados inseridos e jogos arquivados ficam aqui para consulta por filtros.
                 </p>
               </div>
 
