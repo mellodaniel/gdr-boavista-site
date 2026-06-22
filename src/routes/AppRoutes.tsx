@@ -29,6 +29,16 @@ import { AdminMatchesPage } from '../pages/admin/AdminMatchesPage';
 import { AdminTournamentsPage } from '../pages/admin/AdminTournamentsPage';
 import { AdminAnalyticsPage } from '../pages/admin/AdminAnalyticsPage';
 
+import AdminTournamentManagerPage from '../pages/admin/AdminTournamentManagerPage';
+import CreateTournamentManagerPage from '../pages/admin/CreateTournamentManagerPage';
+import EditTournamentManagerPage from '../pages/admin/EditTournamentManagerPage';
+import TournamentManagerSchedulePage from '../pages/admin/TournamentManagerSchedulePage';
+import TournamentManagerFieldsPage from '../pages/admin/TournamentManagerFieldsPage';
+import TournamentManagerTeamsPage from '../pages/admin/TournamentManagerTeamsPage';
+import TournamentManagerGroupsPage from '../pages/admin/TournamentManagerGroupsPage';
+import TournamentManagerRulesPage from '../pages/admin/TournamentManagerRulesPage';
+import PublicTournamentPage from '../pages/PublicTournamentPage';
+
 function AdminPlaceholderPage({ title }: { title: string }) {
   return (
     <div className="rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
@@ -58,6 +68,7 @@ export function AppRoutes() {
         <Route path="contactos" element={<ContactsPage />} />
         <Route path="resultados" element={<ResultsPage />} />
         <Route path="loja" element={<ShopPage />} />
+        <Route path="torneios/:slug" element={<PublicTournamentPage />} />
       </Route>
 
       <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -72,6 +83,14 @@ export function AppRoutes() {
           <Route path="equipas" element={<AdminTeamsPage />} />
           <Route path="jogos" element={<AdminMatchesPage />} />
           <Route path="torneios" element={<AdminTournamentsPage />} />
+          <Route path="gestor-torneios" element={<AdminTournamentManagerPage />} />
+          <Route path="gestor-torneios/novo" element={<CreateTournamentManagerPage />} />
+          <Route path="gestor-torneios/:id" element={<EditTournamentManagerPage />} />
+          <Route path="gestor-torneios/:id/datas" element={<TournamentManagerSchedulePage />} />
+          <Route path="gestor-torneios/:id/campos" element={<TournamentManagerFieldsPage />} />
+          <Route path="gestor-torneios/:id/equipas" element={<TournamentManagerTeamsPage />} />
+          <Route path="gestor-torneios/:id/grupos" element={<TournamentManagerGroupsPage />} />
+          <Route path="gestor-torneios/:id/regras" element={<TournamentManagerRulesPage />} />
           <Route path="patrocinadores" element={<AdminSponsorsPage />} />
           <Route path="socios" element={<AdminMembersPage />} />
           <Route path="contactos" element={<AdminContactsPage />} />
