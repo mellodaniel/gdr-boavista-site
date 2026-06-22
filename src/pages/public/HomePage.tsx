@@ -972,12 +972,6 @@ export function HomePage() {
               </h2>
             </div>
 
-            <Link
-              to="/resultados"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:bg-red-700 hover:text-white"
-            >
-              Consultar jogos e histórico <ChevronRight size={16} />
-            </Link>
           </div>
 
           {recentResults.length === 0 ? (
