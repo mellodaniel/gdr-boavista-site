@@ -43,6 +43,12 @@ type Pairing = {
 
 type ScheduledPairing = Pairing & Slot;
 
+type CalendarIssue = {
+  matchId: string;
+  severity: 'error' | 'warning';
+  message: string;
+};
+
 const statusOptions = [
   { value: 'scheduled', label: 'Agendado' },
   { value: 'in_progress', label: 'A decorrer' },
@@ -85,6 +91,10 @@ function minutesToTime(value: number) {
   const hours = Math.floor(normalized / 60);
   const minutes = normalized % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function rangesOverlap(startA: number, endA: number, startB: number, endB: number) {
+  return startA < endB && startB < endA;
 }
 
 function getMatchDurationMinutes(rules: TournamentManagerRule | null) {
@@ -404,6 +414,141 @@ export default function TournamentManagerMatchesPage() {
   const plannedPairingsCount = useMemo(() => {
     return buildBalancedGroupPairings(orderedGroups, teamsByGroupId).length;
   }, [orderedGroups, teamsByGroupId]);
+
+  const dayByDate = useMemo(() => {
+    return days.reduce<Record<string, TournamentManagerDay>>((acc, day) => {
+      acc[day.day_date] = day;
+      return acc;
+    }, {});
+  }, [days]);
+
+  const calendarValidation = useMemo(() => {
+    const issues: CalendarIssue[] = [];
+    const issuesByMatchId: Record<string, CalendarIssue[]> = {};
+    const matchDurationMinutes = getMatchDurationMinutes(rules);
+    const restMinutes = rules?.min_rest_minutes || 0;
+
+    function addIssue(matchId: string, severity: CalendarIssue['severity'], message: string) {
+      const issue = { matchId, severity, message };
+      issues.push(issue);
+      issuesByMatchId[matchId] = [...(issuesByMatchId[matchId] || []), issue];
+    }
+
+    const scheduledMatches = orderedMatches.map((match) => {
+      const startMinutes = match.match_time ? timeToMinutes(match.match_time) : null;
+      const endMinutes = startMinutes === null ? null : startMinutes + matchDurationMinutes;
+
+      return {
+        match,
+        startMinutes,
+        endMinutes,
+      };
+    });
+
+    scheduledMatches.forEach(({ match, startMinutes, endMinutes }) => {
+      if (!match.team_a_id || !match.team_b_id) {
+        addIssue(match.id, 'warning', 'Jogo com uma ou duas equipas por definir.');
+      }
+
+      if (match.team_a_id && match.team_b_id && match.team_a_id === match.team_b_id) {
+        addIssue(match.id, 'error', 'A mesma equipa está definida dos dois lados do confronto.');
+      }
+
+      if (!match.match_date || !match.match_time) {
+        addIssue(match.id, 'warning', 'Jogo sem data ou hora definida.');
+        return;
+      }
+
+      if (!match.field_id) {
+        addIssue(match.id, 'warning', 'Jogo sem campo definido.');
+      }
+
+      const day = dayByDate[match.match_date];
+
+      if (!day) {
+        addIssue(match.id, 'error', 'Jogo marcado num dia que não está configurado no torneio.');
+        return;
+      }
+
+      if (startMinutes === null || endMinutes === null) return;
+
+      const dayStart = timeToMinutes(day.start_time);
+      const dayEnd = timeToMinutes(day.end_time);
+
+      if (startMinutes < dayStart || endMinutes > dayEnd) {
+        addIssue(match.id, 'error', 'Jogo fora do horário permitido para este dia.');
+      }
+
+      if (day.lunch_start && day.lunch_end) {
+        const lunchStart = timeToMinutes(day.lunch_start);
+        const lunchEnd = timeToMinutes(day.lunch_end);
+
+        if (rangesOverlap(startMinutes, endMinutes, lunchStart, lunchEnd)) {
+          addIssue(match.id, 'error', 'Jogo sobrepõe a pausa configurada para este dia.');
+        }
+      }
+    });
+
+    for (let firstIndex = 0; firstIndex < scheduledMatches.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < scheduledMatches.length; secondIndex += 1) {
+        const first = scheduledMatches[firstIndex];
+        const second = scheduledMatches[secondIndex];
+
+        if (
+          !first.match.match_date ||
+          !second.match.match_date ||
+          first.match.match_date !== second.match.match_date ||
+          first.startMinutes === null ||
+          first.endMinutes === null ||
+          second.startMinutes === null ||
+          second.endMinutes === null
+        ) {
+          continue;
+        }
+
+        const overlaps = rangesOverlap(
+          first.startMinutes,
+          first.endMinutes,
+          second.startMinutes,
+          second.endMinutes
+        );
+
+        if (overlaps && first.match.field_id && first.match.field_id === second.match.field_id) {
+          addIssue(first.match.id, 'error', `Conflito de campo com o jogo ${second.match.match_number}.`);
+          addIssue(second.match.id, 'error', `Conflito de campo com o jogo ${first.match.match_number}.`);
+        }
+
+        const firstTeams = [first.match.team_a_id, first.match.team_b_id].filter(Boolean);
+        const secondTeams = [second.match.team_a_id, second.match.team_b_id].filter(Boolean);
+        const sharedTeam = firstTeams.find((teamId) => secondTeams.includes(teamId));
+
+        if (!sharedTeam) continue;
+
+        if (overlaps) {
+          addIssue(first.match.id, 'error', `Equipa com jogo simultâneo no jogo ${second.match.match_number}.`);
+          addIssue(second.match.id, 'error', `Equipa com jogo simultâneo no jogo ${first.match.match_number}.`);
+          continue;
+        }
+
+        const firstBeforeSecond = first.endMinutes <= second.startMinutes;
+        const restGap = firstBeforeSecond
+          ? second.startMinutes - first.endMinutes
+          : first.startMinutes - second.endMinutes;
+
+        if (restGap >= 0 && restGap < restMinutes) {
+          addIssue(first.match.id, 'warning', `Descanso inferior ao mínimo definido em relação ao jogo ${second.match.match_number}.`);
+          addIssue(second.match.id, 'warning', `Descanso inferior ao mínimo definido em relação ao jogo ${first.match.match_number}.`);
+        }
+      }
+    }
+
+    return {
+      issues,
+      issuesByMatchId,
+      errorCount: issues.filter((issue) => issue.severity === 'error').length,
+      warningCount: issues.filter((issue) => issue.severity === 'warning').length,
+    };
+  }, [dayByDate, orderedMatches, rules]);
 
   const matchDuration = getMatchDurationMinutes(rules);
   const intervalBetweenMatches = rules?.minutes_between_matches || 0;
@@ -853,11 +998,60 @@ export default function TournamentManagerMatchesPage() {
         </div>
       </section>
 
+      {orderedMatches.length > 0 && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Validação do calendário</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Confirma automaticamente conflitos de campo, equipas em simultâneo, descanso mínimo, pausas e horários fora dos dias configurados.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${calendarValidation.errorCount > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                {calendarValidation.errorCount} erro(s)
+              </span>
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${calendarValidation.warningCount > 0 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                {calendarValidation.warningCount} aviso(s)
+              </span>
+            </div>
+          </div>
+
+          {calendarValidation.issues.length === 0 ? (
+            <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+              Não foram encontrados conflitos no calendário atual.
+            </div>
+          ) : (
+            <div className="mt-5 space-y-2">
+              {calendarValidation.issues.slice(0, 10).map((issue, index) => {
+                const match = matches.find((item) => item.id === issue.matchId);
+
+                return (
+                  <div
+                    key={`${issue.matchId}-${index}`}
+                    className={`rounded-xl border p-3 text-sm ${issue.severity === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}
+                  >
+                    <strong>Jogo {match?.match_number || '-'}</strong>: {issue.message}
+                  </div>
+                );
+              })}
+
+              {calendarValidation.issues.length > 10 && (
+                <p className="text-sm text-slate-500">
+                  Existem mais {calendarValidation.issues.length - 10} conflito(s)/aviso(s). Consulta as marcações em cada linha da tabela.
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-4">
           <h2 className="text-xl font-bold text-slate-900">Calendário de jogos</h2>
           <p className="mt-1 text-sm text-slate-600">
-            A proposta automática pode ser ajustada manualmente. O resultado fica no centro do confronto, entre as duas equipas.
+            A proposta automática pode ser ajustada manualmente. Usa os botões Guardar/Remover dentro da coluna do jogo; o resultado fica no centro do confronto.
           </p>
         </div>
 
@@ -867,17 +1061,16 @@ export default function TournamentManagerMatchesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1320px] text-left text-sm">
+            <table className="w-full min-w-[1180px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">Jogo</th>
+                  <th className="px-4 py-3">Jogo e ações</th>
                   <th className="px-4 py-3">Grupo/Fase</th>
                   <th className="px-4 py-3">Horário</th>
                   <th className="px-4 py-3">Campo</th>
                   <th className="px-4 py-3">Confronto e resultado</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Observações</th>
-                  <th className="px-4 py-3">Ações</th>
                 </tr>
               </thead>
 
@@ -885,14 +1078,53 @@ export default function TournamentManagerMatchesPage() {
                 {orderedMatches.map((match) => {
                   const draft = drafts[match.id] || matchToDraft(match);
                   const endTime = getMatchEndTime(draft.match_time, rules);
+                  const rowIssues = calendarValidation.issuesByMatchId[match.id] || [];
+                  const hasErrors = rowIssues.some((issue) => issue.severity === 'error');
+                  const hasWarnings = rowIssues.some((issue) => issue.severity === 'warning');
 
                   return (
-                    <tr key={match.id} className="align-top hover:bg-slate-50">
+                    <tr
+                      key={match.id}
+                      className={`align-top hover:bg-slate-50 ${hasErrors ? 'bg-red-50/70' : hasWarnings ? 'bg-amber-50/70' : ''}`}
+                    >
                       <td className="px-4 py-4">
                         <p className="font-bold text-slate-900">Jogo {match.match_number}</p>
                         <p className="mt-1 text-xs text-slate-500">
                           {formatDate(draft.match_date || null)} · {draft.match_time || '--:--'}–{endTime}
                         </p>
+
+                        {rowIssues.length > 0 && (
+                          <div className="mt-3 space-y-1">
+                            {rowIssues.slice(0, 3).map((issue, index) => (
+                              <p
+                                key={`${match.id}-issue-${index}`}
+                                className={`rounded-lg px-2 py-1 text-xs font-semibold ${issue.severity === 'error' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}
+                              >
+                                {issue.message}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="mt-4 flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => saveMatch(match.id)}
+                            disabled={savingMatchId === match.id}
+                            className="rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {savingMatchId === match.id ? 'A guardar...' : 'Guardar'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteMatch(match)}
+                            disabled={deletingMatchId === match.id}
+                            className="rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {deletingMatchId === match.id ? 'A remover...' : 'Remover'}
+                          </button>
+                        </div>
                       </td>
 
                       <td className="px-4 py-4">
@@ -1018,27 +1250,6 @@ export default function TournamentManagerMatchesPage() {
                         />
                       </td>
 
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col gap-2">
-                          <button
-                            type="button"
-                            onClick={() => saveMatch(match.id)}
-                            disabled={savingMatchId === match.id}
-                            className="rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:opacity-60"
-                          >
-                            {savingMatchId === match.id ? 'A guardar...' : 'Guardar'}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => deleteMatch(match)}
-                            disabled={deletingMatchId === match.id}
-                            className="rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
-                          >
-                            {deletingMatchId === match.id ? 'A remover...' : 'Remover'}
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   );
                 })}
