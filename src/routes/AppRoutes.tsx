@@ -37,6 +37,7 @@ import TournamentManagerFieldsPage from '../pages/admin/TournamentManagerFieldsP
 import TournamentManagerTeamsPage from '../pages/admin/TournamentManagerTeamsPage';
 import TournamentManagerGroupsPage from '../pages/admin/TournamentManagerGroupsPage';
 import TournamentManagerRulesPage from '../pages/admin/TournamentManagerRulesPage';
+import TournamentManagerMatchesPage from '../pages/admin/TournamentManagerMatchesPage';
 import PublicTournamentPage from '../pages/PublicTournamentPage';
 
 function AdminPlaceholderPage({ title }: { title: string }) {
@@ -91,6 +92,7 @@ export function AppRoutes() {
           <Route path="gestor-torneios/:id/equipas" element={<TournamentManagerTeamsPage />} />
           <Route path="gestor-torneios/:id/grupos" element={<TournamentManagerGroupsPage />} />
           <Route path="gestor-torneios/:id/regras" element={<TournamentManagerRulesPage />} />
+          <Route path="gestor-torneios/:id/jogos" element={<TournamentManagerMatchesPage />} />
           <Route path="patrocinadores" element={<AdminSponsorsPage />} />
           <Route path="socios" element={<AdminMembersPage />} />
           <Route path="contactos" element={<AdminContactsPage />} />

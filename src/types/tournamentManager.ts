@@ -119,3 +119,31 @@ export type TournamentManagerRule = {
   created_at: string;
   updated_at: string;
 };
+
+
+export type TournamentManagerMatchStatus =
+  | 'scheduled'
+  | 'in_progress'
+  | 'finished'
+  | 'postponed'
+  | 'cancelled'
+  | 'no_show';
+
+export type TournamentManagerMatch = {
+  id: string;
+  tournament_id: string;
+  group_id: string | null;
+  field_id: string | null;
+  team_a_id: string | null;
+  team_b_id: string | null;
+  phase: string;
+  match_number: number;
+  match_date: string | null;
+  match_time: string | null;
+  status: TournamentManagerMatchStatus;
+  score_a: number | null;
+  score_b: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};

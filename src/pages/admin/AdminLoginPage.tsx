@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Lock, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const ADMIN_EMAIL_DOMAIN = 'gdrboavista.local';
+const TOURNAMENT_MANAGER_USERNAME = 'torneios';
+const TOURNAMENT_MANAGER_HOME = '/admin/gestor-torneios';
+const ADMIN_HOME = '/admin';
 
 function buildAdminEmail(username: string) {
   const cleanUsername = username.trim().toLowerCase();
@@ -16,28 +19,57 @@ function buildAdminEmail(username: string) {
   return `${cleanUsername}@${ADMIN_EMAIL_DOMAIN}`;
 }
 
+function getUsernameFromEmail(email?: string | null) {
+  if (!email) return '';
+  return email.trim().toLowerCase().split('@')[0];
+}
+
+function isTournamentManagerUsername(usernameOrEmail: string) {
+  const username = usernameOrEmail.includes('@')
+    ? getUsernameFromEmail(usernameOrEmail)
+    : usernameOrEmail.trim().toLowerCase();
+
+  return username === TOURNAMENT_MANAGER_USERNAME;
+}
+
+function getRedirectPathForEmail(email?: string | null) {
+  return isTournamentManagerUsername(email ?? '') ? TOURNAMENT_MANAGER_HOME : ADMIN_HOME;
+}
+
 export function AdminLoginPage() {
   const navigate = useNavigate();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoadingSession, setIsLoadingSession] = useState(true);
-  const [hasSession, setHasSession] = useState(false);
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  useState(() => {
+  useEffect(() => {
+    let isMounted = true;
+
     async function checkSession() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
-      setHasSession(Boolean(session));
-      setIsLoadingSession(false);
+      if (isMounted) {
+        setSessionEmail(session?.user.email ?? null);
+        setIsLoadingSession(false);
+      }
     }
 
     checkSession();
-  });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const existingSessionRedirectPath = useMemo(() => {
+    return getRedirectPathForEmail(sessionEmail);
+  }, [sessionEmail]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,8 +83,13 @@ export function AdminLoginPage() {
 
     setIsSubmitting(true);
 
+    const email = buildAdminEmail(username);
+    const redirectPath = isTournamentManagerUsername(email)
+      ? TOURNAMENT_MANAGER_HOME
+      : ADMIN_HOME;
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: buildAdminEmail(username),
+      email,
       password,
     });
 
@@ -64,7 +101,7 @@ export function AdminLoginPage() {
       return;
     }
 
-    navigate('/admin');
+    navigate(redirectPath, { replace: true });
   }
 
   if (isLoadingSession) {
@@ -82,8 +119,8 @@ export function AdminLoginPage() {
     );
   }
 
-  if (hasSession) {
-    return <Navigate to="/admin" replace />;
+  if (sessionEmail) {
+    return <Navigate to={existingSessionRedirectPath} replace />;
   }
 
   return (
@@ -128,7 +165,7 @@ export function AdminLoginPage() {
 
               <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-300">
                 Área reservada para gestão de conteúdos, jogos, notícias,
-                sócios, contactos, equipas e patrocinadores do GDR Boavista.
+                sócios, contactos, equipas, patrocinadores e torneios do GDR Boavista.
               </p>
             </div>
 
@@ -208,7 +245,7 @@ export function AdminLoginPage() {
                     type="text"
                     value={username}
                     onChange={(event) => setUsername(event.target.value)}
-                    placeholder="admin"
+                    placeholder="admin ou torneios"
                     className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                   />
                 </div>

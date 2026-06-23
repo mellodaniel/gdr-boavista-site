@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { CalendarDays, Layers, MapPin, Shield, Trophy } from 'lucide-react';
+import { CalendarDays, Layers, MapPin, Shield, Trophy, ListChecks } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { TournamentManager } from '../../types/tournamentManager';
@@ -243,6 +243,12 @@ export default function EditTournamentManagerPage() {
       href: `/admin/gestor-torneios/${tournament.id}/regras`,
       icon: Trophy,
     },
+    {
+      title: 'Jogos',
+      description: 'Gera a proposta inicial de jogos, horários e campos, com edição manual.',
+      href: `/admin/gestor-torneios/${tournament.id}/jogos`,
+      icon: ListChecks,
+    },
   ];
 
   return (
@@ -331,7 +337,7 @@ export default function EditTournamentManagerPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {configurationLinks.map((item) => {
             const Icon = item.icon;
 

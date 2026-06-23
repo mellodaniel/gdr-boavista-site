@@ -3,23 +3,17 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 
-const TOURNAMENT_MANAGER_USERNAME = 'torneios';
-const TOURNAMENT_MANAGER_HOME = '/admin/gestor-torneios';
-
 function isTournamentManagerUser(email?: string | null) {
   if (!email) return false;
 
   const normalizedEmail = email.trim().toLowerCase();
   const username = normalizedEmail.split('@')[0];
 
-  return username === TOURNAMENT_MANAGER_USERNAME;
+  return username === 'torneios';
 }
 
 function isTournamentManagerAllowedPath(pathname: string) {
-  return (
-    pathname === TOURNAMENT_MANAGER_HOME ||
-    pathname.startsWith(`${TOURNAMENT_MANAGER_HOME}/`)
-  );
+  return pathname === '/admin/gestor-torneios' || pathname.startsWith('/admin/gestor-torneios/');
 }
 
 export function ProtectedAdminRoute() {
@@ -78,7 +72,7 @@ export function ProtectedAdminRoute() {
 
   if (isTournamentManagerUser(session.user.email)) {
     if (!isTournamentManagerAllowedPath(location.pathname)) {
-      return <Navigate to={TOURNAMENT_MANAGER_HOME} replace />;
+      return <Navigate to="/admin/gestor-torneios" replace />;
     }
   }
 
