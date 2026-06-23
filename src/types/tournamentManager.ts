@@ -147,3 +147,18 @@ export type TournamentManagerMatch = {
   created_at: string;
   updated_at: string;
 };
+
+
+export type TournamentManagerSponsor = {
+  id: string;
+  tournament_id: string;
+  name: string;
+  description: string | null;
+  logo_url: string | null;
+  website_url: string | null;
+  sponsor_level: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
