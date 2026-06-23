@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Newspaper,
   Shield,
+  ShoppingBag,
   Trophy,
   Users,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ const fullAdminNavigation: AdminNavigationItem[] = [
   { label: 'Sócios', path: '/admin/socios', icon: Users },
   { label: 'Contactos', path: '/admin/contactos', icon: Mail },
   { label: 'Galeria', path: '/admin/galeria', icon: Image },
+  { label: 'Loja', path: '/admin/loja', icon: ShoppingBag },
 ];
 
 const tournamentManagerNavigation: AdminNavigationItem[] = [

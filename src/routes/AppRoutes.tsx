@@ -28,6 +28,7 @@ import { AdminContentsPage } from '../pages/admin/AdminContentsPage';
 import { AdminMatchesPage } from '../pages/admin/AdminMatchesPage';
 import { AdminTournamentsPage } from '../pages/admin/AdminTournamentsPage';
 import { AdminAnalyticsPage } from '../pages/admin/AdminAnalyticsPage';
+import { AdminShopPage } from '../pages/admin/AdminShopPage';
 
 import AdminTournamentManagerPage from '../pages/admin/AdminTournamentManagerPage';
 import CreateTournamentManagerPage from '../pages/admin/CreateTournamentManagerPage';
@@ -102,6 +103,7 @@ export function AppRoutes() {
             path="galeria"
             element={<AdminPlaceholderPage title="Galeria" />}
           />
+          <Route path="loja" element={<AdminShopPage />} />
         </Route>
       </Route>
 
