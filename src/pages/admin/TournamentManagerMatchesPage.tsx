@@ -248,17 +248,14 @@ export default function TournamentManagerMatchesPage() {
 
   const orderedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
+      if (a.match_number !== b.match_number) return a.match_number - b.match_number;
       const dateCompare = (a.match_date || '').localeCompare(b.match_date || '');
       if (dateCompare !== 0) return dateCompare;
       const timeCompare = (a.match_time || '').localeCompare(b.match_time || '');
       if (timeCompare !== 0) return timeCompare;
-      const fieldA = a.field_id ? fieldById[a.field_id]?.name || '' : '';
-      const fieldB = b.field_id ? fieldById[b.field_id]?.name || '' : '';
-      const fieldCompare = fieldA.localeCompare(fieldB, 'pt');
-      if (fieldCompare !== 0) return fieldCompare;
-      return a.match_number - b.match_number;
+      return (a.id || '').localeCompare(b.id || '');
     });
-  }, [matches, fieldById]);
+  }, [matches]);
 
   const dayByDate = useMemo(() => {
     return days.reduce<Record<string, TournamentManagerDay>>((acc, day) => {
@@ -640,8 +637,8 @@ export default function TournamentManagerMatchesPage() {
       field_id: firstField?.id || null,
       team_a_id: null,
       team_b_id: null,
-      team_a_placeholder: 'Equipa A',
-      team_b_placeholder: 'Equipa B',
+      team_a_placeholder: 'Grupo A',
+      team_b_placeholder: 'Grupo B',
       team_a_source: null,
       team_b_source: null,
       round_number: null,

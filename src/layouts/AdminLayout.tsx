@@ -44,6 +44,16 @@ const tournamentManagerNavigation: AdminNavigationItem[] = [
   { label: 'Gestão de Torneios Boavista', path: '/admin/gestor-torneios', icon: CalendarDays },
 ];
 
+function getResultsNavigation(tournamentId: string): AdminNavigationItem[] {
+  return [
+    { label: 'Lançar resultados', path: `/admin/resultados-torneio/${tournamentId}`, icon: Trophy },
+  ];
+}
+
+type ResultAccess = {
+  tournament_id: string;
+};
+
 function isTournamentManagerUser(email?: string | null) {
   if (!email) return false;
 
@@ -57,31 +67,51 @@ export function AdminLayout() {
   const navigate = useNavigate();
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [resultAccess, setResultAccess] = useState<ResultAccess | null>(null);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadUser() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    async function loadUser(sessionEmail?: string | null) {
+      const email = sessionEmail?.trim().toLowerCase() ?? null;
+      let access: ResultAccess | null = null;
+
+      if (email && !isTournamentManagerUser(email)) {
+        const { data, error } = await supabase
+          .from('tournament_result_access')
+          .select('tournament_id')
+          .eq('user_email', email)
+          .eq('is_active', true)
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          access = data[0] as ResultAccess;
+        }
+      }
 
       if (isMounted) {
-        setUserEmail(session?.user.email ?? null);
+        setUserEmail(email);
+        setResultAccess(access);
         setIsLoadingPermissions(false);
       }
     }
 
-    loadUser();
+    async function loadInitialUser() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      await loadUser(session?.user.email ?? null);
+    }
+
+    loadInitialUser();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (isMounted) {
-        setUserEmail(session?.user.email ?? null);
-        setIsLoadingPermissions(false);
-      }
+      setIsLoadingPermissions(true);
+      void loadUser(session?.user.email ?? null);
     });
 
     return () => {
@@ -91,11 +121,19 @@ export function AdminLayout() {
   }, []);
 
   const isTournamentManager = isTournamentManagerUser(userEmail);
+  const isResultsUser = Boolean(resultAccess);
 
   const adminNavigation = useMemo(() => {
     if (isLoadingPermissions) return [];
+    if (resultAccess) return getResultsNavigation(resultAccess.tournament_id);
     return isTournamentManager ? tournamentManagerNavigation : fullAdminNavigation;
-  }, [isLoadingPermissions, isTournamentManager]);
+  }, [isLoadingPermissions, isTournamentManager, resultAccess]);
+
+  const homePath = resultAccess
+    ? `/admin/resultados-torneio/${resultAccess.tournament_id}`
+    : isTournamentManager
+      ? '/admin/gestor-torneios'
+      : '/admin';
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -107,7 +145,7 @@ export function AdminLayout() {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-80 border-r border-zinc-200 bg-[#24180f] text-white lg:block">
         <div className="flex h-full flex-col">
           <div className="border-b border-white/10 p-7">
-            <Link to={isTournamentManager ? '/admin/gestor-torneios' : '/admin'} className="flex items-center gap-4">
+            <Link to={homePath} className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-2">
                 <img
                   src="/logo-gdr-boavista-header-256.png"
@@ -180,7 +218,7 @@ export function AdminLayout() {
       <div className="lg:pl-80">
         <header className="sticky top-0 z-30 border-b border-zinc-200 bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl">
           <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 lg:px-8">
-            <Link to={isTournamentManager ? '/admin/gestor-torneios' : '/admin'} className="flex items-center gap-3 lg:hidden">
+            <Link to={homePath} className="flex items-center gap-3 lg:hidden">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
                 <img
                   src="/logo-gdr-boavista-header-256.png"
@@ -200,7 +238,7 @@ export function AdminLayout() {
               </p>
 
               <p className="mt-1 font-serif text-3xl font-light text-[#24180f]">
-                {isTournamentManager ? 'Gestão de Torneios' : 'Gestão do site'}
+                {isResultsUser ? 'Lançamento de Resultados' : isTournamentManager ? 'Gestão de Torneios' : 'Gestão do site'}
               </p>
             </div>
 

@@ -9,6 +9,10 @@ const TOURNAMENT_MANAGER_USERNAME = 'torneios';
 const TOURNAMENT_MANAGER_HOME = '/admin/gestor-torneios';
 const ADMIN_HOME = '/admin';
 
+type ResultAccess = {
+  tournament_id: string;
+};
+
 function buildAdminEmail(username: string) {
   const cleanUsername = username.trim().toLowerCase();
 
@@ -32,7 +36,28 @@ function isTournamentManagerUsername(usernameOrEmail: string) {
   return username === TOURNAMENT_MANAGER_USERNAME;
 }
 
-function getRedirectPathForEmail(email?: string | null) {
+async function getResultsAccessPath(email?: string | null) {
+  if (!email || isTournamentManagerUsername(email)) return null;
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const { data, error } = await supabase
+    .from('tournament_result_access')
+    .select('tournament_id')
+    .eq('user_email', normalizedEmail)
+    .eq('is_active', true)
+    .limit(1);
+
+  if (error || !data || data.length === 0) return null;
+
+  const access = data[0] as ResultAccess;
+  return `/admin/resultados-torneio/${access.tournament_id}`;
+}
+
+async function getRedirectPathForEmail(email?: string | null) {
+  const resultsPath = await getResultsAccessPath(email);
+  if (resultsPath) return resultsPath;
+
   return isTournamentManagerUsername(email ?? '') ? TOURNAMENT_MANAGER_HOME : ADMIN_HOME;
 }
 
@@ -42,7 +67,7 @@ export function AdminLoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoadingSession, setIsLoadingSession] = useState(true);
-  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [sessionRedirectPath, setSessionRedirectPath] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -54,8 +79,18 @@ export function AdminLoginPage() {
         data: { session },
       } = await supabase.auth.getSession();
 
+      if (!session) {
+        if (isMounted) {
+          setSessionRedirectPath(null);
+          setIsLoadingSession(false);
+        }
+        return;
+      }
+
+      const redirectPath = await getRedirectPathForEmail(session.user.email);
+
       if (isMounted) {
-        setSessionEmail(session?.user.email ?? null);
+        setSessionRedirectPath(redirectPath);
         setIsLoadingSession(false);
       }
     }
@@ -67,9 +102,9 @@ export function AdminLoginPage() {
     };
   }, []);
 
-  const existingSessionRedirectPath = useMemo(() => {
-    return getRedirectPathForEmail(sessionEmail);
-  }, [sessionEmail]);
+  const helperText = useMemo(() => {
+    return 'Usa admin, torneios ou o utilizador de resultados fornecido pela organização.';
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -84,23 +119,22 @@ export function AdminLoginPage() {
     setIsSubmitting(true);
 
     const email = buildAdminEmail(username);
-    const redirectPath = isTournamentManagerUsername(email)
-      ? TOURNAMENT_MANAGER_HOME
-      : ADMIN_HOME;
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setIsSubmitting(false);
-
     if (error) {
       console.error('Erro no login admin:', error);
+      setIsSubmitting(false);
       setErrorMessage('Utilizador ou palavra-passe inválidos.');
       return;
     }
 
+    const redirectPath = await getRedirectPathForEmail(email);
+
+    setIsSubmitting(false);
     navigate(redirectPath, { replace: true });
   }
 
@@ -119,8 +153,8 @@ export function AdminLoginPage() {
     );
   }
 
-  if (sessionEmail) {
-    return <Navigate to={existingSessionRedirectPath} replace />;
+  if (sessionRedirectPath) {
+    return <Navigate to={sessionRedirectPath} replace />;
   }
 
   return (
@@ -164,8 +198,8 @@ export function AdminLoginPage() {
               </h1>
 
               <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-300">
-                Área reservada para gestão de conteúdos, jogos, notícias,
-                sócios, contactos, equipas, patrocinadores e torneios do GDR Boavista.
+                Área reservada para gestão de conteúdos, torneios e lançamento
+                de resultados do GDR Boavista.
               </p>
             </div>
 
@@ -178,16 +212,16 @@ export function AdminLoginPage() {
               </div>
 
               <div>
-                <p className="font-serif text-4xl">Site</p>
+                <p className="font-serif text-4xl">Torneios</p>
                 <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
                   Gestão
                 </p>
               </div>
 
               <div>
-                <p className="font-serif text-4xl">GDRB</p>
+                <p className="font-serif text-4xl">Resultados</p>
                 <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
-                  Boavista
+                  Atualização
                 </p>
               </div>
             </div>
@@ -225,7 +259,7 @@ export function AdminLoginPage() {
                 </h2>
 
                 <p className="mt-3 text-sm leading-7 text-zinc-500">
-                  Acesso reservado à equipa de administração do site.
+                  {helperText}
                 </p>
               </div>
 
@@ -245,7 +279,7 @@ export function AdminLoginPage() {
                     type="text"
                     value={username}
                     onChange={(event) => setUsername(event.target.value)}
-                    placeholder="admin ou torneios"
+                    placeholder="admin, torneios ou resultados"
                     className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                   />
                 </div>

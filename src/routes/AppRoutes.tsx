@@ -16,6 +16,7 @@ import { ContactsPage } from '../pages/public/ContactsPage';
 import { ResultsPage } from '../pages/public/ResultsPage';
 import { ShopPage } from '../pages/public/ShopPage';
 import { TournamentPilotPage } from '../pages/public/TournamentPilotPage';
+import { AdminTournamentSelfServicePage } from '../pages/admin/AdminTournamentSelfServicePage';
 
 import { AdminLoginPage } from '../pages/admin/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
@@ -32,7 +33,6 @@ import { AdminAnalyticsPage } from '../pages/admin/AdminAnalyticsPage';
 import { AdminShopPage } from '../pages/admin/AdminShopPage';
 
 import AdminTournamentManagerPage from '../pages/admin/AdminTournamentManagerPage';
-import CreateTournamentManagerPage from '../pages/admin/CreateTournamentManagerPage';
 import EditTournamentManagerPage from '../pages/admin/EditTournamentManagerPage';
 import TournamentManagerSchedulePage from '../pages/admin/TournamentManagerSchedulePage';
 import TournamentManagerFieldsPage from '../pages/admin/TournamentManagerFieldsPage';
@@ -42,6 +42,7 @@ import TournamentManagerRulesPage from '../pages/admin/TournamentManagerRulesPag
 import TournamentManagerMatchesPage from '../pages/admin/TournamentManagerMatchesPage';
 import TournamentManagerSponsorsPage from '../pages/admin/TournamentManagerSponsorsPage';
 import TournamentManagerStandingsPage from '../pages/admin/TournamentManagerStandingsPage';
+import TournamentResultsAccessPage from '../pages/admin/TournamentResultsAccessPage';
 import PublicTournamentPage from '../pages/PublicTournamentPage';
 
 function AdminPlaceholderPage({ title }: { title: string }) {
@@ -90,7 +91,8 @@ export function AppRoutes() {
           <Route path="jogos" element={<AdminMatchesPage />} />
           <Route path="torneios" element={<AdminTournamentsPage />} />
           <Route path="gestor-torneios" element={<AdminTournamentManagerPage />} />
-          <Route path="gestor-torneios/novo" element={<CreateTournamentManagerPage />} />
+          <Route path="gestor-torneios/lista" element={<AdminTournamentManagerPage />} />
+          <Route path="gestor-torneios/novo" element={<AdminTournamentSelfServicePage />} />
           <Route path="gestor-torneios/:id" element={<EditTournamentManagerPage />} />
           <Route path="gestor-torneios/:id/datas" element={<TournamentManagerSchedulePage />} />
           <Route path="gestor-torneios/:id/campos" element={<TournamentManagerFieldsPage />} />
@@ -100,6 +102,7 @@ export function AppRoutes() {
           <Route path="gestor-torneios/:id/jogos" element={<TournamentManagerMatchesPage />} />
           <Route path="gestor-torneios/:id/classificacao" element={<TournamentManagerStandingsPage />} />
           <Route path="gestor-torneios/:id/parceiros" element={<TournamentManagerSponsorsPage />} />
+          <Route path="resultados-torneio/:id" element={<TournamentResultsAccessPage />} />
           <Route path="patrocinadores" element={<AdminSponsorsPage />} />
           <Route path="socios" element={<AdminMembersPage />} />
           <Route path="contactos" element={<AdminContactsPage />} />

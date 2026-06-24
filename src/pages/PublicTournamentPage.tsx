@@ -646,7 +646,7 @@ export default function PublicTournamentPage() {
         <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Torneio não encontrado</h1>
           <p className="mt-2 text-slate-600">O torneio que procuras não existe ou foi removido.</p>
-          <Link to="/" className="mt-6 inline-flex rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white hover:bg-green-800">
+          <Link to="/" className="mt-6 inline-flex rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white hover:bg-[#24170f]">
             Voltar ao site
           </Link>
         </div>
@@ -658,10 +658,10 @@ export default function PublicTournamentPage() {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-16">
         <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Gestor de Torneios Boavista</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Gestor de Torneios Boavista</p>
           <h1 className="mt-3 text-3xl font-bold text-slate-900">{tournament.name}</h1>
           <p className="mt-4 text-slate-600">Este torneio ainda não está publicado.</p>
-          <Link to="/" className="mt-6 inline-flex rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white hover:bg-green-800">
+          <Link to="/" className="mt-6 inline-flex rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white hover:bg-[#24170f]">
             Voltar ao site
           </Link>
         </div>
@@ -671,9 +671,9 @@ export default function PublicTournamentPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <section className="bg-green-800 px-6 py-14 text-white">
+      <section className="bg-gradient-to-br from-[#24170f] via-[#3b2118] to-red-900 px-6 py-14 text-white">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-green-100">GDR Boavista</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-red-100">GDR Boavista</p>
           <h1 className="mt-3 text-4xl font-bold md:text-5xl">{tournament.name}</h1>
 
           <div className="mt-6 flex flex-wrap gap-3 text-sm">
@@ -683,21 +683,21 @@ export default function PublicTournamentPage() {
             {tournament.edition && <span className="rounded-full bg-white/15 px-4 py-2">Edição {tournament.edition}</span>}
           </div>
 
-          <div className="mt-8 rounded-2xl bg-white/10 p-4 text-sm text-green-50 ring-1 ring-white/20">
+          <div className="mt-8 rounded-2xl bg-white/10 p-4 text-sm text-red-50 ring-1 ring-white/20">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="font-semibold text-white">Atualização dos dados</p>
                 <p className="mt-1">
                   Os jogos e resultados são atualizados quando a página é carregada. Para ver alterações recentes feitas pela organização, usa o botão abaixo.
                 </p>
-                <p className="mt-1 text-xs text-green-100">Última atualização nesta página: {formatLastUpdated(lastUpdatedAt)}</p>
+                <p className="mt-1 text-xs text-red-100">Última atualização nesta página: {formatLastUpdated(lastUpdatedAt)}</p>
               </div>
 
               <button
                 type="button"
                 onClick={() => loadTournament(false)}
                 disabled={refreshing}
-                className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-green-800 shadow-sm transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-red-800 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {refreshing ? 'A atualizar...' : 'Atualizar dados'}
               </button>
@@ -737,7 +737,7 @@ export default function PublicTournamentPage() {
           <section className="rounded-2xl bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Ao vivo</p>
+                <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Ao vivo</p>
                 <h2 className="text-2xl font-bold text-slate-900">Próximos jogos</h2>
               </div>
               <p className="text-sm text-slate-500">Jogos por disputar, ordenados por data e hora.</p>
@@ -764,7 +764,7 @@ export default function PublicTournamentPage() {
           <section className="rounded-2xl bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Resultados</p>
+                <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Resultados</p>
                 <h2 className="text-2xl font-bold text-slate-900">Últimos resultados</h2>
               </div>
               <p className="text-sm text-slate-500">Jogos com resultado preenchido mais recentemente no calendário.</p>
@@ -790,11 +790,11 @@ export default function PublicTournamentPage() {
 
           <section className="rounded-2xl bg-white shadow-sm">
             <div className="border-b border-slate-200 p-6">
-              <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Calendário</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Calendário</p>
               <h2 className="text-2xl font-bold text-slate-900">Jogos e resultados</h2>
               <p className="mt-2 text-sm text-slate-600">Tabela pública para equipas, atletas, famílias e adeptos acompanharem o torneio.</p>
 
-              <div className="mt-5 rounded-2xl border border-green-100 bg-green-50 p-4 text-sm text-green-900">
+              <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-900">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <p>
                     Esta página não atualiza em tempo real. Para ver os dados mais recentes, carrega em <strong>Atualizar dados</strong>.
@@ -803,7 +803,7 @@ export default function PublicTournamentPage() {
                     type="button"
                     onClick={() => loadTournament(false)}
                     disabled={refreshing}
-                    className="inline-flex items-center justify-center rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex items-center justify-center rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-[#24170f] disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {refreshing ? 'A atualizar...' : 'Atualizar dados'}
                   </button>
@@ -936,7 +936,7 @@ export default function PublicTournamentPage() {
               return (
                 <div key={group.id} className="rounded-2xl bg-white shadow-sm">
                   <div className="border-b border-slate-200 p-6">
-                    <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Classificação</p>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Classificação</p>
                     <h2 className="text-2xl font-bold text-slate-900">{group.name}</h2>
                   </div>
 
@@ -984,7 +984,7 @@ export default function PublicTournamentPage() {
           </section>
 
           <section className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Participantes</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Participantes</p>
             <h2 className="text-2xl font-bold text-slate-900">Equipas</h2>
 
             {teams.length === 0 ? (
@@ -1025,7 +1025,7 @@ export default function PublicTournamentPage() {
 
 function MemberCallToAction() {
   return (
-    <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-green-800 via-green-700 to-red-700 p-1 shadow-sm">
+    <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#24170f] via-[#3b2118] to-red-700 p-1 shadow-sm">
       <div className="rounded-[1.35rem] bg-white/95 p-6 md:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -1038,7 +1038,7 @@ function MemberCallToAction() {
 
           <Link
             to="/socios"
-            className="inline-flex items-center justify-center rounded-2xl bg-green-700 px-6 py-4 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition hover:bg-green-800"
+            className="inline-flex items-center justify-center rounded-2xl bg-red-700 px-6 py-4 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition hover:bg-[#24170f]"
           >
             Quero ser sócio
           </Link>
@@ -1063,7 +1063,7 @@ function SponsorSection({
     <section className="rounded-2xl bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">{eyebrow}</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-red-700">{eyebrow}</p>
           <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
           <p className="mt-2 text-sm text-slate-600">{description}</p>
         </div>
@@ -1075,7 +1075,7 @@ function SponsorSection({
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {sponsors.map((sponsor) => {
             const content = (
-              <div className="flex h-full min-h-36 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center transition hover:border-green-300 hover:bg-green-50">
+              <div className="flex h-full min-h-36 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center transition hover:border-red-300 hover:bg-red-50">
                 {sponsor.logo_url ? (
                   <img
                     src={sponsor.logo_url}
@@ -1083,13 +1083,13 @@ function SponsorSection({
                     className="max-h-20 max-w-full object-contain"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-lg font-bold text-green-800">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-lg font-bold text-red-800">
                     {sponsor.name.slice(0, 1).toUpperCase()}
                   </div>
                 )}
                 <p className="mt-4 text-sm font-bold text-slate-900">{sponsor.name}</p>
                 {sponsor.sponsor_level && (
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-green-700">
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-red-700">
                     {normalizePartnerLabel(sponsor.sponsor_level)}
                   </p>
                 )}
@@ -1144,7 +1144,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none focus:border-green-700 focus:ring-2 focus:ring-green-100"
+        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
       >
         {children}
       </select>
@@ -1169,7 +1169,7 @@ function MatchCard({
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Jogo {match.match_number}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Jogo {match.match_number}</p>
           <p className="mt-1 text-sm text-slate-500">{formatShortDate(match.match_date)} · {formatTime(match.match_time)}</p>
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">

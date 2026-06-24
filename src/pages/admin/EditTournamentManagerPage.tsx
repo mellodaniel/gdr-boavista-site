@@ -271,7 +271,7 @@ export default function EditTournamentManagerPage() {
           onClick={() => navigate('/admin/gestor-torneios')}
           className="text-sm font-semibold text-green-700 hover:text-green-800"
         >
-          ← Voltar para o Gestor de Torneios
+          ← Voltar para torneios criados
         </button>
 
         <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
