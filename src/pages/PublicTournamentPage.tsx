@@ -81,6 +81,11 @@ type TournamentMatch = {
   field_id: string | null;
   team_a_id: string | null;
   team_b_id: string | null;
+  team_a_placeholder: string | null;
+  team_b_placeholder: string | null;
+  team_a_source: string | null;
+  team_b_source: string | null;
+  round_number: number | null;
   phase: string;
   match_number: number;
   match_date: string | null;
@@ -583,6 +588,14 @@ export default function PublicTournamentPage() {
     return teamById.get(teamId)?.name || 'Por definir';
   }
 
+  function getMatchTeamName(match: TournamentMatch, side: 'a' | 'b') {
+    const teamId = side === 'a' ? match.team_a_id : match.team_b_id;
+    const placeholder = side === 'a' ? match.team_a_placeholder : match.team_b_placeholder;
+
+    if (teamId) return getTeamName(teamId);
+    return placeholder || 'Por definir';
+  }
+
   function getGroupName(groupId: string | null) {
     if (!groupId) return 'Sem grupo';
     return groupById.get(groupId)?.name || 'Sem grupo';
@@ -713,6 +726,7 @@ export default function PublicTournamentPage() {
                     key={match.id}
                     match={match}
                     getTeamName={getTeamName}
+                    getMatchTeamName={getMatchTeamName}
                     getGroupName={getGroupName}
                     getFieldName={getFieldName}
                   />
@@ -739,6 +753,7 @@ export default function PublicTournamentPage() {
                     key={match.id}
                     match={match}
                     getTeamName={getTeamName}
+                    getMatchTeamName={getMatchTeamName}
                     getGroupName={getGroupName}
                     getFieldName={getFieldName}
                   />
@@ -864,11 +879,11 @@ export default function PublicTournamentPage() {
                                 </td>
                                 <td className="px-4 py-4">
                                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-                                    <span className="font-semibold text-slate-900">{getTeamName(match.team_a_id)}</span>
+                                    <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'a')}</span>
                                     <span className="rounded-xl bg-slate-100 px-4 py-2 font-bold text-slate-900">
                                       {hasResult(match) ? `${match.score_a} x ${match.score_b}` : 'x'}
                                     </span>
-                                    <span className="font-semibold text-slate-900">{getTeamName(match.team_b_id)}</span>
+                                    <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'b')}</span>
                                   </div>
                                 </td>
                                 <td className="px-4 py-4">
@@ -1113,12 +1128,14 @@ function FilterSelect({
 
 function MatchCard({
   match,
-  getTeamName,
+  getTeamName: _getTeamName,
+  getMatchTeamName,
   getGroupName,
   getFieldName,
 }: {
   match: TournamentMatch;
   getTeamName: (teamId: string | null) => string;
+  getMatchTeamName: (match: TournamentMatch, side: 'a' | 'b') => string;
   getGroupName: (groupId: string | null) => string;
   getFieldName: (fieldId: string | null) => string;
 }) {
@@ -1135,11 +1152,11 @@ function MatchCard({
       </div>
 
       <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-        <span className="font-bold text-slate-900">{getTeamName(match.team_a_id)}</span>
+        <span className="font-bold text-slate-900">{getMatchTeamName(match, 'a')}</span>
         <span className="rounded-xl bg-white px-4 py-2 font-bold text-slate-900 shadow-sm">
           {hasResult(match) ? `${match.score_a} x ${match.score_b}` : 'x'}
         </span>
-        <span className="font-bold text-slate-900">{getTeamName(match.team_b_id)}</span>
+        <span className="font-bold text-slate-900">{getMatchTeamName(match, 'b')}</span>
       </div>
 
       <p className="mt-4 text-center text-xs text-slate-500">

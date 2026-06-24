@@ -15,6 +15,7 @@ import { SponsorsPage } from '../pages/public/SponsorsPage';
 import { ContactsPage } from '../pages/public/ContactsPage';
 import { ResultsPage } from '../pages/public/ResultsPage';
 import { ShopPage } from '../pages/public/ShopPage';
+import { TournamentPilotPage } from '../pages/public/TournamentPilotPage';
 
 import { AdminLoginPage } from '../pages/admin/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
@@ -71,6 +72,7 @@ export function AppRoutes() {
         <Route path="contactos" element={<ContactsPage />} />
         <Route path="resultados" element={<ResultsPage />} />
         <Route path="loja" element={<ShopPage />} />
+        <Route path="torneios/piloto" element={<TournamentPilotPage />} />
         <Route path="torneios/:slug" element={<PublicTournamentPage />} />
       </Route>
 

@@ -136,6 +136,11 @@ export type TournamentManagerMatch = {
   field_id: string | null;
   team_a_id: string | null;
   team_b_id: string | null;
+  team_a_placeholder: string | null;
+  team_b_placeholder: string | null;
+  team_a_source: string | null;
+  team_b_source: string | null;
+  round_number: number | null;
   phase: string;
   match_number: number;
   match_date: string | null;
