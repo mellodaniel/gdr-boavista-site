@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { CalendarDays, Handshake, Layers, ListChecks, MapPin, Shield, Trophy } from 'lucide-react';
+import { CalendarDays, Handshake, Layers, ListChecks, MapPin, Shield, Table2, Trophy } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { TournamentManager } from '../../types/tournamentManager';
@@ -248,6 +248,12 @@ export default function EditTournamentManagerPage() {
       description: 'Gera a proposta inicial de jogos, horários e campos, com edição manual.',
       href: `/admin/gestor-torneios/${tournament.id}/jogos`,
       icon: ListChecks,
+    },
+    {
+      title: 'Classificação',
+      description: 'Consulta a classificação automática por grupo com base nos resultados inseridos.',
+      href: `/admin/gestor-torneios/${tournament.id}/classificacao`,
+      icon: Table2,
     },
     {
       title: 'Parceiros do torneio',

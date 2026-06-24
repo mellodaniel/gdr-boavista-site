@@ -93,6 +93,8 @@ type TournamentMatch = {
   status: string;
   score_a: number | null;
   score_b: number | null;
+  penalty_score_a: number | null;
+  penalty_score_b: number | null;
   notes: string | null;
 };
 
@@ -198,6 +200,30 @@ function sortMatchesDescending(a: TournamentMatch, b: TournamentMatch) {
 
 function hasResult(match: TournamentMatch) {
   return match.score_a !== null && match.score_b !== null;
+}
+
+function isFinalPhase(phase: string | null | undefined) {
+  return phase === 'quarter_final' || phase === 'semi_final' || phase === 'third_place' || phase === 'final';
+}
+
+function hasPenaltyResult(match: TournamentMatch) {
+  return match.penalty_score_a !== null && match.penalty_score_b !== null;
+}
+
+function formatMatchResult(match: TournamentMatch) {
+  if (!hasResult(match)) return 'x';
+
+  const baseResult = `${match.score_a} x ${match.score_b}`;
+
+  if (
+    isFinalPhase(match.phase) &&
+    match.score_a === match.score_b &&
+    hasPenaltyResult(match)
+  ) {
+    return `${baseResult} · pen. ${match.penalty_score_a} x ${match.penalty_score_b}`;
+  }
+
+  return baseResult;
 }
 
 function getMatchDateTime(match: TournamentMatch) {
@@ -881,7 +907,7 @@ export default function PublicTournamentPage() {
                                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
                                     <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'a')}</span>
                                     <span className="rounded-xl bg-slate-100 px-4 py-2 font-bold text-slate-900">
-                                      {hasResult(match) ? `${match.score_a} x ${match.score_b}` : 'x'}
+                                      {formatMatchResult(match)}
                                     </span>
                                     <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'b')}</span>
                                   </div>
@@ -923,6 +949,7 @@ export default function PublicTournamentPage() {
                           <tr>
                             <th className="px-4 py-3">#</th>
                             <th className="px-4 py-3">Equipa</th>
+                            <th className="px-4 py-3 text-center">Pts</th>
                             <th className="px-4 py-3 text-center">J</th>
                             <th className="px-4 py-3 text-center">V</th>
                             <th className="px-4 py-3 text-center">E</th>
@@ -930,7 +957,6 @@ export default function PublicTournamentPage() {
                             <th className="px-4 py-3 text-center">GM</th>
                             <th className="px-4 py-3 text-center">GS</th>
                             <th className="px-4 py-3 text-center">DG</th>
-                            <th className="px-4 py-3 text-center">Pts</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
@@ -938,6 +964,7 @@ export default function PublicTournamentPage() {
                             <tr key={row.team.id}>
                               <td className="px-4 py-3 font-semibold text-slate-500">{index + 1}</td>
                               <td className="px-4 py-3 font-semibold text-slate-900">{row.team.name}</td>
+                              <td className="px-4 py-3 text-center text-lg font-bold text-slate-900">{row.points}</td>
                               <td className="px-4 py-3 text-center">{row.played}</td>
                               <td className="px-4 py-3 text-center">{row.wins}</td>
                               <td className="px-4 py-3 text-center">{row.draws}</td>
@@ -945,7 +972,6 @@ export default function PublicTournamentPage() {
                               <td className="px-4 py-3 text-center">{row.goalsFor}</td>
                               <td className="px-4 py-3 text-center">{row.goalsAgainst}</td>
                               <td className="px-4 py-3 text-center">{row.goalDifference}</td>
-                              <td className="px-4 py-3 text-center font-bold text-slate-900">{row.points}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1154,7 +1180,7 @@ function MatchCard({
       <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
         <span className="font-bold text-slate-900">{getMatchTeamName(match, 'a')}</span>
         <span className="rounded-xl bg-white px-4 py-2 font-bold text-slate-900 shadow-sm">
-          {hasResult(match) ? `${match.score_a} x ${match.score_b}` : 'x'}
+          {formatMatchResult(match)}
         </span>
         <span className="font-bold text-slate-900">{getMatchTeamName(match, 'b')}</span>
       </div>

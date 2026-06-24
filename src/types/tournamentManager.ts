@@ -148,6 +148,8 @@ export type TournamentManagerMatch = {
   status: TournamentManagerMatchStatus;
   score_a: number | null;
   score_b: number | null;
+  penalty_score_a: number | null;
+  penalty_score_b: number | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

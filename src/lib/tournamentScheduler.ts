@@ -470,8 +470,7 @@ function slotPenalty(
   state: {
     usedSlotIndexes: Set<number>;
     teamsBySlotKey: Map<string, Set<string>>;
-    lastEndByTeam: Map<string, { date: string; end_minutes: number }>;
-    dayLoad: Map<string, number>;
+    lastEndByTeam: Map<string, { date: string; end_minutes: number; slot_index: number }>;
     groupDayLoad: Map<string, Map<string, number>>;
     teamFieldLoad: Map<string, Map<string, number>>;
   },
@@ -482,32 +481,34 @@ function slotPenalty(
   const busyTeams = state.teamsBySlotKey.get(slot.slot_key) || new Set<string>();
   if (busyTeams.has(pairing.team_a_id) || busyTeams.has(pairing.team_b_id)) return Number.POSITIVE_INFINITY;
 
-  const minRestMinutes = rules?.min_rest_minutes || 0;
+  const matchDuration = getMatchDurationMinutes(rules);
+  const slotDuration = getSlotDurationMinutes(rules);
+  const configuredRest = rules?.min_rest_minutes || 0;
+  const effectiveMinRest = Math.max(configuredRest, slotDuration);
+
   const lastA = state.lastEndByTeam.get(pairing.team_a_id);
   const lastB = state.lastEndByTeam.get(pairing.team_b_id);
 
-  if (lastA && lastA.date === slot.match_date && slot.start_minutes - lastA.end_minutes < minRestMinutes) {
-    return Number.POSITIVE_INFINITY;
-  }
+  const restGapA = lastA && lastA.date === slot.match_date ? slot.start_minutes - lastA.end_minutes : null;
+  const restGapB = lastB && lastB.date === slot.match_date ? slot.start_minutes - lastB.end_minutes : null;
 
-  if (lastB && lastB.date === slot.match_date && slot.start_minutes - lastB.end_minutes < minRestMinutes) {
-    return Number.POSITIVE_INFINITY;
-  }
+  if (restGapA !== null && restGapA < effectiveMinRest) return Number.POSITIVE_INFINITY;
+  if (restGapB !== null && restGapB < effectiveMinRest) return Number.POSITIVE_INFINITY;
 
   const groupLoadForDay = state.groupDayLoad.get(pairing.group_id)?.get(slot.match_date) || 0;
-  const dayLoad = state.dayLoad.get(slot.match_date) || 0;
   const teamAFieldLoad = state.teamFieldLoad.get(pairing.team_a_id)?.get(slot.field_id) || 0;
   const teamBFieldLoad = state.teamFieldLoad.get(pairing.team_b_id)?.get(slot.field_id) || 0;
 
   let restPenalty = 0;
-
-  [lastA, lastB].forEach((last) => {
-    if (!last || last.date !== slot.match_date) return;
-    const gap = slot.start_minutes - last.end_minutes;
-    if (gap < minRestMinutes * 2) restPenalty += 20;
+  [restGapA, restGapB].forEach((gap) => {
+    if (gap === null) return;
+    if (gap < effectiveMinRest + matchDuration) restPenalty += 250;
+    else if (gap < effectiveMinRest + slotDuration) restPenalty += 80;
   });
 
-  return dayLoad * 80 + groupLoadForDay * 45 + (teamAFieldLoad + teamBFieldLoad) * 15 + restPenalty + slot.slot_index * 0.001;
+  // A prioridade principal é usar os slots mais cedo, preenchendo o primeiro dia antes de avançar.
+  // As penalizações seguintes só equilibram campo/grupo quando existem alternativas equivalentes.
+  return slot.slot_index * 10 + groupLoadForDay * 3 + (teamAFieldLoad + teamBFieldLoad) * 12 + restPenalty;
 }
 
 function reserveSlotsForFinals(slots: SchedulerSlot[], count: number) {
@@ -544,8 +545,7 @@ export function generateTournamentSchedule(input: {
   const state = {
     usedSlotIndexes: new Set<number>(),
     teamsBySlotKey: new Map<string, Set<string>>(),
-    lastEndByTeam: new Map<string, { date: string; end_minutes: number }>(),
-    dayLoad: new Map<string, number>(),
+    lastEndByTeam: new Map<string, { date: string; end_minutes: number; slot_index: number }>(),
     groupDayLoad: new Map<string, Map<string, number>>(),
     teamFieldLoad: new Map<string, Map<string, number>>(),
   };
@@ -600,13 +600,13 @@ export function generateTournamentSchedule(input: {
     state.lastEndByTeam.set(pairing.team_a_id, {
       date: scheduledSlot.match_date,
       end_minutes: scheduledSlot.end_minutes,
+      slot_index: scheduledSlot.slot_index,
     });
     state.lastEndByTeam.set(pairing.team_b_id, {
       date: scheduledSlot.match_date,
       end_minutes: scheduledSlot.end_minutes,
+      slot_index: scheduledSlot.slot_index,
     });
-
-    state.dayLoad.set(scheduledSlot.match_date, (state.dayLoad.get(scheduledSlot.match_date) || 0) + 1);
 
     const groupDayLoad = state.groupDayLoad.get(pairing.group_id) || new Map<string, number>();
     groupDayLoad.set(scheduledSlot.match_date, (groupDayLoad.get(scheduledSlot.match_date) || 0) + 1);

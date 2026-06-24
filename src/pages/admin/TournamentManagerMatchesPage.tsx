@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, RefreshCw, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, Clock, MapPin, RefreshCw, Save, Trash2, Trophy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
   generateTournamentSchedule,
   getTournamentMatchDurationMinutes,
   getTournamentMatchEndTime,
 } from '../../lib/tournamentScheduler';
+import { calculateTournamentStandings } from '../../lib/tournamentStandings';
 import type {
   TournamentManagerDay,
   TournamentManagerField,
@@ -33,6 +34,8 @@ type MatchDraft = {
   status: string;
   score_a: string;
   score_b: string;
+  penalty_score_a: string;
+  penalty_score_b: string;
   notes: string;
 };
 
@@ -40,6 +43,12 @@ type CalendarIssue = {
   matchId: string;
   severity: 'error' | 'warning';
   message: string;
+};
+
+type FinalUpdate = {
+  matchId: string;
+  team_a_id?: string | null;
+  team_b_id?: string | null;
 };
 
 const statusOptions = [
@@ -83,11 +92,47 @@ function rangesOverlap(startA: number, endA: number, startB: number, endB: numbe
   return startA < endB && startB < endA;
 }
 
-function getTeamDisplay(match: TournamentManagerMatch, side: 'a' | 'b', teamById: Record<string, TournamentManagerTeam>) {
-  const teamId = side === 'a' ? match.team_a_id : match.team_b_id;
-  const placeholder = side === 'a' ? match.team_a_placeholder : match.team_b_placeholder;
-  if (teamId && teamById[teamId]) return teamById[teamId].name;
-  return placeholder || 'Por definir';
+function hasResult(match: Pick<TournamentManagerMatch, 'score_a' | 'score_b'>) {
+  return match.score_a !== null && match.score_a !== undefined && match.score_b !== null && match.score_b !== undefined;
+}
+
+function isFinalPhase(phase: string | null | undefined) {
+  return phase === 'quarter_final' || phase === 'semi_final' || phase === 'third_place' || phase === 'final';
+}
+
+function hasPenaltyResult(match: Pick<TournamentManagerMatch, 'penalty_score_a' | 'penalty_score_b'>) {
+  return (
+    match.penalty_score_a !== null &&
+    match.penalty_score_a !== undefined &&
+    match.penalty_score_b !== null &&
+    match.penalty_score_b !== undefined
+  );
+}
+
+function getWinnerId(match: TournamentManagerMatch) {
+  if (!hasResult(match) || !match.team_a_id || !match.team_b_id) return null;
+
+  if ((match.score_a ?? 0) > (match.score_b ?? 0)) return match.team_a_id;
+  if ((match.score_a ?? 0) < (match.score_b ?? 0)) return match.team_b_id;
+
+  if (isFinalPhase(match.phase) && hasPenaltyResult(match) && match.penalty_score_a !== match.penalty_score_b) {
+    return (match.penalty_score_a ?? 0) > (match.penalty_score_b ?? 0) ? match.team_a_id : match.team_b_id;
+  }
+
+  return null;
+}
+
+function getLoserId(match: TournamentManagerMatch) {
+  if (!hasResult(match) || !match.team_a_id || !match.team_b_id) return null;
+
+  if ((match.score_a ?? 0) < (match.score_b ?? 0)) return match.team_a_id;
+  if ((match.score_a ?? 0) > (match.score_b ?? 0)) return match.team_b_id;
+
+  if (isFinalPhase(match.phase) && hasPenaltyResult(match) && match.penalty_score_a !== match.penalty_score_b) {
+    return (match.penalty_score_a ?? 0) < (match.penalty_score_b ?? 0) ? match.team_a_id : match.team_b_id;
+  }
+
+  return null;
 }
 
 function matchToDraft(match: TournamentManagerMatch): MatchDraft {
@@ -106,6 +151,8 @@ function matchToDraft(match: TournamentManagerMatch): MatchDraft {
     status: match.status || 'scheduled',
     score_a: match.score_a === null || match.score_a === undefined ? '' : String(match.score_a),
     score_b: match.score_b === null || match.score_b === undefined ? '' : String(match.score_b),
+    penalty_score_a: match.penalty_score_a === null || match.penalty_score_a === undefined ? '' : String(match.penalty_score_a),
+    penalty_score_b: match.penalty_score_b === null || match.penalty_score_b === undefined ? '' : String(match.penalty_score_b),
     notes: match.notes || '',
   };
 }
@@ -114,6 +161,29 @@ function normalizeScore(value: string) {
   if (value.trim() === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getPhaseBadgeClass(phase: string) {
+  if (phase === 'final') return 'bg-yellow-100 text-yellow-800 ring-yellow-200';
+  if (phase === 'semi_final') return 'bg-purple-100 text-purple-800 ring-purple-200';
+  if (phase === 'third_place') return 'bg-orange-100 text-orange-800 ring-orange-200';
+  if (phase === 'quarter_final') return 'bg-indigo-100 text-indigo-800 ring-indigo-200';
+  if (phase === 'manual') return 'bg-slate-100 text-slate-700 ring-slate-200';
+  return 'bg-green-100 text-green-800 ring-green-200';
+}
+
+function getStatusBadgeClass(status: string) {
+  if (status === 'finished') return 'bg-green-100 text-green-800 ring-green-200';
+  if (status === 'in_progress') return 'bg-blue-100 text-blue-800 ring-blue-200';
+  if (status === 'cancelled' || status === 'postponed') return 'bg-red-100 text-red-700 ring-red-200';
+  return 'bg-slate-100 text-slate-700 ring-slate-200';
+}
+
+function getDraftTeamName(draft: MatchDraft, side: 'a' | 'b', teamById: Record<string, TournamentManagerTeam>) {
+  const teamId = side === 'a' ? draft.team_a_id : draft.team_b_id;
+  const placeholder = side === 'a' ? draft.team_a_placeholder : draft.team_b_placeholder;
+  if (teamId && teamById[teamId]) return teamById[teamId].name;
+  return placeholder || 'Por definir';
 }
 
 export default function TournamentManagerMatchesPage() {
@@ -131,16 +201,14 @@ export default function TournamentManagerMatchesPage() {
 
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [updatingFinals, setUpdatingFinals] = useState(false);
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [lastCapacityReport, setLastCapacityReport] = useState<string[]>([]);
 
-  const orderedFields = useMemo(() => {
-    return [...fields].sort((a, b) => a.name.localeCompare(b.name, 'pt'));
-  }, [fields]);
-
+  const orderedFields = useMemo(() => [...fields].sort((a, b) => a.name.localeCompare(b.name, 'pt')), [fields]);
   const activeFields = useMemo(() => orderedFields.filter((field) => field.is_active), [orderedFields]);
 
   const orderedTeams = useMemo(() => {
@@ -217,91 +285,60 @@ export default function TournamentManagerMatchesPage() {
     const issues: CalendarIssue[] = [];
     const issuesByMatchId: Record<string, CalendarIssue[]> = {};
 
-    function addIssue(matchId: string, severity: CalendarIssue['severity'], message: string) {
+    function addIssue(matchId: string, severity: 'error' | 'warning', message: string) {
       const issue = { matchId, severity, message };
       issues.push(issue);
       issuesByMatchId[matchId] = [...(issuesByMatchId[matchId] || []), issue];
     }
 
-    const scheduledMatches = orderedMatches.map((match) => {
-      const startMinutes = match.match_time ? timeToMinutes(match.match_time) : null;
-      const endMinutes = startMinutes === null ? null : startMinutes + matchDuration;
-      return { match, startMinutes, endMinutes };
-    });
+    const normalizedMatches = orderedMatches
+      .filter((match) => match.match_date && match.match_time)
+      .map((match) => {
+        const startMinutes = timeToMinutes(match.match_time || '00:00');
+        return {
+          match,
+          date: match.match_date || '',
+          startMinutes,
+          endMinutes: startMinutes + matchDuration,
+          teams: [match.team_a_id, match.team_b_id].filter(Boolean) as string[],
+        };
+      });
 
-    scheduledMatches.forEach(({ match, startMinutes, endMinutes }) => {
-      const hasTeamOrPlaceholderA = Boolean(match.team_a_id || match.team_a_placeholder);
-      const hasTeamOrPlaceholderB = Boolean(match.team_b_id || match.team_b_placeholder);
-
-      if (!hasTeamOrPlaceholderA || !hasTeamOrPlaceholderB) {
-        addIssue(match.id, 'warning', 'Jogo com uma ou duas equipas por definir.');
-      }
-
-      if (match.team_a_id && match.team_b_id && match.team_a_id === match.team_b_id) {
-        addIssue(match.id, 'error', 'A mesma equipa está definida dos dois lados do confronto.');
-      }
-
-      if (!match.match_date || !match.match_time) {
-        addIssue(match.id, 'warning', 'Jogo sem data ou hora definida.');
-        return;
-      }
-
-      if (!match.field_id) {
-        addIssue(match.id, 'warning', 'Jogo sem campo definido.');
-      }
-
-      const day = dayByDate[match.match_date];
+    normalizedMatches.forEach((item) => {
+      const day = dayByDate[item.date];
       if (!day) {
-        addIssue(match.id, 'error', 'Jogo marcado num dia que não está configurado no torneio.');
+        addIssue(item.match.id, 'warning', 'Jogo marcado num dia não configurado no torneio.');
         return;
       }
-
-      if (startMinutes === null || endMinutes === null) return;
 
       const dayStart = timeToMinutes(day.start_time);
       const dayEnd = timeToMinutes(day.end_time);
-
-      if (startMinutes < dayStart || endMinutes > dayEnd) {
-        addIssue(match.id, 'error', 'Jogo fora do horário permitido para este dia.');
+      if (item.startMinutes < dayStart || item.endMinutes > dayEnd) {
+        addIssue(item.match.id, 'error', 'Jogo fora do horário configurado para este dia.');
       }
 
       if (day.lunch_start && day.lunch_end) {
         const lunchStart = timeToMinutes(day.lunch_start);
         const lunchEnd = timeToMinutes(day.lunch_end);
-        if (rangesOverlap(startMinutes, endMinutes, lunchStart, lunchEnd)) {
-          addIssue(match.id, 'error', 'Jogo sobrepõe a pausa configurada para este dia.');
+        if (rangesOverlap(item.startMinutes, item.endMinutes, lunchStart, lunchEnd)) {
+          addIssue(item.match.id, 'warning', 'Jogo sobreposto com a pausa configurada.');
         }
       }
     });
 
-    for (let firstIndex = 0; firstIndex < scheduledMatches.length; firstIndex += 1) {
-      for (let secondIndex = firstIndex + 1; secondIndex < scheduledMatches.length; secondIndex += 1) {
-        const first = scheduledMatches[firstIndex];
-        const second = scheduledMatches[secondIndex];
-
-        if (
-          !first.match.match_date ||
-          !second.match.match_date ||
-          first.match.match_date !== second.match.match_date ||
-          first.startMinutes === null ||
-          first.endMinutes === null ||
-          second.startMinutes === null ||
-          second.endMinutes === null
-        ) {
-          continue;
-        }
+    for (let firstIndex = 0; firstIndex < normalizedMatches.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < normalizedMatches.length; secondIndex += 1) {
+        const first = normalizedMatches[firstIndex];
+        const second = normalizedMatches[secondIndex];
+        if (first.date !== second.date) continue;
 
         const overlaps = rangesOverlap(first.startMinutes, first.endMinutes, second.startMinutes, second.endMinutes);
-
-        if (overlaps && first.match.field_id && first.match.field_id === second.match.field_id) {
+        if (overlaps && first.match.field_id && second.match.field_id && first.match.field_id === second.match.field_id) {
           addIssue(first.match.id, 'error', `Conflito de campo com o jogo ${second.match.match_number}.`);
           addIssue(second.match.id, 'error', `Conflito de campo com o jogo ${first.match.match_number}.`);
         }
 
-        const firstTeams = [first.match.team_a_id, first.match.team_b_id].filter(Boolean);
-        const secondTeams = [second.match.team_a_id, second.match.team_b_id].filter(Boolean);
-        const sharedTeam = firstTeams.find((teamId) => secondTeams.includes(teamId));
-
+        const sharedTeam = first.teams.find((teamId) => second.teams.includes(teamId));
         if (!sharedTeam) continue;
 
         if (overlaps) {
@@ -375,6 +412,7 @@ export default function TournamentManagerMatchesPage() {
       return;
     }
 
+    const loadedMatches = matchesResult.data || [];
     setTournament(tournamentResult.data);
     setDays(daysResult.data || []);
     setFields(fieldsResult.data || []);
@@ -382,13 +420,11 @@ export default function TournamentManagerMatchesPage() {
     setGroups(groupsResult.data || []);
     setAssignments(assignmentsResult.data || []);
     setRules(rulesResult.data || null);
-    setMatches(matchesResult.data || []);
-
-    const draftMap = (matchesResult.data || []).reduce<Record<string, MatchDraft>>((acc, match) => {
+    setMatches(loadedMatches);
+    setDrafts(loadedMatches.reduce<Record<string, MatchDraft>>((acc, match) => {
       acc[match.id] = matchToDraft(match);
       return acc;
-    }, {});
-    setDrafts(draftMap);
+    }, {}));
     setLoading(false);
   }
 
@@ -404,6 +440,123 @@ export default function TournamentManagerMatchesPage() {
         [field]: value,
       },
     }));
+  }
+
+  function getResolvedTeamIdFromSource(source: string | null, currentMatches: TournamentManagerMatch[]) {
+    if (!source) return null;
+
+    const standings = calculateTournamentStandings({
+      groups: orderedGroups,
+      teams: orderedTeams,
+      groupTeams: assignments,
+      matches: currentMatches,
+      rule: rules,
+    });
+
+    if (source.startsWith('winner_group:') || source.startsWith('runner_up_group:')) {
+      if (standings.pending_group_matches > 0) return null;
+      const groupName = source.split(':')[1];
+      const group = standings.groups.find((item) => item.group.name === groupName);
+      if (!group) return null;
+      const index = source.startsWith('winner_group:') ? 0 : 1;
+      return group.rows[index]?.team.id || null;
+    }
+
+    if (source === 'best_runner_up') {
+      if (standings.pending_group_matches > 0) return null;
+      const candidates = standings.groups
+        .map((item) => item.rows[1])
+        .filter((row): row is NonNullable<typeof row> => Boolean(row))
+        .sort((a, b) => {
+          if (b.points !== a.points) return b.points - a.points;
+          if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference;
+          if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for;
+          return a.goals_against - b.goals_against;
+        });
+      return candidates[0]?.team.id || null;
+    }
+
+    if (source.startsWith('overall_rank:')) {
+      if (standings.pending_group_matches > 0) return null;
+      const rank = Number(source.split(':')[1]);
+      const rows = standings.groups
+        .flatMap((item) => item.rows)
+        .sort((a, b) => {
+          if (b.points !== a.points) return b.points - a.points;
+          if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference;
+          if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for;
+          return a.goals_against - b.goals_against;
+        });
+      return rows[rank - 1]?.team.id || null;
+    }
+
+    const matchSourceMatch = source.match(/^(winner|loser)_match:([a-z_]+)_(\d+)$/);
+    if (matchSourceMatch) {
+      const [, resultType, phase, indexText] = matchSourceMatch;
+      const index = Number(indexText) - 1;
+      const sourceMatch = currentMatches
+        .filter((match) => match.phase === phase)
+        .sort((a, b) => a.match_number - b.match_number)[index];
+      if (!sourceMatch) return null;
+      return resultType === 'winner' ? getWinnerId(sourceMatch) : getLoserId(sourceMatch);
+    }
+
+    return null;
+  }
+
+  async function autofillFinalPhase(currentMatches: TournamentManagerMatch[], options?: { force?: boolean }) {
+    const force = options?.force === true;
+    const updates: FinalUpdate[] = [];
+
+    currentMatches
+      .filter((match) => match.phase !== 'group' && match.phase !== 'manual')
+      .forEach((match) => {
+        const nextTeamA = getResolvedTeamIdFromSource(match.team_a_source, currentMatches);
+        const nextTeamB = getResolvedTeamIdFromSource(match.team_b_source, currentMatches);
+        const update: FinalUpdate = { matchId: match.id };
+
+        if ((force || !match.team_a_id) && nextTeamA && match.team_a_id !== nextTeamA) update.team_a_id = nextTeamA;
+        if ((force || !match.team_b_id) && nextTeamB && match.team_b_id !== nextTeamB) update.team_b_id = nextTeamB;
+
+        if ('team_a_id' in update || 'team_b_id' in update) updates.push(update);
+      });
+
+    if (updates.length === 0) return 0;
+
+    await Promise.all(
+      updates.map((update) => {
+        const payload: Record<string, string | null> = { updated_at: new Date().toISOString() };
+        if ('team_a_id' in update) payload.team_a_id = update.team_a_id ?? null;
+        if ('team_b_id' in update) payload.team_b_id = update.team_b_id ?? null;
+        return supabase.from('tournament_matches').update(payload).eq('id', update.matchId);
+      }),
+    );
+
+    return updates.length;
+  }
+
+  async function refreshFinalPhase(force = true) {
+    if (!id) return;
+    setUpdatingFinals(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const { data, error } = await supabase
+      .from('tournament_matches')
+      .select('*')
+      .eq('tournament_id', id)
+      .order('match_number', { ascending: true });
+
+    if (error) {
+      setErrorMessage('Não foi possível carregar os jogos para atualizar a fase final.');
+      setUpdatingFinals(false);
+      return;
+    }
+
+    const count = await autofillFinalPhase(data || [], { force });
+    setSuccessMessage(count > 0 ? `Fase final atualizada em ${count} jogo(s).` : 'Fase final já estava atualizada ou ainda faltam resultados.');
+    await loadData();
+    setUpdatingFinals(false);
   }
 
   async function generateMatches() {
@@ -450,6 +603,8 @@ export default function TournamentManagerMatchesPage() {
       status: 'scheduled',
       score_a: null,
       score_b: null,
+      penalty_score_a: null,
+      penalty_score_b: null,
       notes: match.notes,
     }));
 
@@ -461,31 +616,23 @@ export default function TournamentManagerMatchesPage() {
       return;
     }
 
-    await supabase
-      .from('tournaments')
-      .update({ status: 'calendar_generated', updated_at: new Date().toISOString() })
-      .eq('id', id);
-
-    const report = schedulerPreview.capacityReport;
+    const capacity = schedulerPreview.capacityReport;
     setLastCapacityReport([
-      `Jogos de grupos: ${report.groupMatches}`,
-      `Jogos de fase final: ${report.finalMatches}`,
-      `Slots disponíveis: ${report.totalSlots}`,
-      `Slots reservados para finais: ${report.slotsReservedForFinals}`,
-      `Jogos não agendados: ${report.unscheduledGroupMatches + report.unscheduledFinalMatches}`,
+      `Jogos da fase de grupos: ${capacity.scheduledGroupMatches}/${capacity.groupMatches}`,
+      `Jogos da fase final: ${capacity.scheduledFinalMatches}/${capacity.finalMatches}`,
+      `Slots disponíveis: ${capacity.totalSlots}`,
+      ...schedulerPreview.warnings,
     ]);
-
-    setSuccessMessage('Calendário gerado com scheduler inteligente, incluindo fase de grupos e placeholders da fase final.');
+    setSuccessMessage('Jogos gerados com sucesso. Revê a proposta e ajusta manualmente se necessário.');
     await loadData();
     setGenerating(false);
   }
 
   async function addManualMatch() {
     if (!id) return;
-
-    const nextNumber = matches.length === 0 ? 1 : Math.max(...matches.map((match) => match.match_number)) + 1;
     const firstDay = days[0];
     const firstField = activeFields[0];
+    const maxMatchNumber = matches.reduce((max, match) => Math.max(max, match.match_number), 0);
 
     const { error } = await supabase.from('tournament_matches').insert({
       tournament_id: id,
@@ -499,21 +646,23 @@ export default function TournamentManagerMatchesPage() {
       team_b_source: null,
       round_number: null,
       phase: 'manual',
-      match_number: nextNumber,
+      match_number: maxMatchNumber + 1,
       match_date: firstDay?.day_date || null,
       match_time: firstDay?.start_time || null,
       status: 'scheduled',
       score_a: null,
       score_b: null,
-      notes: 'Jogo criado manualmente.',
+      penalty_score_a: null,
+      penalty_score_b: null,
+      notes: 'Jogo manual',
     });
 
     if (error) {
-      setErrorMessage('Não foi possível criar o jogo manual.');
+      setErrorMessage('Não foi possível criar jogo manual.');
       return;
     }
 
-    setSuccessMessage('Jogo manual criado.');
+    setSuccessMessage('Jogo manual criado com sucesso.');
     await loadData();
   }
 
@@ -525,26 +674,50 @@ export default function TournamentManagerMatchesPage() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    const payload = {
-      phase: draft.phase,
-      match_date: draft.match_date || null,
-      match_time: draft.match_time ? `${draft.match_time}:00` : null,
-      field_id: draft.field_id || null,
-      team_a_id: draft.team_a_id || null,
-      team_b_id: draft.team_b_id || null,
-      team_a_placeholder: draft.team_a_id ? null : draft.team_a_placeholder.trim() || null,
-      team_b_placeholder: draft.team_b_id ? null : draft.team_b_placeholder.trim() || null,
-      team_a_source: draft.team_a_source.trim() || null,
-      team_b_source: draft.team_b_source.trim() || null,
-      round_number: draft.round_number ? Number(draft.round_number) : null,
-      status: draft.status,
-      score_a: normalizeScore(draft.score_a),
-      score_b: normalizeScore(draft.score_b),
-      notes: draft.notes.trim() || null,
-      updated_at: new Date().toISOString(),
-    };
+    const scoreA = normalizeScore(draft.score_a);
+    const scoreB = normalizeScore(draft.score_b);
+    const isPenaltyPhase = isFinalPhase(draft.phase);
+    const penaltyScoreA = isPenaltyPhase ? normalizeScore(draft.penalty_score_a) : null;
+    const penaltyScoreB = isPenaltyPhase ? normalizeScore(draft.penalty_score_b) : null;
 
-    const { error } = await supabase.from('tournament_matches').update(payload).eq('id', match.id);
+    if (isPenaltyPhase && scoreA !== null && scoreB !== null && scoreA === scoreB) {
+      if (penaltyScoreA === null || penaltyScoreB === null) {
+        setErrorMessage('Em jogos da fase final empatados, indica o resultado dos penáltis antes de guardar.');
+        return;
+      }
+
+      if (penaltyScoreA === penaltyScoreB) {
+        setErrorMessage('O resultado dos penáltis não pode terminar empatado.');
+        return;
+      }
+    }
+
+    const shouldAutoFinish = scoreA !== null && scoreB !== null && draft.status === 'scheduled';
+
+    const { error } = await supabase
+      .from('tournament_matches')
+      .update({
+        phase: draft.phase,
+        group_id: draft.phase === 'group' ? match.group_id : null,
+        match_date: draft.match_date || null,
+        match_time: draft.match_time ? `${draft.match_time}:00` : null,
+        field_id: draft.field_id || null,
+        team_a_id: draft.team_a_id || null,
+        team_b_id: draft.team_b_id || null,
+        team_a_placeholder: draft.team_a_placeholder || null,
+        team_b_placeholder: draft.team_b_placeholder || null,
+        team_a_source: draft.team_a_source || null,
+        team_b_source: draft.team_b_source || null,
+        round_number: draft.round_number ? Number(draft.round_number) : null,
+        status: shouldAutoFinish ? 'finished' : draft.status,
+        score_a: scoreA,
+        score_b: scoreB,
+        penalty_score_a: isPenaltyPhase && scoreA !== null && scoreB !== null && scoreA === scoreB ? penaltyScoreA : null,
+        penalty_score_b: isPenaltyPhase && scoreA !== null && scoreB !== null && scoreA === scoreB ? penaltyScoreB : null,
+        notes: draft.notes || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', match.id);
 
     if (error) {
       setErrorMessage('Não foi possível guardar o jogo.');
@@ -552,7 +725,17 @@ export default function TournamentManagerMatchesPage() {
       return;
     }
 
-    setSuccessMessage(`Jogo ${match.match_number} guardado.`);
+    const { data: currentMatches, error: matchesError } = await supabase
+      .from('tournament_matches')
+      .select('*')
+      .eq('tournament_id', id)
+      .order('match_number', { ascending: true });
+
+    if (!matchesError && currentMatches) {
+      await autofillFinalPhase(currentMatches, { force: false });
+    }
+
+    setSuccessMessage('Jogo guardado com sucesso.');
     await loadData();
     setSavingMatchId(null);
   }
@@ -573,7 +756,7 @@ export default function TournamentManagerMatchesPage() {
       return;
     }
 
-    setSuccessMessage(`Jogo ${match.match_number} removido.`);
+    setSuccessMessage('Jogo removido com sucesso.');
     await loadData();
     setDeletingMatchId(null);
   }
@@ -587,312 +770,329 @@ export default function TournamentManagerMatchesPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <Link to={`/admin/gestor-torneios/${tournament.id}`} className="text-sm font-semibold text-green-700 hover:text-green-800">
-            ← Voltar ao torneio
-          </Link>
-          <h1 className="mt-4 text-3xl font-bold text-slate-900">Jogos do torneio</h1>
-          <p className="mt-2 max-w-4xl text-slate-600">
-            Gera, valida e ajusta os jogos. O scheduler cria rondas equilibradas, distribui carga entre dias e campos,
-            respeita descanso mínimo e reserva placeholders para meias-finais, final e 3.º/4.º lugar.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={generateMatches}
-            disabled={generating}
-            className="inline-flex items-center gap-2 rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-60"
-          >
-            <RefreshCw className="h-4 w-4" />
-            {generating ? 'A gerar...' : 'Gerar jogos'}
-          </button>
-          <button
-            type="button"
-            onClick={addManualMatch}
-            className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            Adicionar jogo manual
-          </button>
+    <div className="mx-auto max-w-7xl space-y-8">
+      <div>
+        <Link to={`/admin/gestor-torneios/${tournament.id}`} className="text-sm font-semibold text-green-700 hover:text-green-800">
+          ← Voltar ao torneio
+        </Link>
+        <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Gestor de Torneios</p>
+            <h1 className="text-3xl font-bold text-slate-900">Jogos e resultados</h1>
+            <p className="mt-2 max-w-3xl text-slate-600">
+              Gera a proposta de calendário, ajusta os jogos, lança resultados e atualiza automaticamente a fase final quando possível.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={generateMatches}
+              disabled={generating}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-60"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {generating ? 'A gerar...' : matches.length > 0 ? 'Gerar novamente' : 'Gerar jogos'}
+            </button>
+            <button
+              type="button"
+              onClick={() => refreshFinalPhase(true)}
+              disabled={updatingFinals}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm font-semibold text-yellow-800 hover:bg-yellow-100 disabled:opacity-60"
+            >
+              <Trophy className="h-4 w-4" />
+              {updatingFinals ? 'A atualizar...' : 'Atualizar fase final'}
+            </button>
+            <button
+              type="button"
+              onClick={addManualMatch}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Adicionar jogo manual
+            </button>
+          </div>
         </div>
       </div>
 
-      {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{errorMessage}</div>
-      )}
+      {errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{errorMessage}</div>}
+      {successMessage && <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-green-700">{successMessage}</div>}
 
-      {successMessage && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">{successMessage}</div>
-      )}
+      <div className="grid gap-4 lg:grid-cols-4">
+        <SummaryCard title="Jogos" value={String(matches.length)} icon={<CalendarDays className="h-5 w-5" />} />
+        <SummaryCard title="Com resultado" value={String(matches.filter(hasResult).length)} icon={<CheckCircle2 className="h-5 w-5" />} />
+        <SummaryCard title="Erros" value={String(calendarValidation.errorCount)} icon={<AlertTriangle className="h-5 w-5" />} />
+        <SummaryCard title="Avisos" value={String(calendarValidation.warningCount)} icon={<AlertTriangle className="h-5 w-5" />} />
+      </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-1 h-5 w-5 text-green-700" />
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Relatório do scheduler</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Capacidade estimada: {schedulerPreview.capacityReport.totalSlots} slots · Jogos de grupos:{' '}
-              {schedulerPreview.capacityReport.groupMatches} · Fase final: {schedulerPreview.capacityReport.finalMatches}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {schedulerPreview.capacityReport.daySlots.map((item) => (
-            <div key={item.date} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-bold text-slate-900">{formatDate(item.date)}</p>
-              <p className="mt-1 text-sm text-slate-600">{item.slots} slot(s) disponíveis</p>
-            </div>
-          ))}
-        </div>
-
-        {schedulerPreview.warnings.length > 0 && (
-          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            <p className="font-bold">Avisos de geração</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              {schedulerPreview.warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
+        <h2 className="text-xl font-bold text-slate-900">Validação do calendário</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Erros: {calendarValidation.errorCount} · Avisos: {calendarValidation.warningCount}
+        </p>
         {lastCapacityReport.length > 0 && (
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
             {lastCapacityReport.map((item) => (
-              <span key={item} className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-800">
+              <div key={item} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 {item}
-              </span>
+              </div>
             ))}
           </div>
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 p-5">
-          <h2 className="text-xl font-bold text-slate-900">Validação do calendário</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Erros: {calendarValidation.errorCount} · Avisos: {calendarValidation.warningCount}
-          </p>
-        </div>
-
+      <section className="space-y-4">
         {orderedMatches.length === 0 ? (
-          <div className="p-6 text-slate-600">Ainda não existem jogos. Clica em “Gerar jogos”.</div>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-slate-600">
+            Ainda não existem jogos. Clica em <strong>Gerar jogos</strong> para criar uma proposta inicial.
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1180px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Jogo e ações</th>
-                  <th className="px-4 py-3">Grupo/Fase</th>
-                  <th className="px-4 py-3">Horário</th>
-                  <th className="px-4 py-3">Campo</th>
-                  <th className="px-4 py-3">Confronto e resultado</th>
-                  <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3">Notas</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {orderedMatches.map((match) => {
-                  const draft = drafts[match.id] || matchToDraft(match);
-                  const issues = calendarValidation.issuesByMatchId[match.id] || [];
-                  const hasError = issues.some((issue) => issue.severity === 'error');
-                  const hasWarning = issues.some((issue) => issue.severity === 'warning');
+          orderedMatches.map((match) => {
+            const draft = drafts[match.id] || matchToDraft(match);
+            const issues = calendarValidation.issuesByMatchId[match.id] || [];
+            const endTime = draft.match_time ? getTournamentMatchEndTime(draft.match_time, rules) : '-';
+            const group = match.group_id ? groupById[match.group_id] : null;
+            const teamAName = getDraftTeamName(draft, 'a', teamById);
+            const teamBName = getDraftTeamName(draft, 'b', teamById);
 
-                  return (
-                    <tr key={match.id} className={hasError ? 'bg-red-50' : hasWarning ? 'bg-amber-50' : 'bg-white'}>
-                      <td className="px-4 py-4 align-top">
-                        <div className="font-bold text-slate-900">Jogo {match.match_number}</div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {formatDate(draft.match_date)} · {formatTime(draft.match_time)}–{getTournamentMatchEndTime(draft.match_time, rules)}
-                        </div>
-                        <div className="mt-3 flex flex-col gap-2">
-                          <button
-                            type="button"
-                            onClick={() => saveMatch(match)}
-                            disabled={savingMatchId === match.id}
-                            className="inline-flex items-center justify-center gap-1 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:opacity-60"
-                          >
-                            <Save className="h-3 w-3" /> Guardar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteMatch(match)}
-                            disabled={deletingMatchId === match.id}
-                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
-                          >
-                            <Trash2 className="h-3 w-3" /> Remover
-                          </button>
-                        </div>
-                        {issues.length > 0 && (
-                          <div className="mt-3 space-y-1">
-                            {issues.map((issue) => (
-                              <div
-                                key={`${match.id}-${issue.message}`}
-                                className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${
-                                  issue.severity === 'error'
-                                    ? 'bg-red-100 text-red-700'
-                                    : 'bg-amber-100 text-amber-700'
-                                }`}
-                              >
-                                <AlertTriangle className="mr-1 inline h-3 w-3" />
-                                {issue.message}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </td>
+            return (
+              <article key={match.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900">Jogo {match.match_number}</h3>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${getPhaseBadgeClass(draft.phase)}`}>
+                        {phaseLabels[draft.phase] || draft.phase}
+                      </span>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${getStatusBadgeClass(draft.status)}`}>
+                        {statusOptions.find((item) => item.value === draft.status)?.label || draft.status}
+                      </span>
+                      {group && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">{group.name}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+                      <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" /> {formatDate(draft.match_date)}</span>
+                      <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" /> {formatTime(draft.match_time)}–{endTime}</span>
+                      <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {draft.field_id ? fieldById[draft.field_id]?.name || 'Campo' : 'Campo por definir'}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => saveMatch(match)}
+                      disabled={savingMatchId === match.id}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:opacity-60"
+                    >
+                      <Save className="h-4 w-4" />
+                      {savingMatchId === match.id ? 'A guardar...' : 'Guardar'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteMatch(match)}
+                      disabled={deletingMatchId === match.id}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deletingMatchId === match.id ? 'A remover...' : 'Remover'}
+                    </button>
+                  </div>
+                </div>
 
-                      <td className="px-4 py-4 align-top">
-                        <select
-                          value={draft.phase}
-                          onChange={(event) => updateDraft(match.id, 'phase', event.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                {issues.length > 0 && (
+                  <div className="border-b border-slate-200 bg-amber-50 px-5 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      {issues.map((issue) => (
+                        <span
+                          key={`${issue.severity}-${issue.message}`}
+                          className={`rounded-lg px-3 py-2 text-xs font-semibold ${issue.severity === 'error' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-800'}`}
                         >
-                          {Object.entries(phaseLabels).map(([value, label]) => (
-                            <option key={value} value={value}>{label}</option>
-                          ))}
+                          {issue.message}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid gap-4 p-4 xl:grid-cols-[210px_minmax(520px,1fr)_210px]">
+                  <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Dados do jogo</h4>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                      <Field label="Fase">
+                        <select value={draft.phase} onChange={(event) => updateDraft(match.id, 'phase', event.target.value)} className="input-control">
+                          <option value="group">Fase de grupos</option>
+                          <option value="quarter_final">Quartos de final</option>
+                          <option value="semi_final">Meias-finais</option>
+                          <option value="third_place">3.º e 4.º lugar</option>
+                          <option value="final">Final</option>
+                          <option value="manual">Manual</option>
                         </select>
-                        <div className="mt-2 text-xs text-slate-500">
-                          {match.group_id ? groupById[match.group_id]?.name || '-' : '-'}
+                      </Field>
+                      <Field label="Data">
+                        <select value={draft.match_date} onChange={(event) => updateDraft(match.id, 'match_date', event.target.value)} className="input-control">
+                          <option value="">Selecionar</option>
+                          {days.map((day) => <option key={day.id} value={day.day_date}>{formatDate(day.day_date)}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Hora">
+                        <input type="time" value={draft.match_time} onChange={(event) => updateDraft(match.id, 'match_time', event.target.value)} className="input-control" />
+                      </Field>
+                      <Field label="Campo">
+                        <select value={draft.field_id} onChange={(event) => updateDraft(match.id, 'field_id', event.target.value)} className="input-control">
+                          <option value="">Selecionar</option>
+                          {activeFields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}
+                        </select>
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wide text-slate-600">Confronto e resultado</h4>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{teamAName} x {teamBName}</span>
+                    </div>
+
+                    <div className="grid items-center gap-3 lg:grid-cols-[1fr_150px_1fr]">
+                      <TeamPanel
+                        label="Equipa A"
+                        teamId={draft.team_a_id}
+                        placeholder={draft.team_a_placeholder}
+                        teams={orderedTeams}
+                        onTeamChange={(value) => updateDraft(match.id, 'team_a_id', value)}
+                        onPlaceholderChange={(value) => updateDraft(match.id, 'team_a_placeholder', value)}
+                      />
+
+                      <div className="rounded-xl bg-slate-950 p-3 text-center text-white shadow-lg">
+                        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.22em] text-slate-300">Resultado</p>
+                        <div className="flex items-center justify-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={draft.score_a}
+                            onChange={(event) => updateDraft(match.id, 'score_a', event.target.value)}
+                            className="h-12 w-14 rounded-lg border-0 bg-white text-center text-xl font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
+                          />
+                          <span className="text-xl font-black">x</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={draft.score_b}
+                            onChange={(event) => updateDraft(match.id, 'score_b', event.target.value)}
+                            className="h-12 w-14 rounded-lg border-0 bg-white text-center text-xl font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
+                          />
                         </div>
-                      </td>
 
-                      <td className="px-4 py-4 align-top">
-                        <select
-                          value={draft.match_date}
-                          onChange={(event) => updateDraft(match.id, 'match_date', event.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                        >
-                          <option value="">Sem data</option>
-                          {days.map((day) => (
-                            <option key={day.id} value={day.day_date}>{formatDate(day.day_date)}</option>
-                          ))}
-                        </select>
-                        <input
-                          type="time"
-                          value={draft.match_time}
-                          onChange={(event) => updateDraft(match.id, 'match_time', event.target.value)}
-                          className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                        />
-                        <div className="mt-1 text-xs text-slate-500">até {getTournamentMatchEndTime(draft.match_time, rules)}</div>
-                      </td>
-
-                      <td className="px-4 py-4 align-top">
-                        <select
-                          value={draft.field_id}
-                          onChange={(event) => updateDraft(match.id, 'field_id', event.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                        >
-                          <option value="">Sem campo</option>
-                          {activeFields.map((field) => (
-                            <option key={field.id} value={field.id}>{field.name}</option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="px-4 py-4 align-top">
-                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                          <div>
-                            <select
-                              value={draft.team_a_id}
-                              onChange={(event) => updateDraft(match.id, 'team_a_id', event.target.value)}
-                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                            >
-                              <option value="">Por definir</option>
-                              {orderedTeams.map((team) => (
-                                <option key={team.id} value={team.id}>{team.name}</option>
-                              ))}
-                            </select>
-                            {!draft.team_a_id && (
-                              <input
-                                type="text"
-                                value={draft.team_a_placeholder}
-                                onChange={(event) => updateDraft(match.id, 'team_a_placeholder', event.target.value)}
-                                placeholder="Placeholder"
-                                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"
-                              />
-                            )}
-                          </div>
-
-                          <div className="rounded-xl bg-slate-50 px-3 py-2 text-center">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                min="0"
-                                value={draft.score_a}
-                                onChange={(event) => updateDraft(match.id, 'score_a', event.target.value)}
-                                className="w-12 rounded-lg border border-slate-300 px-2 py-2 text-center text-sm"
-                              />
-                              <span className="text-xs font-bold text-slate-500">x</span>
+                        {isFinalPhase(draft.phase) && draft.score_a !== '' && draft.score_b !== '' && draft.score_a === draft.score_b && (
+                          <div className="mt-3 rounded-lg bg-white/10 p-2">
+                            <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-300">Penáltis</p>
+                            <div className="flex items-center justify-center gap-2">
                               <input
                                 type="number"
                                 min="0"
-                                value={draft.score_b}
-                                onChange={(event) => updateDraft(match.id, 'score_b', event.target.value)}
-                                className="w-12 rounded-lg border border-slate-300 px-2 py-2 text-center text-sm"
+                                value={draft.penalty_score_a}
+                                onChange={(event) => updateDraft(match.id, 'penalty_score_a', event.target.value)}
+                                className="h-9 w-12 rounded-md border-0 bg-white text-center text-sm font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
+                              />
+                              <span className="text-sm font-black">x</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={draft.penalty_score_b}
+                                onChange={(event) => updateDraft(match.id, 'penalty_score_b', event.target.value)}
+                                className="h-9 w-12 rounded-md border-0 bg-white text-center text-sm font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
                               />
                             </div>
+                            <p className="mt-1 text-[10px] font-semibold text-slate-300">Usado apenas para definir quem avança.</p>
                           </div>
+                        )}
+                      </div>
 
-                          <div>
-                            <select
-                              value={draft.team_b_id}
-                              onChange={(event) => updateDraft(match.id, 'team_b_id', event.target.value)}
-                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                            >
-                              <option value="">Por definir</option>
-                              {orderedTeams.map((team) => (
-                                <option key={team.id} value={team.id}>{team.name}</option>
-                              ))}
-                            </select>
-                            {!draft.team_b_id && (
-                              <input
-                                type="text"
-                                value={draft.team_b_placeholder}
-                                onChange={(event) => updateDraft(match.id, 'team_b_placeholder', event.target.value)}
-                                placeholder="Placeholder"
-                                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"
-                              />
-                            )}
-                          </div>
-                        </div>
-                        <div className="mt-2 text-xs text-slate-500">
-                          Visual: {getTeamDisplay(match, 'a', teamById)} x {getTeamDisplay(match, 'b', teamById)}
-                        </div>
-                      </td>
+                      <TeamPanel
+                        label="Equipa B"
+                        teamId={draft.team_b_id}
+                        placeholder={draft.team_b_placeholder}
+                        teams={orderedTeams}
+                        onTeamChange={(value) => updateDraft(match.id, 'team_b_id', value)}
+                        onPlaceholderChange={(value) => updateDraft(match.id, 'team_b_placeholder', value)}
+                      />
+                    </div>
+                  </div>
 
-                      <td className="px-4 py-4 align-top">
-                        <select
-                          value={draft.status}
-                          onChange={(event) => updateDraft(match.id, 'status', event.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                        >
-                          {statusOptions.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="px-4 py-4 align-top">
-                        <textarea
-                          value={draft.notes}
-                          onChange={(event) => updateDraft(match.id, 'notes', event.target.value)}
-                          rows={4}
-                          className="w-full min-w-[220px] rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Estado e notas</h4>
+                    <Field label="Estado">
+                      <select value={draft.status} onChange={(event) => updateDraft(match.id, 'status', event.target.value)} className="input-control">
+                        {statusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Notas">
+                      <textarea
+                        value={draft.notes}
+                        onChange={(event) => updateDraft(match.id, 'notes', event.target.value)}
+                        rows={3}
+                        className="input-control min-h-[88px] resize-y text-sm"
+                        placeholder="Notas internas, ronda, observações..."
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </article>
+            );
+          })
         )}
       </section>
+    </div>
+  );
+}
+
+function SummaryCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-slate-500">{title}</p>
+          <p className="mt-2 text-3xl font-black text-slate-900">{value}</p>
+        </div>
+        <div className="rounded-2xl bg-green-50 p-3 text-green-700">{icon}</div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function TeamPanel({
+  label,
+  teamId,
+  placeholder,
+  teams,
+  onTeamChange,
+  onPlaceholderChange,
+}: {
+  label: string;
+  teamId: string;
+  placeholder: string;
+  teams: TournamentManagerTeam[];
+  onTeamChange: (value: string) => void;
+  onPlaceholderChange: (value: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</p>
+      <select value={teamId} onChange={(event) => onTeamChange(event.target.value)} className="input-control">
+        <option value="">Por definir</option>
+        {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+      </select>
+      <input
+        type="text"
+        value={placeholder}
+        onChange={(event) => onPlaceholderChange(event.target.value)}
+        className="input-control mt-2 text-xs"
+        placeholder="Placeholder: 1.º Grupo A, Vencedor MF1..."
+      />
     </div>
   );
 }

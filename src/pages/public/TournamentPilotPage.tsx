@@ -189,9 +189,13 @@ function createSlug(value: string) {
 }
 
 function addDays(date: string, amount: number) {
-  const baseDate = new Date(`${date}T00:00:00`);
+  const [year, month, day] = date.split('-').map(Number);
+  const baseDate = new Date(year, month - 1, day);
   baseDate.setDate(baseDate.getDate() + amount);
-  return baseDate.toISOString().slice(0, 10);
+  const nextYear = baseDate.getFullYear();
+  const nextMonth = String(baseDate.getMonth() + 1).padStart(2, '0');
+  const nextDay = String(baseDate.getDate()).padStart(2, '0');
+  return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
 function normalizeTime(value: string) {

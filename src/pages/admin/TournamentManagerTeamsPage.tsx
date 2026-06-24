@@ -25,6 +25,7 @@ export default function TournamentManagerTeamsPage() {
   const [primaryColor, setPrimaryColor] = useState('');
   const [secondaryColor, setSecondaryColor] = useState('');
   const [notes, setNotes] = useState('');
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
 
   const orderedTeams = useMemo(() => {
     return [...teams].sort((a, b) => {
@@ -72,6 +73,7 @@ export default function TournamentManagerTeamsPage() {
   }, [id]);
 
   function resetForm() {
+    setEditingTeamId(null);
     setName('');
     setClub('');
     setLocation('');
@@ -81,6 +83,21 @@ export default function TournamentManagerTeamsPage() {
     setPrimaryColor('');
     setSecondaryColor('');
     setNotes('');
+  }
+
+  function startEditingTeam(team: TournamentManagerTeam) {
+    setEditingTeamId(team.id);
+    setName(team.name || '');
+    setClub(team.club || '');
+    setLocation(team.location || '');
+    setCoachName(team.coach_name || '');
+    setContactPhone(team.contact_phone || '');
+    setContactEmail(team.contact_email || '');
+    setPrimaryColor(team.primary_color || '');
+    setSecondaryColor(team.secondary_color || '');
+    setNotes(team.notes || '');
+    setSuccessMessage('');
+    setErrorMessage('');
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -97,8 +114,7 @@ export default function TournamentManagerTeamsPage() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    const { error } = await supabase.from('tournament_teams').insert({
-      tournament_id: id,
+    const payload = {
       name: name.trim(),
       club: club.trim() || null,
       location: location.trim() || null,
@@ -108,8 +124,19 @@ export default function TournamentManagerTeamsPage() {
       primary_color: primaryColor.trim() || null,
       secondary_color: secondaryColor.trim() || null,
       notes: notes.trim() || null,
-      sort_order: teams.length + 1,
-    });
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = editingTeamId
+      ? await supabase
+          .from('tournament_teams')
+          .update(payload)
+          .eq('id', editingTeamId)
+      : await supabase.from('tournament_teams').insert({
+          tournament_id: id,
+          ...payload,
+          sort_order: teams.length + 1,
+        });
 
     if (error) {
       setErrorMessage('Não foi possível guardar a equipa. Confirma as permissões RLS e as colunas da tabela.');
@@ -118,7 +145,7 @@ export default function TournamentManagerTeamsPage() {
     }
 
     resetForm();
-    setSuccessMessage('Equipa adicionada com sucesso.');
+    setSuccessMessage(editingTeamId ? 'Equipa atualizada com sucesso.' : 'Equipa adicionada com sucesso.');
     await loadData();
     setSaving(false);
   }
@@ -201,7 +228,7 @@ export default function TournamentManagerTeamsPage() {
 
       <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
         <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">Adicionar equipa</h2>
+          <h2 className="text-xl font-bold text-slate-900">{editingTeamId ? 'Editar equipa' : 'Adicionar equipa'}</h2>
 
           <div className="mt-6 space-y-5">
             <div>
@@ -306,13 +333,22 @@ export default function TournamentManagerTeamsPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            {editingTeamId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancelar edição
+              </button>
+            )}
             <button
               type="submit"
               disabled={saving}
               className="rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saving ? 'A guardar...' : 'Adicionar equipa'}
+              {saving ? 'A guardar...' : editingTeamId ? 'Guardar alterações' : 'Adicionar equipa'}
             </button>
           </div>
         </form>
@@ -342,13 +378,22 @@ export default function TournamentManagerTeamsPage() {
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => deleteTeam(team)}
-                      className="rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-                    >
-                      Remover
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startEditingTeam(team)}
+                        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteTeam(team)}
+                        className="rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+                      >
+                        Remover
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2">
