@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GDR Boavista</string>
+    <string name="title_activity_main">GDR Boavista</string>
+    <string name="package_name">pt.gdrboavista.app</string>
+    <string name="custom_url_scheme">pt.gdrboavista.app</string>
+</resources>
