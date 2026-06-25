@@ -15,8 +15,7 @@ import { SponsorsPage } from '../pages/public/SponsorsPage';
 import { ContactsPage } from '../pages/public/ContactsPage';
 import { ResultsPage } from '../pages/public/ResultsPage';
 import { ShopPage } from '../pages/public/ShopPage';
-import { TournamentPilotPage } from '../pages/public/TournamentPilotPage';
-import { AdminTournamentSelfServicePage } from '../pages/admin/AdminTournamentSelfServicePage';
+import { AppInstallPage } from '../pages/public/AppInstallPage';
 
 import { AdminLoginPage } from '../pages/admin/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
@@ -30,9 +29,9 @@ import { AdminContentsPage } from '../pages/admin/AdminContentsPage';
 import { AdminMatchesPage } from '../pages/admin/AdminMatchesPage';
 import { AdminTournamentsPage } from '../pages/admin/AdminTournamentsPage';
 import { AdminAnalyticsPage } from '../pages/admin/AdminAnalyticsPage';
-import { AdminShopPage } from '../pages/admin/AdminShopPage';
 
 import AdminTournamentManagerPage from '../pages/admin/AdminTournamentManagerPage';
+import CreateTournamentManagerPage from '../pages/admin/CreateTournamentManagerPage';
 import EditTournamentManagerPage from '../pages/admin/EditTournamentManagerPage';
 import TournamentManagerSchedulePage from '../pages/admin/TournamentManagerSchedulePage';
 import TournamentManagerFieldsPage from '../pages/admin/TournamentManagerFieldsPage';
@@ -41,8 +40,6 @@ import TournamentManagerGroupsPage from '../pages/admin/TournamentManagerGroupsP
 import TournamentManagerRulesPage from '../pages/admin/TournamentManagerRulesPage';
 import TournamentManagerMatchesPage from '../pages/admin/TournamentManagerMatchesPage';
 import TournamentManagerSponsorsPage from '../pages/admin/TournamentManagerSponsorsPage';
-import TournamentManagerStandingsPage from '../pages/admin/TournamentManagerStandingsPage';
-import TournamentResultsAccessPage from '../pages/admin/TournamentResultsAccessPage';
 import PublicTournamentPage from '../pages/PublicTournamentPage';
 
 function AdminPlaceholderPage({ title }: { title: string }) {
@@ -74,7 +71,7 @@ export function AppRoutes() {
         <Route path="contactos" element={<ContactsPage />} />
         <Route path="resultados" element={<ResultsPage />} />
         <Route path="loja" element={<ShopPage />} />
-        <Route path="torneios/piloto" element={<TournamentPilotPage />} />
+        <Route path="app" element={<AppInstallPage />} />
         <Route path="torneios/:slug" element={<PublicTournamentPage />} />
       </Route>
 
@@ -91,8 +88,7 @@ export function AppRoutes() {
           <Route path="jogos" element={<AdminMatchesPage />} />
           <Route path="torneios" element={<AdminTournamentsPage />} />
           <Route path="gestor-torneios" element={<AdminTournamentManagerPage />} />
-          <Route path="gestor-torneios/lista" element={<AdminTournamentManagerPage />} />
-          <Route path="gestor-torneios/novo" element={<AdminTournamentSelfServicePage />} />
+          <Route path="gestor-torneios/novo" element={<CreateTournamentManagerPage />} />
           <Route path="gestor-torneios/:id" element={<EditTournamentManagerPage />} />
           <Route path="gestor-torneios/:id/datas" element={<TournamentManagerSchedulePage />} />
           <Route path="gestor-torneios/:id/campos" element={<TournamentManagerFieldsPage />} />
@@ -100,9 +96,7 @@ export function AppRoutes() {
           <Route path="gestor-torneios/:id/grupos" element={<TournamentManagerGroupsPage />} />
           <Route path="gestor-torneios/:id/regras" element={<TournamentManagerRulesPage />} />
           <Route path="gestor-torneios/:id/jogos" element={<TournamentManagerMatchesPage />} />
-          <Route path="gestor-torneios/:id/classificacao" element={<TournamentManagerStandingsPage />} />
           <Route path="gestor-torneios/:id/parceiros" element={<TournamentManagerSponsorsPage />} />
-          <Route path="resultados-torneio/:id" element={<TournamentResultsAccessPage />} />
           <Route path="patrocinadores" element={<AdminSponsorsPage />} />
           <Route path="socios" element={<AdminMembersPage />} />
           <Route path="contactos" element={<AdminContactsPage />} />
@@ -110,7 +104,6 @@ export function AppRoutes() {
             path="galeria"
             element={<AdminPlaceholderPage title="Galeria" />}
           />
-          <Route path="loja" element={<AdminShopPage />} />
         </Route>
       </Route>
 

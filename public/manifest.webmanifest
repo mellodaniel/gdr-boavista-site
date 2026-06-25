@@ -1,0 +1,50 @@
+{
+  "name": "GDR Boavista",
+  "short_name": "GDRB",
+  "description": "App oficial do GDR Boavista: notícias, jogos, loja, sócios e contactos.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f2ec",
+  "theme_color": "#24180f",
+  "categories": ["sports", "shopping", "news"],
+  "lang": "pt-PT",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icons/icon-72.png", "sizes": "72x72", "type": "image/png" },
+    { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "/icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "/icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Loja oficial",
+      "short_name": "Loja",
+      "description": "Abrir a loja oficial do GDR Boavista",
+      "url": "/loja?source=pwa-shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Jogos e agenda",
+      "short_name": "Jogos",
+      "description": "Consultar jogos, torneios e resultados",
+      "url": "/resultados?source=pwa-shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Notícias",
+      "short_name": "Notícias",
+      "description": "Abrir notícias do clube",
+      "url": "/noticias?source=pwa-shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

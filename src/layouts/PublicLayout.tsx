@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { Mail, Menu, Phone, X } from 'lucide-react';
+import { Mail, Menu, Phone, Smartphone, X } from 'lucide-react';
 import { AnalyticsTracker } from '../components/public/AnalyticsTracker';
 import { CookieConsentBanner } from '../components/public/CookieConsentBanner';
 import { trackAnalyticsEvent } from '../lib/analytics';
@@ -12,7 +12,7 @@ const navigation = [
   { label: 'Notícias', path: '/noticias' },
   { label: 'Sócios', path: '/socios' },
   { label: 'Galeria', path: '/galeria' },
-  { label: 'Parceiros', path: '/patrocinadores' },
+  { label: 'Patrocinadores', path: '/patrocinadores' },
   { label: 'Contactos', path: '/contactos' },
 ];
 
@@ -188,6 +188,23 @@ export function PublicLayout() {
               >
                 Loja Online
               </NavLink>
+
+              <NavLink
+                to="/app"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  trackHeaderClick('pwa_install_page_click', 'App - menu mobile');
+                }}
+                className={({ isActive }) =>
+                  `rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-wide ${
+                    isActive
+                      ? 'bg-[#24180f] text-white'
+                      : 'bg-white text-zinc-700'
+                  }`
+                }
+              >
+                Instalar App
+              </NavLink>
             </nav>
           </div>
         )}
@@ -219,7 +236,7 @@ export function PublicLayout() {
 
             <p className="mt-6 max-w-md text-sm leading-7 text-zinc-400">
               Clube de formação, competição e comunidade. Uma casa feita por
-              atletas, famílias, sócios, treinadores, parceiros e amigos.
+              atletas, famílias, sócios, treinadores, patrocinadores e amigos.
             </p>
           </div>
 
@@ -279,13 +296,24 @@ export function PublicLayout() {
         <div className="border-t border-white/10 py-5">
           <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-4 text-xs font-semibold text-zinc-500 md:flex-row">
             <p>© {new Date().getFullYear()} GDR Boavista.</p>
-            <Link
-              to="/admin"
-              onClick={() => trackHeaderClick('admin_click', 'Admin - footer')}
-              className="hover:text-red-400"
-            >
-              Administração
-            </Link>
+            <div className="flex flex-wrap items-center gap-4">
+              <Link
+                to="/app"
+                onClick={() => trackHeaderClick('pwa_install_page_click', 'App - footer')}
+                className="inline-flex items-center gap-2 hover:text-red-400"
+              >
+                <Smartphone size={14} />
+                Instalar app
+              </Link>
+
+              <Link
+                to="/admin"
+                onClick={() => trackHeaderClick('admin_click', 'Admin - footer')}
+                className="hover:text-red-400"
+              >
+                Administração
+              </Link>
+            </div>
           </div>
         </div>
       </footer>
