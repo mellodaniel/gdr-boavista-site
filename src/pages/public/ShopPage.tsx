@@ -52,6 +52,7 @@ type CheckoutFormState = {
   customerName: string;
   phone: string;
   email: string;
+  memberNumber: string;
   paymentMethod: 'transferencia' | 'presencial' | 'mbway';
   deliveryMethod: 'recolha_clube' | 'entrega_combinada';
   notes: string;
@@ -125,6 +126,7 @@ const emptyCheckoutForm: CheckoutFormState = {
   customerName: '',
   phone: '',
   email: '',
+  memberNumber: '',
   paymentMethod: 'transferencia',
   deliveryMethod: 'recolha_clube',
   notes: '',
@@ -393,7 +395,14 @@ export function ShopPage() {
     const orderSummary = cartItems.length === 1 ? cartItems[0].product.name : `${cartItems.length} produtos no carrinho`;
     const firstItem = cartItems[0];
     const detailLines = cartItems.map((item) => `- ${item.product.name} | ${item.size} | qtd ${item.quantity}`).join('\n');
-    const notes = [checkoutForm.notes.trim(), `Itens do carrinho:\n${detailLines}`, `Total: ${totalLabel}`]
+    const memberNumber = checkoutForm.memberNumber.trim();
+    const notes = [
+      memberNumber ? `Número de sócio informado: ${memberNumber}` : '',
+      memberNumber ? 'Validação de sócio/quotas: confirmar se o número de sócio existe e se as quotas estão em dia.' : '',
+      checkoutForm.notes.trim(),
+      `Itens do carrinho:\n${detailLines}`,
+      `Total: ${totalLabel}`,
+    ]
       .filter(Boolean)
       .join('\n\n');
 
@@ -947,6 +956,18 @@ export function ShopPage() {
                           <input type="email" value={checkoutForm.email} onChange={(event) => setCheckoutForm((current) => ({ ...current, email: event.target.value }))} className="rounded-md border border-zinc-200 px-4 py-3 outline-none focus:border-[#b83336]" />
                         </label>
                         <label className="grid gap-2 text-sm font-bold text-zinc-700 md:col-span-2">
+                          Número de sócio <span className="text-xs font-semibold text-zinc-400">opcional</span>
+                          <input
+                            value={checkoutForm.memberNumber}
+                            onChange={(event) => setCheckoutForm((current) => ({ ...current, memberNumber: event.target.value }))}
+                            className="rounded-md border border-zinc-200 px-4 py-3 outline-none focus:border-[#b83336]"
+                            placeholder="Ex.: 123"
+                          />
+                          <span className="text-xs font-semibold leading-5 text-zinc-500">
+                            Se indicares o número de sócio, o clube poderá confirmar o desconto e validar se as quotas estão em dia.
+                          </span>
+                        </label>
+                        <label className="grid gap-2 text-sm font-bold text-zinc-700 md:col-span-2">
                           Pagamento pretendido
                           <select value={checkoutForm.paymentMethod} onChange={(event) => setCheckoutForm((current) => ({ ...current, paymentMethod: event.target.value as CheckoutFormState['paymentMethod'] }))} className="rounded-md border border-zinc-200 px-4 py-3 outline-none focus:border-[#b83336]">
                             <option value="transferencia">Transferência bancária</option>
@@ -969,7 +990,7 @@ export function ShopPage() {
 
                       <label className="mt-4 grid gap-2 text-sm font-bold text-zinc-700">
                         Observações
-                        <textarea rows={4} value={checkoutForm.notes} onChange={(event) => setCheckoutForm((current) => ({ ...current, notes: event.target.value }))} className="rounded-md border border-zinc-200 px-4 py-3 outline-none focus:border-[#b83336]" placeholder="Ex.: nome do atleta, escalão, melhor horário de contacto..." />
+                        <textarea rows={4} value={checkoutForm.notes} onChange={(event) => setCheckoutForm((current) => ({ ...current, notes: event.target.value }))} className="rounded-md border border-zinc-200 px-4 py-3 outline-none focus:border-[#b83336]" placeholder="Ex.: nome do atleta, escalão, melhor horário de contacto, informação sobre quotas..." />
                       </label>
 
                       <button type="submit" disabled={isSubmittingOrder} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#b83336] px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#2f261e] disabled:cursor-not-allowed disabled:opacity-60">

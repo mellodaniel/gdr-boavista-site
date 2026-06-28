@@ -402,6 +402,39 @@ export function HomePage() {
         </div>
       </section>
 
+      <section className="relative overflow-hidden bg-[#111827] py-14 text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.45),transparent_34%)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#4a1515] to-[#7f1d1d]" />
+
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 md:grid-cols-[1fr_auto]">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.42em] text-red-200">Torneio em destaque</p>
+            <h2 className="mt-4 font-serif text-4xl font-light leading-tight md:text-6xl">
+              1.º Torneio Fut 7 GDR Boavista
+            </h2>
+            <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-red-50 md:text-lg">
+              Calendário, grupos, jogos e resultados online. Acompanha tudo em tempo real no site oficial do clube.
+            </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">Futebol 7</span>
+              <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">Campo do GDR Boavista</span>
+              <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">Edição 2026</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
+            <Link
+              to="/torneios/fut7-boavista-2026"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-red-800 shadow-xl transition hover:bg-red-50"
+            >
+              Ver torneio online
+              <ChevronRight size={18} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mx-auto max-w-4xl">

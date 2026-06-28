@@ -225,6 +225,23 @@ function getOrderTotalLabel(order: ShopOrder) {
   return 'Valor a confirmar pelo clube';
 }
 
+function getOrderMemberNumber(order: ShopOrder) {
+  if (!order.notes) return '';
+
+  const patterns = [
+    /Número de sócio informado:\s*([^\n]+)/i,
+    /N[.ººo]*\s*de sócio:\s*([^\n]+)/i,
+    /sócio\s*n[.ººo]*\s*:?\s*([^\n]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = order.notes.match(pattern);
+    if (match?.[1]?.trim()) return match[1].trim();
+  }
+
+  return '';
+}
+
 function getOrderNumber(order: ShopOrder) {
   if (order.order_number?.trim()) return order.order_number;
 
@@ -357,6 +374,7 @@ export function AdminShopPage() {
         paymentMethodLabels[order.payment_method],
         deliveryMethodLabels[order.delivery_method],
         itemsText,
+        order.notes ?? '',
       ]
         .join(' ')
         .toLowerCase()
@@ -393,6 +411,7 @@ export function AdminShopPage() {
         pagamento: paymentMethodLabels[order.payment_method],
         entrega: deliveryMethodLabels[order.delivery_method],
         artigos: items,
+        socio: getOrderMemberNumber(order),
         total: getOrderTotalLabel(order),
         observacoes: order.notes ?? '',
       };
@@ -401,7 +420,7 @@ export function AdminShopPage() {
 
   function exportOrders(format: 'csv' | 'xls') {
     const rows = buildOrderExportRows(filteredOrders);
-    const headers = ['N.º Pedido', 'ID técnico', 'Data', 'Estado', 'Cliente', 'Telefone', 'Email', 'Pagamento', 'Entrega', 'Artigos', 'Total', 'Observações'];
+    const headers = ['N.º Pedido', 'ID técnico', 'Data', 'Estado', 'Cliente', 'Telefone', 'Email', 'N.º Sócio', 'Pagamento', 'Entrega', 'Artigos', 'Total', 'Observações'];
     const filenameDate = new Date().toISOString().slice(0, 10);
 
     if (format === 'csv') {
@@ -416,6 +435,7 @@ export function AdminShopPage() {
             row.cliente,
             row.telefone,
             row.email,
+            row.socio,
             row.pagamento,
             row.entrega,
             row.artigos,
@@ -442,6 +462,7 @@ export function AdminShopPage() {
             <td>${row.cliente}</td>
             <td>${row.telefone}</td>
             <td>${row.email}</td>
+            <td>${row.socio}</td>
             <td>${row.pagamento}</td>
             <td>${row.entrega}</td>
             <td>${row.artigos}</td>
@@ -1235,6 +1256,7 @@ export function AdminShopPage() {
 
               {filteredOrders.map((order) => {
                 const orderItems = getOrderItems(order);
+                const memberNumber = getOrderMemberNumber(order);
                 const isReadOnly = order.status === 'entregue';
                 const orderNumber = getOrderNumber(order);
                 const isExpanded = expandedOrderIds.includes(order.id);
@@ -1316,6 +1338,11 @@ export function AdminShopPage() {
                             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Cliente</p>
                             <p className="mt-1 text-sm font-black text-[#24180f]">{order.customer_name}</p>
                             <p className="mt-1 text-sm font-bold text-zinc-600">{order.phone}</p>
+                            {memberNumber && (
+                              <p className="mt-2 inline-flex rounded-full bg-red-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-red-700">
+                                Sócio n.º {memberNumber}
+                              </p>
+                            )}
                           </div>
                           <div className="rounded-sm border border-zinc-100 bg-white p-4">
                             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Artigos</p>
@@ -1347,6 +1374,11 @@ export function AdminShopPage() {
                               <p className="mt-1 text-sm font-black text-[#24180f]">{order.customer_name}</p>
                               <p className="mt-1 text-sm font-bold text-zinc-600">{order.phone}</p>
                               {order.email && <p className="mt-1 break-all text-sm font-semibold text-zinc-500">{order.email}</p>}
+                              {memberNumber && (
+                                <p className="mt-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-red-700">
+                                  Sócio n.º {memberNumber}
+                                </p>
+                              )}
                             </div>
 
                             <div>
@@ -1355,6 +1387,13 @@ export function AdminShopPage() {
                               <p className="mt-1 text-sm font-semibold text-zinc-500">{deliveryMethodLabels[order.delivery_method]}</p>
                             </div>
                           </div>
+
+                          {order.notes && (
+                            <div className="mt-5 rounded-sm border border-zinc-100 bg-white p-4">
+                              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Observações / validação</p>
+                              <p className="mt-2 whitespace-pre-line text-sm font-semibold leading-6 text-zinc-600">{order.notes}</p>
+                            </div>
+                          )}
 
                           <div className="mt-5 overflow-hidden rounded-sm border border-zinc-100 bg-white">
                             <div className="flex items-center justify-between gap-3 bg-zinc-50 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">

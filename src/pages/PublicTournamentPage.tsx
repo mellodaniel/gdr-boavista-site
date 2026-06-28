@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 type Tournament = {
@@ -268,6 +268,7 @@ function normalizePartnerLabel(value: string | null) {
 // public-tournament-partners-members-v4
 export default function PublicTournamentPage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [teams, setTeams] = useState<TournamentTeam[]>([]);
@@ -301,11 +302,15 @@ export default function PublicTournamentPage() {
 
       setErrorMessage('');
 
-      const { data: tournamentData, error: tournamentError } = await supabase
+      const lookupSlugs = slug === 'fut7-boavista-2026' ? ['fut7-boavista-2026', 'teste-2026'] : [slug];
+
+      const { data: tournamentRows, error: tournamentError } = await supabase
         .from('tournaments')
         .select('*')
-        .eq('slug', slug)
-        .single();
+        .in('slug', lookupSlugs)
+        .limit(1);
+
+      const tournamentData = tournamentRows?.[0] ?? null;
 
       if (tournamentError || !tournamentData) {
         setErrorMessage('Torneio não encontrado.');
@@ -421,6 +426,12 @@ export default function PublicTournamentPage() {
     },
     [slug]
   );
+
+  useEffect(() => {
+    if (slug === 'teste-2026') {
+      navigate('/torneios/fut7-boavista-2026', { replace: true });
+    }
+  }, [navigate, slug]);
 
   useEffect(() => {
     loadTournament(true);
