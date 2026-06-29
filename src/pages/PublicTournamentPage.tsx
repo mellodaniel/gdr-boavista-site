@@ -681,20 +681,20 @@ export default function PublicTournamentPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <section className="bg-gradient-to-br from-[#24170f] via-[#3b2118] to-red-900 px-6 py-14 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-slate-50">
+      <section className="bg-gradient-to-br from-[#24170f] via-[#3b2118] to-red-900 px-4 py-8 text-white sm:px-6 md:py-14">
         <div className="mx-auto max-w-6xl">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-red-100">GDR Boavista</p>
-          <h1 className="mt-3 text-4xl font-bold md:text-5xl">{tournament.name}</h1>
+          <h1 className="mt-3 text-3xl font-bold leading-tight md:text-5xl">{tournament.name}</h1>
 
-          <div className="mt-6 flex flex-wrap gap-3 text-sm">
+          <div className="mt-5 flex flex-wrap gap-2 text-xs sm:text-sm md:gap-3">
             {tournament.age_group && <span className="rounded-full bg-white/15 px-4 py-2">{tournament.age_group}</span>}
             {tournament.football_type && <span className="rounded-full bg-white/15 px-4 py-2">{tournament.football_type}</span>}
             {tournament.location && <span className="rounded-full bg-white/15 px-4 py-2">{tournament.location}</span>}
             {tournament.edition && <span className="rounded-full bg-white/15 px-4 py-2">Edição {tournament.edition}</span>}
           </div>
 
-          <div className="mt-8 rounded-2xl bg-white/10 p-4 text-sm text-red-50 ring-1 ring-white/20">
+          <div className="mt-6 rounded-2xl bg-white/10 p-4 text-sm text-red-50 ring-1 ring-white/20 md:mt-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="font-semibold text-white">Atualização dos dados</p>
@@ -708,7 +708,7 @@ export default function PublicTournamentPage() {
                 type="button"
                 onClick={() => loadTournament(false)}
                 disabled={refreshing}
-                className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-red-800 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-red-800 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
               >
                 {refreshing ? 'A atualizar...' : 'Atualizar dados'}
               </button>
@@ -717,24 +717,35 @@ export default function PublicTournamentPage() {
         </div>
       </section>
 
-      <section className="px-6 py-10">
-        <div className="mx-auto max-w-6xl space-y-8">
-          <div className="grid gap-4 md:grid-cols-4">
+      <nav className="sticky top-0 z-20 border-y border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur sm:px-6">
+        <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto pb-1 text-xs font-bold uppercase tracking-wide text-slate-700 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <a href="#jogos" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Próximos</a>
+          <a href="#calendario" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Calendário</a>
+          <a href="#classificacao" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Classificação</a>
+          <a href="#equipas" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Equipas</a>
+          <a href="#local" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Local</a>
+          <a href="#parceiros" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Parceiros</a>
+        </div>
+      </nav>
+
+      <section className="px-4 py-6 sm:px-6 md:py-10">
+        <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             <SummaryCard label="Equipas" value={teams.length} />
             <SummaryCard label="Grupos" value={groups.length} />
             <SummaryCard label="Jogos" value={matches.length} />
             <SummaryCard label="Resultados" value={finishedMatches.length} />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="rounded-2xl bg-white p-6 shadow-sm lg:col-span-2">
+          <div id="local" className="scroll-mt-20 grid gap-4 lg:grid-cols-3 md:gap-6">
+            <div className="rounded-2xl bg-white p-5 shadow-sm md:p-6 lg:col-span-2">
               <h2 className="text-2xl font-bold text-slate-900">Informação do torneio</h2>
               <p className="mt-4 whitespace-pre-line text-slate-600">
                 {tournament.description || 'Informação do torneio em breve.'}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="rounded-2xl bg-white p-5 shadow-sm md:p-6">
               <h2 className="text-xl font-bold text-slate-900">Contactos e local</h2>
               <div className="mt-4 space-y-3 text-sm text-slate-600">
                 <p><strong className="text-slate-900">Local:</strong> {tournament.location || '-'}</p>
@@ -745,13 +756,13 @@ export default function PublicTournamentPage() {
             </div>
           </div>
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <section id="jogos" className="scroll-mt-20 rounded-2xl bg-white p-5 shadow-sm md:p-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Ao vivo</p>
-                <h2 className="text-2xl font-bold text-slate-900">Próximos jogos</h2>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Ao vivo</p>
+                <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Próximos jogos</h2>
               </div>
-              <p className="text-sm text-slate-500">Jogos por disputar, ordenados por data e hora.</p>
+              <p className="text-sm text-slate-500">Os próximos jogos aparecem primeiro para consulta rápida no telemóvel.</p>
             </div>
 
             {upcomingMatches.length === 0 ? (
@@ -772,11 +783,18 @@ export default function PublicTournamentPage() {
             )}
           </section>
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <details className="group rounded-2xl bg-white p-5 shadow-sm md:p-6">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Resultados</p>
-                <h2 className="text-2xl font-bold text-slate-900">Últimos resultados</h2>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Resultados</p>
+                <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Últimos resultados</h2>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 group-open:hidden">Abrir</span>
+              <span className="hidden rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700 group-open:inline">Fechar</span>
+            </summary>
+
+            <div className="mt-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div className="sr-only">
               </div>
               <p className="text-sm text-slate-500">Jogos com resultado preenchido mais recentemente no calendário.</p>
             </div>
@@ -797,13 +815,19 @@ export default function PublicTournamentPage() {
                 ))}
               </div>
             )}
-          </section>
+          </details>
 
-          <section className="rounded-2xl bg-white shadow-sm">
-            <div className="border-b border-slate-200 p-6">
-              <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Calendário</p>
-              <h2 className="text-2xl font-bold text-slate-900">Jogos e resultados</h2>
-              <p className="mt-2 text-sm text-slate-600">Tabela pública para equipas, atletas, famílias e adeptos acompanharem o torneio.</p>
+          <details id="calendario" className="group scroll-mt-20 rounded-2xl bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 border-b border-slate-200 p-5 md:p-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Calendário</p>
+                <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Jogos e resultados</h2>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 group-open:hidden">Abrir</span>
+              <span className="hidden rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700 group-open:inline">Fechar</span>
+            </summary>
+            <div className="p-5 md:p-6">
+              <p className="text-sm text-slate-600">Tabela pública para equipas, atletas, famílias e adeptos acompanharem o torneio.</p>
 
               <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-900">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -892,55 +916,97 @@ export default function PublicTournamentPage() {
                         Ainda não existem jogos agendados para este dia. A organização pode distribuir jogos para esta data no gestor de torneios.
                       </div>
                     ) : (
-                      <div className="mt-4 overflow-x-auto">
-                        <table className="w-full min-w-[920px] text-left text-sm">
-                          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                            <tr>
-                              <th className="px-4 py-3">Jogo</th>
-                              <th className="px-4 py-3">Hora</th>
-                              <th className="px-4 py-3">Campo</th>
-                              <th className="px-4 py-3">Grupo/Fase</th>
-                              <th className="px-4 py-3 text-center">Confronto</th>
-                              <th className="px-4 py-3">Estado</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200">
-                            {group.matches.map((match) => (
-                              <tr key={match.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-4 font-semibold text-slate-900">Jogo {match.match_number}</td>
-                                <td className="px-4 py-4 text-slate-700">{formatTime(match.match_time)}</td>
-                                <td className="px-4 py-4 text-slate-700">{getFieldName(match.field_id)}</td>
-                                <td className="px-4 py-4 text-slate-700">
-                                  <div className="font-semibold">{getGroupName(match.group_id)}</div>
-                                  <div className="text-xs text-slate-500">{phaseLabels[match.phase] || match.phase}</div>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-                                    <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'a')}</span>
-                                    <span className="rounded-xl bg-slate-100 px-4 py-2 font-bold text-slate-900">
-                                      {formatMatchResult(match)}
-                                    </span>
-                                    <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'b')}</span>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                                    {statusLabels[match.status] || match.status}
-                                  </span>
-                                </td>
+                      <>
+                        <div className="mt-4 grid gap-3 lg:hidden">
+                          {group.matches.map((match) => (
+                            <div key={match.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-xs font-bold uppercase tracking-wide text-red-700">Jogo {match.match_number}</p>
+                                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatTime(match.match_time)}</p>
+                                </div>
+                                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
+                                  {statusLabels[match.status] || match.status}
+                                </span>
+                              </div>
+
+                              <div className="mt-4 space-y-3">
+                                <div className="rounded-xl bg-white p-3 text-center shadow-sm">
+                                  <p className="text-sm font-bold text-slate-900">{getMatchTeamName(match, 'a')}</p>
+                                  <p className="my-2 text-lg font-black text-red-700">{formatMatchResult(match)}</p>
+                                  <p className="text-sm font-bold text-slate-900">{getMatchTeamName(match, 'b')}</p>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                                  <span className="rounded-full bg-white px-3 py-1 font-semibold">{getFieldName(match.field_id)}</span>
+                                  <span className="rounded-full bg-white px-3 py-1 font-semibold">{getGroupName(match.group_id)}</span>
+                                  <span className="rounded-full bg-white px-3 py-1 font-semibold">{phaseLabels[match.phase] || match.phase}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 hidden overflow-x-auto lg:block">
+                          <table className="w-full min-w-[920px] text-left text-sm">
+                            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                              <tr>
+                                <th className="px-4 py-3">Jogo</th>
+                                <th className="px-4 py-3">Hora</th>
+                                <th className="px-4 py-3">Campo</th>
+                                <th className="px-4 py-3">Grupo/Fase</th>
+                                <th className="px-4 py-3 text-center">Confronto</th>
+                                <th className="px-4 py-3">Estado</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                              {group.matches.map((match) => (
+                                <tr key={match.id} className="hover:bg-slate-50">
+                                  <td className="px-4 py-4 font-semibold text-slate-900">Jogo {match.match_number}</td>
+                                  <td className="px-4 py-4 text-slate-700">{formatTime(match.match_time)}</td>
+                                  <td className="px-4 py-4 text-slate-700">{getFieldName(match.field_id)}</td>
+                                  <td className="px-4 py-4 text-slate-700">
+                                    <div className="font-semibold">{getGroupName(match.group_id)}</div>
+                                    <div className="text-xs text-slate-500">{phaseLabels[match.phase] || match.phase}</div>
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
+                                      <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'a')}</span>
+                                      <span className="rounded-xl bg-slate-100 px-4 py-2 font-bold text-slate-900">
+                                        {formatMatchResult(match)}
+                                      </span>
+                                      <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'b')}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                      {statusLabels[match.status] || match.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
                     )}
                   </div>
                 ))}
               </div>
             )}
-          </section>
+          </details>
 
-          <section className="grid gap-6 lg:grid-cols-2">
+          <details id="classificacao" className="group scroll-mt-20 rounded-2xl bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 border-b border-slate-200 p-5 md:p-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Classificação</p>
+                <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Grupos e pontuação</h2>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 group-open:hidden">Abrir</span>
+              <span className="hidden rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700 group-open:inline">Fechar</span>
+            </summary>
+
+            <section className="grid gap-4 p-5 xl:grid-cols-2 md:gap-6 md:p-6">
             {groups.map((group) => {
               const rows = standingsByGroup.get(group.id) || [];
 
@@ -954,49 +1020,88 @@ export default function PublicTournamentPage() {
                   {rows.length === 0 ? (
                     <p className="p-6 text-sm text-slate-600">Ainda não existem equipas neste grupo.</p>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[640px] text-left text-sm">
-                        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                          <tr>
-                            <th className="px-4 py-3">#</th>
-                            <th className="px-4 py-3">Equipa</th>
-                            <th className="px-4 py-3 text-center">Pts</th>
-                            <th className="px-4 py-3 text-center">J</th>
-                            <th className="px-4 py-3 text-center">V</th>
-                            <th className="px-4 py-3 text-center">E</th>
-                            <th className="px-4 py-3 text-center">D</th>
-                            <th className="px-4 py-3 text-center">GM</th>
-                            <th className="px-4 py-3 text-center">GS</th>
-                            <th className="px-4 py-3 text-center">DG</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          {rows.map((row, index) => (
-                            <tr key={row.team.id}>
-                              <td className="px-4 py-3 font-semibold text-slate-500">{index + 1}</td>
-                              <td className="px-4 py-3 font-semibold text-slate-900">{row.team.name}</td>
-                              <td className="px-4 py-3 text-center text-lg font-bold text-slate-900">{row.points}</td>
-                              <td className="px-4 py-3 text-center">{row.played}</td>
-                              <td className="px-4 py-3 text-center">{row.wins}</td>
-                              <td className="px-4 py-3 text-center">{row.draws}</td>
-                              <td className="px-4 py-3 text-center">{row.losses}</td>
-                              <td className="px-4 py-3 text-center">{row.goalsFor}</td>
-                              <td className="px-4 py-3 text-center">{row.goalsAgainst}</td>
-                              <td className="px-4 py-3 text-center">{row.goalDifference}</td>
+                    <>
+                      <div className="grid gap-3 p-4 lg:hidden">
+                        {rows.map((row, index) => (
+                          <div key={row.team.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">#{index + 1}</p>
+                                <p className="truncate text-base font-black text-slate-900">{row.team.name}</p>
+                              </div>
+                              <div className="rounded-2xl bg-white px-4 py-2 text-center shadow-sm">
+                                <p className="text-2xl font-black text-red-700">{row.points}</p>
+                                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">pts</p>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs text-slate-600">
+                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.played}</strong>J</div>
+                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.wins}</strong>V</div>
+                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.draws}</strong>E</div>
+                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.losses}</strong>D</div>
+                            </div>
+
+                            <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs text-slate-600">
+                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalsFor}</strong>GM</div>
+                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalsAgainst}</strong>GS</div>
+                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalDifference}</strong>DG</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="hidden overflow-x-auto lg:block">
+                        <table className="w-full min-w-[640px] text-left text-sm">
+                          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr>
+                              <th className="px-4 py-3">#</th>
+                              <th className="px-4 py-3">Equipa</th>
+                              <th className="px-4 py-3 text-center">Pts</th>
+                              <th className="px-4 py-3 text-center">J</th>
+                              <th className="px-4 py-3 text-center">V</th>
+                              <th className="px-4 py-3 text-center">E</th>
+                              <th className="px-4 py-3 text-center">D</th>
+                              <th className="px-4 py-3 text-center">GM</th>
+                              <th className="px-4 py-3 text-center">GS</th>
+                              <th className="px-4 py-3 text-center">DG</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200">
+                            {rows.map((row, index) => (
+                              <tr key={row.team.id}>
+                                <td className="px-4 py-3 font-semibold text-slate-500">{index + 1}</td>
+                                <td className="px-4 py-3 font-semibold text-slate-900">{row.team.name}</td>
+                                <td className="px-4 py-3 text-center text-lg font-bold text-slate-900">{row.points}</td>
+                                <td className="px-4 py-3 text-center">{row.played}</td>
+                                <td className="px-4 py-3 text-center">{row.wins}</td>
+                                <td className="px-4 py-3 text-center">{row.draws}</td>
+                                <td className="px-4 py-3 text-center">{row.losses}</td>
+                                <td className="px-4 py-3 text-center">{row.goalsFor}</td>
+                                <td className="px-4 py-3 text-center">{row.goalsAgainst}</td>
+                                <td className="px-4 py-3 text-center">{row.goalDifference}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </div>
               );
             })}
-          </section>
+            </section>
+          </details>
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Participantes</p>
-            <h2 className="text-2xl font-bold text-slate-900">Equipas</h2>
+          <details id="equipas" className="group scroll-mt-20 rounded-2xl bg-white p-5 shadow-sm md:p-6">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Participantes</p>
+                <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Equipas</h2>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 group-open:hidden">Abrir</span>
+              <span className="hidden rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700 group-open:inline">Fechar</span>
+            </summary>
 
             {teams.length === 0 ? (
               <p className="mt-4 text-sm text-slate-600">Ainda não existem equipas publicadas para este torneio.</p>
@@ -1010,23 +1115,33 @@ export default function PublicTournamentPage() {
                 ))}
               </div>
             )}
-          </section>
+          </details>
 
           <MemberCallToAction />
 
-          <SponsorSection
-            eyebrow="Parceiros do torneio"
-            title="Parceiros e apoiadores do torneio"
-            description="Marcas, empresas e entidades associadas especificamente a este torneio."
-            sponsors={tournamentSponsors}
-          />
+          <section id="parceiros" className="scroll-mt-20 rounded-2xl bg-white p-5 shadow-sm md:p-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Apoios</p>
+              <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Parceiros</h2>
+              <p className="mt-2 text-sm text-slate-500">Parceiros e apoiadores do torneio e do GDR Boavista.</p>
+            </div>
 
-          <SponsorSection
-            eyebrow="Parceiros do clube"
-            title="Parceiros do GDR Boavista"
-            description="Marcas e entidades que apoiam o clube. Clica no logo para abrir o website do parceiro."
-            sponsors={clubSponsors}
-          />
+            <div className="mt-5 space-y-6">
+              <SponsorSection
+                eyebrow="Parceiros do torneio"
+                title="Parceiros e apoiadores do torneio"
+                description="Marcas, empresas e entidades associadas especificamente a este torneio."
+                sponsors={tournamentSponsors}
+              />
+
+              <SponsorSection
+                eyebrow="Parceiros do clube"
+                title="Parceiros do GDR Boavista"
+                description="Marcas e entidades que apoiam o clube. Clica no logo para abrir o website do parceiro."
+                sponsors={clubSponsors}
+              />
+            </div>
+          </section>
         </div>
       </section>
     </main>
@@ -1189,11 +1304,11 @@ function MatchCard({
       </div>
 
       <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-        <span className="font-bold text-slate-900">{getMatchTeamName(match, 'a')}</span>
-        <span className="rounded-xl bg-white px-4 py-2 font-bold text-slate-900 shadow-sm">
+        <span className="min-w-0 break-words text-sm font-bold leading-snug text-slate-900 md:text-base">{getMatchTeamName(match, 'a')}</span>
+        <span className="shrink-0 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-900 shadow-sm md:px-4 md:text-base">
           {formatMatchResult(match)}
         </span>
-        <span className="font-bold text-slate-900">{getMatchTeamName(match, 'b')}</span>
+        <span className="min-w-0 break-words text-sm font-bold leading-snug text-slate-900 md:text-base">{getMatchTeamName(match, 'b')}</span>
       </div>
 
       <p className="mt-4 text-center text-xs text-slate-500">
