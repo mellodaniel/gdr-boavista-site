@@ -9,6 +9,7 @@ import {
   QrCode,
   ShieldCheck,
   Smartphone,
+  ThumbsUp,
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -201,10 +202,36 @@ type AgendaItem =
       data: GdrbTournament;
     };
 
+
+type GdrbFacebookPost = {
+  id: string;
+  title: string;
+  description: string | null;
+  facebook_url: string;
+  image_url: string | null;
+  published_at: string | null;
+  is_active: boolean;
+  sort_order: number | null;
+  created_at: string | null;
+};
+
+function formatFacebookPostDate(date: string | null) {
+  if (!date) {
+    return 'Publicação do Facebook';
+  }
+
+  return new Date(date).toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export function HomePage() {
   const [matches, setMatches] = useState<GdrbMatch[]>([]);
   const [tournaments, setTournaments] = useState<GdrbTournament[]>([]);
   const [news, setNews] = useState<GdrbNews[]>([]);
+  const [facebookPosts, setFacebookPosts] = useState<GdrbFacebookPost[]>([]);
   const [sponsors, setSponsors] = useState<GdrbSponsor[]>([]);
   const [isLoadingAgenda, setIsLoadingAgenda] = useState(true);
 
@@ -212,7 +239,13 @@ export function HomePage() {
     async function loadHomeData() {
       setIsLoadingAgenda(true);
 
-      const [matchesResult, tournamentsResult, newsResult, sponsorsResult] = await Promise.all([
+      const [
+        matchesResult,
+        tournamentsResult,
+        newsResult,
+        facebookPostsResult,
+        sponsorsResult,
+      ] = await Promise.all([
         supabase
           .from('gdrb_matches')
           .select('*')
@@ -239,6 +272,15 @@ export function HomePage() {
           .limit(12),
 
         supabase
+          .from('gdrb_facebook_posts')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true })
+          .order('published_at', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .limit(6),
+
+        supabase
           .from('gdrb_sponsors')
           .select('*')
           .eq('is_active', true)
@@ -259,6 +301,10 @@ export function HomePage() {
         console.error('Erro ao carregar notícias:', newsResult.error);
       }
 
+      if (facebookPostsResult.error) {
+        console.error('Erro ao carregar publicações do Facebook:', facebookPostsResult.error);
+      }
+
       if (sponsorsResult.error) {
         console.error('Erro ao carregar parceiros:', sponsorsResult.error);
       }
@@ -266,6 +312,7 @@ export function HomePage() {
       setMatches(matchesResult.data ?? []);
       setTournaments(tournamentsResult.data ?? []);
       setNews(newsResult.data ?? []);
+      setFacebookPosts(facebookPostsResult.data ?? []);
       setSponsors(sponsorsResult.data ?? []);
       setIsLoadingAgenda(false);
     }
@@ -738,6 +785,125 @@ export function HomePage() {
                     </div>
                   </article>
                 </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
+                Redes sociais
+              </p>
+
+              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
+                Boavista no Facebook
+              </h2>
+            </div>
+
+            <a
+              href="https://www.facebook.com/G.D.R.BoaVista"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-[#24180f] px-5 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+            >
+              Ver página oficial
+              <ExternalLink size={16} />
+            </a>
+          </div>
+
+          {facebookPosts.length === 0 ? (
+            <div className="mt-10 rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-10 text-center">
+              <Newspaper className="mx-auto text-red-700" size={32} />
+
+              <h3 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
+                Publicações em preparação
+              </h3>
+
+              <p className="mt-3 text-zinc-500">
+                As publicações selecionadas no admin aparecem automaticamente aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-10 grid gap-6 md:grid-cols-3">
+              {facebookPosts.map((post) => (
+                <article
+                  key={post.id}
+                  className="group overflow-hidden rounded-sm border border-zinc-200 bg-[#f6f2ec] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="h-1.5 bg-red-700" />
+
+                  {post.image_url ? (
+                    <div className="h-56 overflow-hidden bg-zinc-200">
+                      <img
+                        src={post.image_url}
+                        alt={post.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-56 items-center justify-center bg-[#24180f] text-white">
+                      <div className="text-center">
+                        <img
+                          src="/logo-gdr-boavista-header-256.png"
+                          alt="GDR Boavista"
+                          className="mx-auto h-20 w-20 object-contain"
+                        />
+                        <p className="mt-4 text-xs font-black uppercase tracking-[0.28em] text-red-300">
+                          Facebook oficial
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-7">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                        Facebook
+                      </span>
+
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-600">
+                        {formatFacebookPostDate(post.published_at)}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-5 font-serif text-3xl font-light leading-tight text-[#24180f]">
+                      {post.title}
+                    </h3>
+
+                    {post.description && (
+                      <p className="mt-4 text-sm leading-7 text-zinc-600">
+                        {post.description}
+                      </p>
+                    )}
+
+                    <div className="mt-7 flex flex-wrap gap-3 border-t border-zinc-200 pt-5">
+                      <a
+                        href={post.facebook_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-red-800"
+                      >
+                        <ThumbsUp size={15} />
+                        Gosto / comentar
+                      </a>
+
+                      <a
+                        href={post.facebook_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-md bg-[#24180f] px-4 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-zinc-900"
+                      >
+                        Ver publicação
+                        <ExternalLink size={15} />
+                      </a>
+                    </div>
+                  </div>
+                </article>
               ))}
             </div>
           )}
