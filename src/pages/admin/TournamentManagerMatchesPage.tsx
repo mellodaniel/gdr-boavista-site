@@ -14,6 +14,8 @@ import type {
   TournamentManagerGroup,
   TournamentManagerGroupTeam,
   TournamentManagerMatch,
+  TournamentManagerMatchGoal,
+  TournamentManagerPlayer,
   TournamentManagerRule,
   TournamentManagerTeam,
   TournamentManagerTournament,
@@ -197,6 +199,8 @@ export default function TournamentManagerMatchesPage() {
   const [assignments, setAssignments] = useState<TournamentManagerGroupTeam[]>([]);
   const [rules, setRules] = useState<TournamentManagerRule | null>(null);
   const [matches, setMatches] = useState<TournamentManagerMatch[]>([]);
+  const [players, setPlayers] = useState<TournamentManagerPlayer[]>([]);
+  const [matchGoals, setMatchGoals] = useState<TournamentManagerMatchGoal[]>([]);
   const [drafts, setDrafts] = useState<Record<string, MatchDraft>>({});
 
   const [loading, setLoading] = useState(true);
@@ -231,6 +235,30 @@ export default function TournamentManagerMatchesPage() {
       return acc;
     }, {});
   }, [orderedTeams]);
+
+  const playersByTeamId = useMemo(() => {
+    return players.reduce<Record<string, TournamentManagerPlayer[]>>((acc, player) => {
+      if (!player.is_active) return acc;
+      if (!acc[player.team_id]) acc[player.team_id] = [];
+      acc[player.team_id].push(player);
+      return acc;
+    }, {});
+  }, [players]);
+
+  const playerById = useMemo(() => {
+    return players.reduce<Record<string, TournamentManagerPlayer>>((acc, player) => {
+      acc[player.id] = player;
+      return acc;
+    }, {});
+  }, [players]);
+
+  const goalsByMatchId = useMemo(() => {
+    return matchGoals.reduce<Record<string, TournamentManagerMatchGoal[]>>((acc, goal) => {
+      if (!acc[goal.match_id]) acc[goal.match_id] = [];
+      acc[goal.match_id].push(goal);
+      return acc;
+    }, {});
+  }, [matchGoals]);
 
   const fieldById = useMemo(() => {
     return orderedFields.reduce<Record<string, TournamentManagerField>>((acc, field) => {
@@ -378,6 +406,8 @@ export default function TournamentManagerMatchesPage() {
       assignmentsResult,
       rulesResult,
       matchesResult,
+      playersResult,
+      matchGoalsResult,
     ] = await Promise.all([
       supabase.from('tournaments').select('*').eq('id', id).single(),
       supabase.from('tournament_days').select('*').eq('tournament_id', id).order('day_date', { ascending: true }),
@@ -387,6 +417,18 @@ export default function TournamentManagerMatchesPage() {
       supabase.from('tournament_group_teams').select('*').eq('tournament_id', id).order('sort_order', { ascending: true }),
       supabase.from('tournament_rules').select('*').eq('tournament_id', id).maybeSingle(),
       supabase.from('tournament_matches').select('*').eq('tournament_id', id).order('match_number', { ascending: true }),
+      supabase
+        .from('tournament_players')
+        .select('*')
+        .eq('tournament_id', id)
+        .order('team_id', { ascending: true })
+        .order('shirt_number', { ascending: true, nullsFirst: false })
+        .order('name', { ascending: true }),
+      supabase
+        .from('tournament_match_goals')
+        .select('*')
+        .eq('tournament_id', id)
+        .order('created_at', { ascending: true }),
     ]);
 
     if (tournamentResult.error) {
@@ -402,7 +444,9 @@ export default function TournamentManagerMatchesPage() {
       groupsResult.error ||
       assignmentsResult.error ||
       rulesResult.error ||
-      matchesResult.error
+      matchesResult.error ||
+      playersResult.error ||
+      matchGoalsResult.error
     ) {
       setErrorMessage('Não foi possível carregar todos os dados necessários para os jogos.');
       setLoading(false);
@@ -418,6 +462,8 @@ export default function TournamentManagerMatchesPage() {
     setAssignments(assignmentsResult.data || []);
     setRules(rulesResult.data || null);
     setMatches(loadedMatches);
+    setPlayers(playersResult.data || []);
+    setMatchGoals(matchGoalsResult.data || []);
     setDrafts(loadedMatches.reduce<Record<string, MatchDraft>>((acc, match) => {
       acc[match.id] = matchToDraft(match);
       return acc;
@@ -663,6 +709,52 @@ export default function TournamentManagerMatchesPage() {
     await loadData();
   }
 
+  async function addGoal(match: TournamentManagerMatch, teamId: string | null, playerId: string) {
+    if (!id || !teamId || !playerId) {
+      setErrorMessage('Seleciona uma equipa e um jogador para registar o golo.');
+      return;
+    }
+
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const { error } = await supabase.from('tournament_match_goals').insert({
+      tournament_id: id,
+      match_id: match.id,
+      team_id: teamId,
+      player_id: playerId,
+      is_own_goal: false,
+    });
+
+    if (error) {
+      setErrorMessage('Não foi possível registar o marcador. Confirma se o SQL dos marcadores foi executado.');
+      return;
+    }
+
+    setSuccessMessage('Marcador adicionado ao jogo.');
+    await loadData();
+  }
+
+  async function removeGoal(goal: TournamentManagerMatchGoal) {
+    const playerName = playerById[goal.player_id]?.name || 'este marcador';
+    const confirmed = window.confirm(`Queres remover o golo de ${playerName}?`);
+
+    if (!confirmed) return;
+
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const { error } = await supabase.from('tournament_match_goals').delete().eq('id', goal.id);
+
+    if (error) {
+      setErrorMessage('Não foi possível remover o marcador.');
+      return;
+    }
+
+    setSuccessMessage('Marcador removido do jogo.');
+    await loadData();
+  }
+
   async function saveMatch(match: TournamentManagerMatch) {
     const draft = drafts[match.id];
     if (!draft) return;
@@ -849,6 +941,13 @@ export default function TournamentManagerMatchesPage() {
             const group = match.group_id ? groupById[match.group_id] : null;
             const teamAName = getDraftTeamName(draft, 'a', teamById);
             const teamBName = getDraftTeamName(draft, 'b', teamById);
+            const matchGoalList = goalsByMatchId[match.id] || [];
+            const teamAGoals = match.team_a_id ? matchGoalList.filter((goal) => goal.team_id === match.team_a_id) : [];
+            const teamBGoals = match.team_b_id ? matchGoalList.filter((goal) => goal.team_id === match.team_b_id) : [];
+            const expectedScoreA = draft.score_a === '' ? null : Number(draft.score_a);
+            const expectedScoreB = draft.score_b === '' ? null : Number(draft.score_b);
+            const hasGoalWarningA = expectedScoreA !== null && expectedScoreA !== teamAGoals.length;
+            const hasGoalWarningB = expectedScoreB !== null && expectedScoreB !== teamBGoals.length;
 
             return (
               <article key={match.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -1029,11 +1128,197 @@ export default function TournamentManagerMatchesPage() {
                     </Field>
                   </div>
                 </div>
+
+                <MatchScorersEditor
+                  match={match}
+                  teamAName={teamAName}
+                  teamBName={teamBName}
+                  teamAPlayers={match.team_a_id ? playersByTeamId[match.team_a_id] || [] : []}
+                  teamBPlayers={match.team_b_id ? playersByTeamId[match.team_b_id] || [] : []}
+                  teamAGoals={teamAGoals}
+                  teamBGoals={teamBGoals}
+                  playerById={playerById}
+                  expectedScoreA={expectedScoreA}
+                  expectedScoreB={expectedScoreB}
+                  hasGoalWarningA={hasGoalWarningA}
+                  hasGoalWarningB={hasGoalWarningB}
+                  onAddGoal={addGoal}
+                  onRemoveGoal={removeGoal}
+                />
               </article>
             );
           })
         )}
       </section>
+    </div>
+  );
+}
+
+function MatchScorersEditor({
+  match,
+  teamAName,
+  teamBName,
+  teamAPlayers,
+  teamBPlayers,
+  teamAGoals,
+  teamBGoals,
+  playerById,
+  expectedScoreA,
+  expectedScoreB,
+  hasGoalWarningA,
+  hasGoalWarningB,
+  onAddGoal,
+  onRemoveGoal,
+}: {
+  match: TournamentManagerMatch;
+  teamAName: string;
+  teamBName: string;
+  teamAPlayers: TournamentManagerPlayer[];
+  teamBPlayers: TournamentManagerPlayer[];
+  teamAGoals: TournamentManagerMatchGoal[];
+  teamBGoals: TournamentManagerMatchGoal[];
+  playerById: Record<string, TournamentManagerPlayer>;
+  expectedScoreA: number | null;
+  expectedScoreB: number | null;
+  hasGoalWarningA: boolean;
+  hasGoalWarningB: boolean;
+  onAddGoal: (match: TournamentManagerMatch, teamId: string | null, playerId: string) => void;
+  onRemoveGoal: (goal: TournamentManagerMatchGoal) => void;
+}) {
+  const [selectedPlayerA, setSelectedPlayerA] = useState('');
+  const [selectedPlayerB, setSelectedPlayerB] = useState('');
+
+  function handleAddA() {
+    onAddGoal(match, match.team_a_id, selectedPlayerA);
+    setSelectedPlayerA('');
+  }
+
+  function handleAddB() {
+    onAddGoal(match, match.team_b_id, selectedPlayerB);
+    setSelectedPlayerB('');
+  }
+
+  return (
+    <div className="border-t border-slate-200 bg-white p-4">
+      <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h4 className="text-sm font-black uppercase tracking-wide text-slate-700">Marcadores do jogo</h4>
+          <p className="text-xs text-slate-500">Seleciona os jogadores que marcaram. Esta informação aparece no site público e alimenta o melhor marcador.</p>
+        </div>
+      </div>
+
+      {(hasGoalWarningA || hasGoalWarningB) && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+          Atenção: o resultado manual e o número de marcadores ainda não coincidem.
+          {hasGoalWarningA && <span> {teamAName}: resultado {expectedScoreA}, marcadores {teamAGoals.length}.</span>}
+          {hasGoalWarningB && <span> {teamBName}: resultado {expectedScoreB}, marcadores {teamBGoals.length}.</span>}
+        </div>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ScorersTeamPanel
+          title={teamAName}
+          teamId={match.team_a_id}
+          players={teamAPlayers}
+          goals={teamAGoals}
+          playerById={playerById}
+          selectedPlayerId={selectedPlayerA}
+          onSelectedPlayerChange={setSelectedPlayerA}
+          onAddGoal={handleAddA}
+          onRemoveGoal={onRemoveGoal}
+        />
+
+        <ScorersTeamPanel
+          title={teamBName}
+          teamId={match.team_b_id}
+          players={teamBPlayers}
+          goals={teamBGoals}
+          playerById={playerById}
+          selectedPlayerId={selectedPlayerB}
+          onSelectedPlayerChange={setSelectedPlayerB}
+          onAddGoal={handleAddB}
+          onRemoveGoal={onRemoveGoal}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ScorersTeamPanel({
+  title,
+  teamId,
+  players,
+  goals,
+  playerById,
+  selectedPlayerId,
+  onSelectedPlayerChange,
+  onAddGoal,
+  onRemoveGoal,
+}: {
+  title: string;
+  teamId: string | null;
+  players: TournamentManagerPlayer[];
+  goals: TournamentManagerMatchGoal[];
+  playerById: Record<string, TournamentManagerPlayer>;
+  selectedPlayerId: string;
+  onSelectedPlayerChange: (value: string) => void;
+  onAddGoal: () => void;
+  onRemoveGoal: (goal: TournamentManagerMatchGoal) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h5 className="font-bold text-slate-900">{title}</h5>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600">{goals.length} golo(s)</span>
+      </div>
+
+      {!teamId ? (
+        <p className="mt-4 text-sm text-slate-500">Seleciona primeiro a equipa neste jogo.</p>
+      ) : players.length === 0 ? (
+        <p className="mt-4 text-sm text-slate-500">Esta equipa ainda não tem jogadores. Adiciona-os na página de equipas.</p>
+      ) : (
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <select
+            value={selectedPlayerId}
+            onChange={(event) => onSelectedPlayerChange(event.target.value)}
+            className="input-control"
+          >
+            <option value="">Selecionar jogador</option>
+            {players.map((player) => (
+              <option key={player.id} value={player.id}>
+                {player.shirt_number ? `#${player.shirt_number} · ` : ''}{player.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={onAddGoal}
+            disabled={!selectedPlayerId}
+            className="rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Adicionar golo
+          </button>
+        </div>
+      )}
+
+      {goals.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {goals.map((goal) => {
+            const player = playerById[goal.player_id];
+            return (
+              <button
+                key={goal.id}
+                type="button"
+                onClick={() => onRemoveGoal(goal)}
+                className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-700"
+                title="Remover este golo"
+              >
+                ⚽ {player?.shirt_number ? `#${player.shirt_number} ` : ''}{player?.name || 'Jogador removido'} ×
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

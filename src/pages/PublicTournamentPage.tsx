@@ -121,6 +121,34 @@ type TournamentSponsor = {
   sort_order: number | null;
 };
 
+type TournamentPlayer = {
+  id: string;
+  tournament_id: string;
+  team_id: string;
+  name: string;
+  shirt_number: number | null;
+  is_active: boolean | null;
+  notes: string | null;
+};
+
+type TournamentMatchGoal = {
+  id: string;
+  tournament_id: string;
+  match_id: string;
+  team_id: string;
+  player_id: string;
+  minute: number | null;
+  is_own_goal: boolean | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type ScorerSummary = {
+  player: TournamentPlayer;
+  team: TournamentTeam | null;
+  goals: number;
+};
+
 type StandingRow = {
   team: TournamentTeam;
   played: number;
@@ -277,6 +305,8 @@ export default function PublicTournamentPage() {
   const [fields, setFields] = useState<TournamentField[]>([]);
   const [days, setDays] = useState<TournamentDay[]>([]);
   const [matches, setMatches] = useState<TournamentMatch[]>([]);
+  const [players, setPlayers] = useState<TournamentPlayer[]>([]);
+  const [matchGoals, setMatchGoals] = useState<TournamentMatchGoal[]>([]);
   const [clubSponsors, setClubSponsors] = useState<ClubSponsor[]>([]);
   const [tournamentSponsors, setTournamentSponsors] = useState<TournamentSponsor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -329,6 +359,8 @@ export default function PublicTournamentPage() {
         setFields([]);
         setDays([]);
         setMatches([]);
+        setPlayers([]);
+        setMatchGoals([]);
         setClubSponsors([]);
         setTournamentSponsors([]);
         setLastUpdatedAt(new Date());
@@ -344,6 +376,8 @@ export default function PublicTournamentPage() {
         fieldsResponse,
         daysResponse,
         matchesResponse,
+        playersResponse,
+        matchGoalsResponse,
         clubSponsorsResponse,
         tournamentSponsorsResponse,
       ] = await Promise.all([
@@ -382,6 +416,19 @@ export default function PublicTournamentPage() {
             .order('match_time', { ascending: true })
             .order('match_number', { ascending: true }),
           supabase
+            .from('tournament_players')
+            .select('*')
+            .eq('tournament_id', loadedTournament.id)
+            .eq('is_active', true)
+            .order('shirt_number', { ascending: true, nullsFirst: false })
+            .order('name', { ascending: true }),
+          supabase
+            .from('tournament_match_goals')
+            .select('*')
+            .eq('tournament_id', loadedTournament.id)
+            .eq('is_own_goal', false)
+            .order('created_at', { ascending: true }),
+          supabase
             .from('gdrb_sponsors')
             .select('*')
             .eq('is_active', true)
@@ -403,6 +450,8 @@ export default function PublicTournamentPage() {
         fieldsResponse.error ||
         daysResponse.error ||
         matchesResponse.error ||
+        playersResponse.error ||
+        matchGoalsResponse.error ||
         clubSponsorsResponse.error ||
         tournamentSponsorsResponse.error
       ) {
@@ -418,6 +467,8 @@ export default function PublicTournamentPage() {
       setFields((fieldsResponse.data || []) as TournamentField[]);
       setDays((daysResponse.data || []) as TournamentDay[]);
       setMatches(((matchesResponse.data || []) as TournamentMatch[]).sort(sortMatches));
+      setPlayers((playersResponse.data || []) as TournamentPlayer[]);
+      setMatchGoals((matchGoalsResponse.data || []) as TournamentMatchGoal[]);
       setClubSponsors((clubSponsorsResponse.data || []) as ClubSponsor[]);
       setTournamentSponsors((tournamentSponsorsResponse.data || []) as TournamentSponsor[]);
       setLastUpdatedAt(new Date());
@@ -440,6 +491,45 @@ export default function PublicTournamentPage() {
   const teamById = useMemo(() => {
     return new Map(teams.map((team) => [team.id, team]));
   }, [teams]);
+
+  const playerById = useMemo(() => {
+    return new Map(players.map((player) => [player.id, player]));
+  }, [players]);
+
+  const goalsByMatchId = useMemo(() => {
+    const map = new Map<string, TournamentMatchGoal[]>();
+    matchGoals.forEach((goal) => {
+      const current = map.get(goal.match_id) || [];
+      current.push(goal);
+      map.set(goal.match_id, current);
+    });
+    return map;
+  }, [matchGoals]);
+
+  const topScorers = useMemo<ScorerSummary[]>(() => {
+    const goalsByPlayer = new Map<string, number>();
+
+    matchGoals.forEach((goal) => {
+      if (goal.is_own_goal) return;
+      goalsByPlayer.set(goal.player_id, (goalsByPlayer.get(goal.player_id) || 0) + 1);
+    });
+
+    return Array.from(goalsByPlayer.entries())
+      .map(([playerId, goals]) => {
+        const player = playerById.get(playerId);
+        if (!player) return null;
+        return {
+          player,
+          team: teamById.get(player.team_id) || null,
+          goals,
+        };
+      })
+      .filter((item): item is ScorerSummary => Boolean(item))
+      .sort((a, b) => {
+        if (b.goals !== a.goals) return b.goals - a.goals;
+        return a.player.name.localeCompare(b.player.name, 'pt');
+      });
+  }, [matchGoals, playerById, teamById]);
 
   const groupById = useMemo(() => {
     return new Map(groups.map((group) => [group.id, group]));
@@ -643,6 +733,11 @@ export default function PublicTournamentPage() {
     return fieldById.get(fieldId)?.name || 'Campo por definir';
   }
 
+  function getMatchGoals(matchId: string) {
+    return goalsByMatchId.get(matchId) || [];
+  }
+
+
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-16">
@@ -722,6 +817,7 @@ export default function PublicTournamentPage() {
           <a href="#jogos" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Próximos</a>
           <a href="#calendario" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Calendário</a>
           <a href="#classificacao" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Classificação</a>
+          <a href="#marcadores" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Marcadores</a>
           <a href="#equipas" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Equipas</a>
           <a href="#local" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Local</a>
           <a href="#parceiros" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Parceiros</a>
@@ -777,6 +873,8 @@ export default function PublicTournamentPage() {
                     getMatchTeamName={getMatchTeamName}
                     getGroupName={getGroupName}
                     getFieldName={getFieldName}
+                    goals={getMatchGoals(match.id)}
+                    playerById={playerById}
                   />
                 ))}
               </div>
@@ -811,6 +909,8 @@ export default function PublicTournamentPage() {
                     getMatchTeamName={getMatchTeamName}
                     getGroupName={getGroupName}
                     getFieldName={getFieldName}
+                    goals={getMatchGoals(match.id)}
+                    playerById={playerById}
                   />
                 ))}
               </div>
@@ -935,6 +1035,12 @@ export default function PublicTournamentPage() {
                                   <p className="text-sm font-bold text-slate-900">{getMatchTeamName(match, 'a')}</p>
                                   <p className="my-2 text-lg font-black text-red-700">{formatMatchResult(match)}</p>
                                   <p className="text-sm font-bold text-slate-900">{getMatchTeamName(match, 'b')}</p>
+                                  <ScorersDisplay
+                                    match={match}
+                                    goals={getMatchGoals(match.id)}
+                                    playerById={playerById}
+                                    teamById={teamById}
+                                  />
                                 </div>
 
                                 <div className="flex flex-wrap gap-2 text-xs text-slate-600">
@@ -977,6 +1083,12 @@ export default function PublicTournamentPage() {
                                       </span>
                                       <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'b')}</span>
                                     </div>
+                                    <ScorersDisplay
+                                      match={match}
+                                      goals={getMatchGoals(match.id)}
+                                      playerById={playerById}
+                                      teamById={teamById}
+                                    />
                                   </td>
                                   <td className="px-4 py-4">
                                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -995,6 +1107,38 @@ export default function PublicTournamentPage() {
               </div>
             )}
           </details>
+
+          <section id="marcadores" className="scroll-mt-20 rounded-2xl bg-white p-5 shadow-sm md:p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Melhor marcador</p>
+                <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Melhores marcadores</h2>
+              </div>
+              <p className="text-sm text-slate-500">Ranking calculado automaticamente pelos golos registados nos jogos.</p>
+            </div>
+
+            {topScorers.length === 0 ? (
+              <p className="mt-5 text-sm text-slate-600">Ainda não existem marcadores registados.</p>
+            ) : (
+              <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {topScorers.slice(0, 12).map((item, index) => (
+                  <div key={item.player.id} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-700 text-sm font-black text-white">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-slate-900">{item.player.name}</p>
+                      <p className="truncate text-sm text-slate-600">{item.team?.name || 'Equipa não identificada'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-black text-slate-900">{item.goals}</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">golo{item.goals === 1 ? '' : 's'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           <details id="classificacao" className="group scroll-mt-20 rounded-2xl bg-white shadow-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 border-b border-slate-200 p-5 md:p-6">
@@ -1278,18 +1422,67 @@ function FilterSelect({
   );
 }
 
+function ScorersDisplay({
+  match,
+  goals,
+  playerById,
+  teamById: _teamById,
+}: {
+  match: TournamentMatch;
+  goals: TournamentMatchGoal[];
+  playerById: Map<string, TournamentPlayer>;
+  teamById: Map<string, TournamentTeam>;
+}) {
+  if (goals.length === 0) return null;
+
+  const goalsByTeam = new Map<string, Map<string, number>>();
+
+  goals.forEach((goal) => {
+    const teamGoals = goalsByTeam.get(goal.team_id) || new Map<string, number>();
+    teamGoals.set(goal.player_id, (teamGoals.get(goal.player_id) || 0) + 1);
+    goalsByTeam.set(goal.team_id, teamGoals);
+  });
+
+  function renderTeamScorers(teamId: string | null) {
+    if (!teamId) return null;
+    const teamGoals = goalsByTeam.get(teamId);
+    if (!teamGoals || teamGoals.size === 0) return null;
+
+    const scorers = Array.from(teamGoals.entries())
+      .map(([playerId, total]) => ({ player: playerById.get(playerId), total }))
+      .filter((item) => Boolean(item.player))
+      .map((item) => `${item.player?.name}${item.total > 1 ? ` ${item.total}` : ''}`)
+      .join(', ');
+
+    if (!scorers) return null;
+
+    return <p className="text-xs text-slate-600">⚽ {scorers}</p>;
+  }
+
+  return (
+    <div className="mt-3 space-y-1 rounded-xl bg-white/70 p-3 text-left">
+      {renderTeamScorers(match.team_a_id)}
+      {renderTeamScorers(match.team_b_id)}
+    </div>
+  );
+}
+
 function MatchCard({
   match,
   getTeamName: _getTeamName,
   getMatchTeamName,
   getGroupName,
   getFieldName,
+  goals,
+  playerById,
 }: {
   match: TournamentMatch;
   getTeamName: (teamId: string | null) => string;
   getMatchTeamName: (match: TournamentMatch, side: 'a' | 'b') => string;
   getGroupName: (groupId: string | null) => string;
   getFieldName: (fieldId: string | null) => string;
+  goals: TournamentMatchGoal[];
+  playerById: Map<string, TournamentPlayer>;
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -1310,6 +1503,13 @@ function MatchCard({
         </span>
         <span className="min-w-0 break-words text-sm font-bold leading-snug text-slate-900 md:text-base">{getMatchTeamName(match, 'b')}</span>
       </div>
+
+      <ScorersDisplay
+        match={match}
+        goals={goals}
+        playerById={playerById}
+        teamById={new Map()}
+      />
 
       <p className="mt-4 text-center text-xs text-slate-500">
         {getGroupName(match.group_id)} · {phaseLabels[match.phase] || match.phase}

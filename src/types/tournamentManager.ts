@@ -169,3 +169,28 @@ export type TournamentManagerSponsor = {
   created_at: string;
   updated_at: string;
 };
+
+
+export type TournamentManagerPlayer = {
+  id: string;
+  tournament_id: string;
+  team_id: string;
+  name: string;
+  shirt_number: number | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TournamentManagerMatchGoal = {
+  id: string;
+  tournament_id: string;
+  match_id: string;
+  team_id: string;
+  player_id: string;
+  minute: number | null;
+  is_own_goal: boolean;
+  notes: string | null;
+  created_at: string;
+};

@@ -386,6 +386,12 @@ export default function TournamentManagerTeamsPage() {
                       >
                         Editar
                       </button>
+                      <Link
+                        to={`/admin/gestor-torneios/${tournament.id}/equipas/${team.id}/jogadores`}
+                        className="rounded-xl border border-green-300 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50"
+                      >
+                        Jogadores
+                      </Link>
                       <button
                         type="button"
                         onClick={() => deleteTeam(team)}
