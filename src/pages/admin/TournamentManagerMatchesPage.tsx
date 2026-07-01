@@ -208,6 +208,7 @@ export default function TournamentManagerMatchesPage() {
   const [updatingFinals, setUpdatingFinals] = useState(false);
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
+  const [savingGoalKey, setSavingGoalKey] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [lastCapacityReport, setLastCapacityReport] = useState<string[]>([]);
@@ -712,27 +713,36 @@ export default function TournamentManagerMatchesPage() {
   async function addGoal(match: TournamentManagerMatch, teamId: string | null, playerId: string) {
     if (!id || !teamId || !playerId) {
       setErrorMessage('Seleciona uma equipa e um jogador para registar o golo.');
-      return;
+      return false;
     }
 
+    const goalKey = `${match.id}:${teamId}`;
+    setSavingGoalKey(goalKey);
     setErrorMessage('');
     setSuccessMessage('');
 
-    const { error } = await supabase.from('tournament_match_goals').insert({
-      tournament_id: id,
-      match_id: match.id,
-      team_id: teamId,
-      player_id: playerId,
-      is_own_goal: false,
-    });
+    const { data, error } = await supabase
+      .from('tournament_match_goals')
+      .insert({
+        tournament_id: id,
+        match_id: match.id,
+        team_id: teamId,
+        player_id: playerId,
+        is_own_goal: false,
+      })
+      .select('*')
+      .single();
 
-    if (error) {
+    setSavingGoalKey(null);
+
+    if (error || !data) {
       setErrorMessage('Não foi possível registar o marcador. Confirma se o SQL dos marcadores foi executado.');
-      return;
+      return false;
     }
 
+    setMatchGoals((currentGoals) => [...currentGoals, data as TournamentManagerMatchGoal]);
     setSuccessMessage('Marcador adicionado ao jogo.');
-    await loadData();
+    return true;
   }
 
   async function removeGoal(goal: TournamentManagerMatchGoal) {
@@ -751,8 +761,8 @@ export default function TournamentManagerMatchesPage() {
       return;
     }
 
+    setMatchGoals((currentGoals) => currentGoals.filter((currentGoal) => currentGoal.id !== goal.id));
     setSuccessMessage('Marcador removido do jogo.');
-    await loadData();
   }
 
   async function saveMatch(match: TournamentManagerMatch) {
@@ -1142,6 +1152,7 @@ export default function TournamentManagerMatchesPage() {
                   expectedScoreB={expectedScoreB}
                   hasGoalWarningA={hasGoalWarningA}
                   hasGoalWarningB={hasGoalWarningB}
+                  savingGoalKey={savingGoalKey}
                   onAddGoal={addGoal}
                   onRemoveGoal={removeGoal}
                 />
@@ -1167,6 +1178,7 @@ function MatchScorersEditor({
   expectedScoreB,
   hasGoalWarningA,
   hasGoalWarningB,
+  savingGoalKey,
   onAddGoal,
   onRemoveGoal,
 }: {
@@ -1182,20 +1194,21 @@ function MatchScorersEditor({
   expectedScoreB: number | null;
   hasGoalWarningA: boolean;
   hasGoalWarningB: boolean;
-  onAddGoal: (match: TournamentManagerMatch, teamId: string | null, playerId: string) => void;
+  savingGoalKey: string | null;
+  onAddGoal: (match: TournamentManagerMatch, teamId: string | null, playerId: string) => Promise<boolean>;
   onRemoveGoal: (goal: TournamentManagerMatchGoal) => void;
 }) {
   const [selectedPlayerA, setSelectedPlayerA] = useState('');
   const [selectedPlayerB, setSelectedPlayerB] = useState('');
 
-  function handleAddA() {
-    onAddGoal(match, match.team_a_id, selectedPlayerA);
-    setSelectedPlayerA('');
+  async function handleAddA() {
+    const added = await onAddGoal(match, match.team_a_id, selectedPlayerA);
+    if (added) setSelectedPlayerA('');
   }
 
-  function handleAddB() {
-    onAddGoal(match, match.team_b_id, selectedPlayerB);
-    setSelectedPlayerB('');
+  async function handleAddB() {
+    const added = await onAddGoal(match, match.team_b_id, selectedPlayerB);
+    if (added) setSelectedPlayerB('');
   }
 
   return (
@@ -1223,6 +1236,7 @@ function MatchScorersEditor({
           goals={teamAGoals}
           playerById={playerById}
           selectedPlayerId={selectedPlayerA}
+          isSaving={savingGoalKey === `${match.id}:${match.team_a_id}`}
           onSelectedPlayerChange={setSelectedPlayerA}
           onAddGoal={handleAddA}
           onRemoveGoal={onRemoveGoal}
@@ -1235,6 +1249,7 @@ function MatchScorersEditor({
           goals={teamBGoals}
           playerById={playerById}
           selectedPlayerId={selectedPlayerB}
+          isSaving={savingGoalKey === `${match.id}:${match.team_b_id}`}
           onSelectedPlayerChange={setSelectedPlayerB}
           onAddGoal={handleAddB}
           onRemoveGoal={onRemoveGoal}
@@ -1251,6 +1266,7 @@ function ScorersTeamPanel({
   goals,
   playerById,
   selectedPlayerId,
+  isSaving,
   onSelectedPlayerChange,
   onAddGoal,
   onRemoveGoal,
@@ -1261,6 +1277,7 @@ function ScorersTeamPanel({
   goals: TournamentManagerMatchGoal[];
   playerById: Record<string, TournamentManagerPlayer>;
   selectedPlayerId: string;
+  isSaving: boolean;
   onSelectedPlayerChange: (value: string) => void;
   onAddGoal: () => void;
   onRemoveGoal: (goal: TournamentManagerMatchGoal) => void;
@@ -1293,10 +1310,10 @@ function ScorersTeamPanel({
           <button
             type="button"
             onClick={onAddGoal}
-            disabled={!selectedPlayerId}
+            disabled={!selectedPlayerId || isSaving}
             className="rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Adicionar golo
+            {isSaving ? 'A adicionar...' : 'Adicionar golo'}
           </button>
         </div>
       )}
