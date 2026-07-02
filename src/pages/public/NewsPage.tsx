@@ -14,8 +14,6 @@ const sourceFilters = [
   'Outra fonte',
 ];
 
-type NewsViewMode = 'published' | 'archived';
-
 function formatDate(date: string | null) {
   if (!date) {
     return 'Data por definir';
@@ -41,12 +39,8 @@ export function NewsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState('Todas');
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<NewsViewMode>('published');
-
   const filteredNews = useMemo(() => {
     return news.filter((item) => {
-      const matchesMode = getNewsStatus(item) === viewMode;
-
       const matchesSource =
         sourceFilter === 'Todas' || item.source === sourceFilter;
 
@@ -59,19 +53,15 @@ export function NewsPage() {
       const matchesSearch =
         !search.trim() || searchableText.includes(search.toLowerCase().trim());
 
-      return matchesMode && matchesSource && matchesSearch;
+      return matchesSource && matchesSearch;
     });
-  }, [news, sourceFilter, search, viewMode]);
+  }, [news, sourceFilter, search]);
 
   const publishedCount = useMemo(
     () => news.filter((item) => getNewsStatus(item) === 'published').length,
     [news],
   );
 
-  const archivedCount = useMemo(
-    () => news.filter((item) => getNewsStatus(item) === 'archived').length,
-    [news],
-  );
 
   useEffect(() => {
     async function loadNews() {
@@ -81,7 +71,7 @@ export function NewsPage() {
         .from('gdrb_news')
         .select('*')
         .eq('is_published', true)
-        .in('status', ['published', 'archived'])
+        .eq('status', 'published')
         .order('sort_order', { ascending: true })
         .order('published_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -115,7 +105,7 @@ export function NewsPage() {
             </h1>
 
             <p className="mt-8 max-w-2xl text-lg leading-8 text-zinc-300">
-              Acompanha as novidades publicadas do GDR Boavista e consulta o arquivo sempre que precisares.
+              Acompanha as novidades publicadas pelo GDR Boavista. Conteúdos em rascunho ou arquivados ficam apenas no admin.
             </p>
           </div>
         </div>
@@ -130,8 +120,7 @@ export function NewsPage() {
               </h2>
 
               <p className="mt-2 text-sm text-zinc-500">
-                Filtra por fonte, pesquisa por palavra-chave ou consulta as
-                notícias antigas arquivadas.
+                Filtra por fonte e pesquisa por palavra-chave entre as notícias publicadas.
               </p>
             </div>
 
@@ -166,31 +155,9 @@ export function NewsPage() {
           </div>
 
           <div className="mt-6 flex flex-col justify-between gap-4 border-t border-zinc-200 pt-5 md:flex-row md:items-center">
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode('published')}
-                className={`rounded-full px-4 py-2 text-sm font-black transition ${
-                  viewMode === 'published'
-                    ? 'bg-red-700 text-white'
-                    : 'bg-zinc-100 text-zinc-700 hover:bg-red-50 hover:text-red-700'
-                }`}
-              >
-                Publicadas · {publishedCount}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('archived')}
-                className={`rounded-full px-4 py-2 text-sm font-black transition ${
-                  viewMode === 'archived'
-                    ? 'bg-[#24180f] text-white'
-                    : 'bg-zinc-100 text-zinc-700 hover:bg-red-50 hover:text-red-700'
-                }`}
-              >
-                Arquivo · {archivedCount}
-              </button>
-            </div>
+            <span className="inline-flex w-fit rounded-full bg-red-700 px-4 py-2 text-sm font-black text-white">
+              Publicadas · {publishedCount}
+            </span>
 
             <p className="text-sm font-semibold text-zinc-500">
               {filteredNews.length} notícia(s) encontrada(s)
@@ -213,9 +180,7 @@ export function NewsPage() {
             </h3>
 
             <p className="mt-3 text-zinc-500">
-              {viewMode === 'archived'
-                ? 'Ainda não existem notícias arquivadas para os filtros selecionados.'
-                : 'Não existem notícias publicadas para os filtros selecionados.'}
+              Não existem notícias publicadas para os filtros selecionados.
             </p>
           </div>
         ) : (
@@ -226,9 +191,7 @@ export function NewsPage() {
                 className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
               >
                 <div
-                  className={
-                    viewMode === 'archived' ? 'h-1.5 bg-[#24180f]' : 'h-1.5 bg-red-700'
-                  }
+                  className="h-1.5 bg-red-700"
                 />
 
                 <Link to={`/noticias/${item.id}`} className="block">
@@ -251,12 +214,6 @@ export function NewsPage() {
                       <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
                         {item.source}
                       </span>
-
-                      {viewMode === 'archived' && (
-                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-zinc-700">
-                          Notícia antiga
-                        </span>
-                      )}
 
                       <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
                         {formatDate(item.published_at)}

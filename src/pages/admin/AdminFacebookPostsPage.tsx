@@ -69,6 +69,7 @@ function normalizeDatetimeForInput(value: string | null) {
 
 export function AdminFacebookPostsPage() {
   const [posts, setPosts] = useState<GdrbFacebookPost[]>([]);
+  const [activeVisibilityFilter, setActiveVisibilityFilter] = useState<'active' | 'archived'>('active');
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -344,6 +345,26 @@ export function AdminFacebookPostsPage() {
     await loadPosts();
   }
 
+  const activePosts = posts.filter((post) => post.is_active);
+  const archivedPosts = posts.filter((post) => !post.is_active);
+  const filteredPosts =
+    activeVisibilityFilter === 'active' ? activePosts : archivedPosts;
+
+  const visibilityTabs = [
+    {
+      value: 'active' as const,
+      label: 'Ativas',
+      count: activePosts.length,
+      description: 'Aparecem na homepage na secção Boavista no Facebook.',
+    },
+    {
+      value: 'archived' as const,
+      label: 'Arquivadas',
+      count: archivedPosts.length,
+      description: 'Ficam guardadas apenas no admin para consulta.',
+    },
+  ];
+
   return (
     <div>
       <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
@@ -418,6 +439,33 @@ export function AdminFacebookPostsPage() {
             Página oficial
             <ExternalLink size={16} />
           </a>
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-3 md:grid-cols-2">
+          {visibilityTabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setActiveVisibilityFilter(tab.value)}
+              className={`rounded-md border px-4 py-4 text-left transition ${
+                activeVisibilityFilter === tab.value
+                  ? 'border-red-700 bg-red-50 ring-4 ring-red-100'
+                  : 'border-zinc-200 bg-white hover:border-red-200 hover:bg-red-50'
+              }`}
+            >
+              <span className="block text-xs font-black uppercase tracking-[0.22em] text-red-700">
+                {tab.label}
+              </span>
+              <span className="mt-2 block text-3xl font-black text-zinc-950">
+                {tab.count}
+              </span>
+              <span className="mt-2 block text-xs leading-5 text-zinc-500">
+                {tab.description}
+              </span>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -663,23 +711,23 @@ export function AdminFacebookPostsPage() {
         <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
           A carregar publicações...
         </div>
-      ) : posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
             <ThumbsUp size={28} />
           </div>
 
           <h2 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
-            Sem publicações
+            Sem publicações nesta área
           </h2>
 
           <p className="mt-3 text-zinc-500">
-            Ainda não existem publicações do Facebook selecionadas.
+            {activeVisibilityFilter === 'active' ? 'Não existem publicações ativas.' : 'Não existem publicações arquivadas.'}
           </p>
         </div>
       ) : (
         <div className="mt-8 grid gap-5">
-          {posts.map((post) => (
+          {filteredPosts.map((post) => (
             <article
               key={post.id}
               className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm"
@@ -718,7 +766,7 @@ export function AdminFacebookPostsPage() {
                           : 'bg-zinc-100 text-zinc-700'
                       }`}
                     >
-                      {post.is_active ? 'Ativa' : 'Inativa'}
+                      {post.is_active ? 'Ativa' : 'Arquivada'}
                     </span>
 
                     <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
@@ -767,7 +815,7 @@ export function AdminFacebookPostsPage() {
                     className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
                   >
                     {post.is_active ? <EyeOff size={16} /> : <Eye size={16} />}
-                    {post.is_active ? 'Desativar' : 'Ativar'}
+                    {post.is_active ? 'Arquivar' : 'Reativar'}
                   </button>
 
                   <button
@@ -776,7 +824,7 @@ export function AdminFacebookPostsPage() {
                     className="inline-flex items-center gap-2 rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
                   >
                     <Trash2 size={16} />
-                    Apagar
+                    Apagar definitivo
                   </button>
                 </div>
               </div>

@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import {
   Archive,
   Eye,
   EyeOff,
+  Image as ImageIcon,
   Newspaper,
   Plus,
   RefreshCcw,
   Save,
   Trash2,
+  Upload,
+  X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbNews, GdrbNewsStatus } from '../../types/database';
+
+const NEWS_STORAGE_BUCKET = 'gdrb-news-images';
 
 const initialForm = {
   title: '',
@@ -45,7 +50,7 @@ const statusOptions: Array<{
   {
     value: 'archived',
     label: 'Arquivada',
-    description: 'Aparece apenas em Notícias antigas.',
+    description: 'Fica apenas guardada no admin para consulta/pesquisa.',
   },
   {
     value: 'draft',
@@ -98,15 +103,103 @@ function getStatusBadgeClass(status: GdrbNewsStatus) {
 
 export function AdminNewsPage() {
   const [news, setNews] = useState<GdrbNews[]>([]);
+  const [activeStatusFilter, setActiveStatusFilter] = useState<GdrbNewsStatus>('published');
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState('');
 
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  function setPreviewUrl(nextPreview: string) {
+    setImagePreview((currentPreview) => {
+      if (currentPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(currentPreview);
+      }
+
+      return nextPreview;
+    });
+  }
+
+  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Escolhe um ficheiro de imagem válido.');
+      event.target.value = '';
+      return;
+    }
+
+    const maxSizeInMb = 6;
+    const maxSizeInBytes = maxSizeInMb * 1024 * 1024;
+
+    if (file.size > maxSizeInBytes) {
+      setErrorMessage(`A imagem deve ter no máximo ${maxSizeInMb}MB.`);
+      event.target.value = '';
+      return;
+    }
+
+    setErrorMessage('');
+    setSelectedImageFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function handleRemoveImage() {
+    setSelectedImageFile(null);
+    setPreviewUrl('');
+    handleChange('image_url', '');
+  }
+
+  async function uploadSelectedImage() {
+    if (!selectedImageFile) {
+      return form.image_url.trim() || null;
+    }
+
+    const extension = selectedImageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const uniqueId =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const filePath = `news/${uniqueId}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(NEWS_STORAGE_BUCKET)
+      .upload(filePath, selectedImageFile, {
+        cacheControl: '3600',
+        contentType: selectedImageFile.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Erro ao fazer upload da imagem da notícia:', uploadError);
+      throw new Error(
+        'Não foi possível fazer upload da imagem. Confirma se o bucket gdrb-news-images existe no Supabase.',
+      );
+    }
+
+    const { data } = supabase.storage
+      .from(NEWS_STORAGE_BUCKET)
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
 
   async function loadNews() {
     setIsLoading(true);
@@ -146,6 +239,8 @@ export function AdminNewsPage() {
 
   function resetForm() {
     setForm(initialForm);
+    setSelectedImageFile(null);
+    setPreviewUrl('');
     setEditingId(null);
     setShowForm(false);
   }
@@ -162,6 +257,8 @@ export function AdminNewsPage() {
       status: getNewsStatus(item),
       sort_order: item.sort_order ?? 0,
     });
+    setSelectedImageFile(null);
+    setPreviewUrl(item.image_url ?? '');
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -183,14 +280,28 @@ export function AdminNewsPage() {
       ? news.find((item) => item.id === editingId)
       : null;
 
-    const shouldBeVisible = form.status !== 'draft';
+    const shouldBeVisible = form.status === 'published';
+
+    let uploadedImageUrl: string | null = null;
+
+    try {
+      uploadedImageUrl = await uploadSelectedImage();
+    } catch (error) {
+      setIsSaving(false);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível fazer upload da imagem.',
+      );
+      return;
+    }
 
     const payload = {
       title: form.title.trim(),
       summary: form.summary.trim() || null,
       content: form.content.trim() || null,
       source: form.source,
-      image_url: form.image_url.trim() || null,
+      image_url: uploadedImageUrl,
       external_url: form.external_url.trim() || null,
       status: form.status,
       is_published: shouldBeVisible,
@@ -223,7 +334,7 @@ export function AdminNewsPage() {
   async function handleQuickStatus(item: GdrbNews, status: GdrbNewsStatus) {
     setErrorMessage('');
 
-    const shouldBeVisible = status !== 'draft';
+    const shouldBeVisible = status === 'published';
 
     const { error } = await supabase
       .from('gdrb_news')
@@ -265,6 +376,23 @@ export function AdminNewsPage() {
     await loadNews();
   }
 
+  const newsCounts = news.reduce<Record<GdrbNewsStatus, number>>(
+    (accumulator, item) => {
+      const status = getNewsStatus(item);
+      accumulator[status] += 1;
+      return accumulator;
+    },
+    { published: 0, draft: 0, archived: 0 },
+  );
+
+  const filteredNews = news.filter(
+    (item) => getNewsStatus(item) === activeStatusFilter,
+  );
+
+  const activeStatusOption = statusOptions.find(
+    (option) => option.value === activeStatusFilter,
+  );
+
   return (
     <div>
       <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
@@ -301,6 +429,8 @@ export function AdminNewsPage() {
               onClick={() => {
                 setEditingId(null);
                 setForm(initialForm);
+                setSelectedImageFile(null);
+                setPreviewUrl('');
                 setShowForm(!showForm);
               }}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
@@ -323,6 +453,58 @@ export function AdminNewsPage() {
           {errorMessage}
         </div>
       )}
+
+      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-red-700">
+              Conteúdo editorial
+            </p>
+            <h2 className="mt-2 font-serif text-3xl font-light text-[#24180f]">
+              Notícias do site
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">
+              Esta área gere apenas as notícias próprias do site. Publicações do Facebook
+              ficam separadas na área <strong>Facebook</strong>. Conteúdo arquivado fica
+              guardado para consulta no admin e nunca aparece no site público.
+            </p>
+          </div>
+
+          <a
+            href="/admin/facebook"
+            className="inline-flex items-center justify-center rounded-md border border-zinc-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-zinc-700 transition hover:border-red-700 hover:text-red-700"
+          >
+            Gerir Facebook
+          </a>
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-3 md:grid-cols-3">
+          {statusOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setActiveStatusFilter(option.value)}
+              className={`rounded-md border px-4 py-4 text-left transition ${
+                activeStatusFilter === option.value
+                  ? 'border-red-700 bg-red-50 ring-4 ring-red-100'
+                  : 'border-zinc-200 bg-white hover:border-red-200 hover:bg-red-50'
+              }`}
+            >
+              <span className="block text-xs font-black uppercase tracking-[0.22em] text-red-700">
+                {option.label}
+              </span>
+              <span className="mt-2 block text-3xl font-black text-zinc-950">
+                {newsCounts[option.value]}
+              </span>
+              <span className="mt-2 block text-xs leading-5 text-zinc-500">
+                {option.description}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {showForm && (
         <form
@@ -457,17 +639,70 @@ export function AdminNewsPage() {
 
             <div>
               <label className="text-sm font-black text-zinc-800">
-                URL da imagem
+                Imagem da notícia
               </label>
 
-              <input
-                type="url"
-                value={form.image_url}
-                onChange={(event) =>
-                  handleChange('image_url', event.target.value)
-                }
-                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
-              />
+              <div className="mt-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50 p-4">
+                {imagePreview ? (
+                  <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
+                    <img
+                      src={imagePreview}
+                      alt="Pré-visualização da notícia"
+                      className="h-44 w-full object-cover"
+                    />
+
+                    <div className="flex items-center justify-between gap-3 p-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
+                        <ImageIcon size={15} />
+                        {selectedImageFile
+                          ? selectedImageFile.name
+                          : 'Imagem atual da notícia'}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-50"
+                      >
+                        <X size={14} />
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-md bg-white px-4 py-8 text-center transition hover:bg-red-50">
+                    <Upload size={30} className="text-red-700" />
+
+                    <span className="mt-3 text-sm font-black text-zinc-800">
+                      Fazer upload da imagem
+                    </span>
+
+                    <span className="mt-1 text-xs leading-5 text-zinc-500">
+                      JPG, PNG ou WebP até 6MB. Se não enviares imagem, o site usa apenas o texto da notícia.
+                    </span>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+
+                {imagePreview && (
+                  <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide text-zinc-700 hover:border-red-700 hover:text-red-700">
+                    <Upload size={14} />
+                    Trocar imagem
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
             </div>
 
             <div>
@@ -511,23 +746,23 @@ export function AdminNewsPage() {
         <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
           A carregar notícias...
         </div>
-      ) : news.length === 0 ? (
+      ) : filteredNews.length === 0 ? (
         <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
             <Newspaper size={28} />
           </div>
 
           <h2 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
-            Sem notícias
+            Sem notícias nesta área
           </h2>
 
           <p className="mt-3 text-zinc-500">
-            Ainda não existem notícias criadas.
+            {activeStatusOption ? `Não existem notícias com estado ${activeStatusOption.label.toLowerCase()}.` : 'Não existem notícias nesta área.'}
           </p>
         </div>
       ) : (
         <div className="mt-8 grid gap-5">
-          {news.map((item) => {
+          {filteredNews.map((item) => {
             const itemStatus = getNewsStatus(item);
 
             return (
@@ -628,7 +863,7 @@ export function AdminNewsPage() {
                       className="inline-flex items-center gap-2 rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
                     >
                       <Trash2 size={16} />
-                      Apagar
+                      Apagar definitivo
                     </button>
                   </div>
                 </div>

@@ -48,7 +48,7 @@ export function NewsDetailPage() {
         .select('*')
         .eq('id', id)
         .eq('is_published', true)
-        .in('status', ['published', 'archived'])
+        .eq('status', 'published')
         .single();
 
       if (error) {
