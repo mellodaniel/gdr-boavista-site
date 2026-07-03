@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, CheckCircle2, Clock, MapPin, RefreshCw, Save, Trash2, Trophy } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronDown, ChevronRight, Clock, MapPin, RefreshCw, Save, Search, Trash2, Trophy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
   generateTournamentSchedule,
@@ -212,6 +212,14 @@ export default function TournamentManagerMatchesPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [lastCapacityReport, setLastCapacityReport] = useState<string[]>([]);
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
+  const [matchSearch, setMatchSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [phaseFilter, setPhaseFilter] = useState('all');
+  const [groupFilter, setGroupFilter] = useState('all');
+  const [fieldFilter, setFieldFilter] = useState('all');
+  const [dayFilter, setDayFilter] = useState('all');
+  const [issueFilter, setIssueFilter] = useState<'all' | 'errors' | 'warnings'>('all');
 
   const orderedFields = useMemo(() => [...fields].sort((a, b) => a.name.localeCompare(b.name, 'pt')), [fields]);
   const activeFields = useMemo(() => orderedFields.filter((field) => field.is_active), [orderedFields]);
@@ -392,6 +400,45 @@ export default function TournamentManagerMatchesPage() {
       warningCount: issues.filter((issue) => issue.severity === 'warning').length,
     };
   }, [dayByDate, matchDuration, minRestMinutes, orderedMatches]);
+
+  const filteredMatches = useMemo(() => {
+    const normalizedSearch = matchSearch.trim().toLowerCase();
+
+    return orderedMatches.filter((match) => {
+      const draft = drafts[match.id] || matchToDraft(match);
+      const group = match.group_id ? groupById[match.group_id] : null;
+      const teamAName = getDraftTeamName(draft, 'a', teamById);
+      const teamBName = getDraftTeamName(draft, 'b', teamById);
+      const issues = calendarValidation.issuesByMatchId[match.id] || [];
+
+      if (normalizedSearch) {
+        const searchable = [
+          `jogo ${match.match_number}`,
+          String(match.match_number),
+          teamAName,
+          teamBName,
+          group?.name || '',
+          draft.match_date ? formatDate(draft.match_date) : '',
+          draft.match_time ? formatTime(draft.match_time) : '',
+          draft.field_id ? fieldById[draft.field_id]?.name || '' : '',
+        ].join(' ').toLowerCase();
+
+        if (!searchable.includes(normalizedSearch)) return false;
+      }
+
+      if (statusFilter !== 'all' && draft.status !== statusFilter) return false;
+      if (phaseFilter !== 'all' && draft.phase !== phaseFilter) return false;
+      if (groupFilter !== 'all' && match.group_id !== groupFilter) return false;
+      if (fieldFilter !== 'all' && draft.field_id !== fieldFilter) return false;
+      if (dayFilter !== 'all' && draft.match_date !== dayFilter) return false;
+      if (issueFilter === 'errors' && !issues.some((issue) => issue.severity === 'error')) return false;
+      if (issueFilter === 'warnings' && !issues.some((issue) => issue.severity === 'warning')) return false;
+
+      return true;
+    });
+  }, [calendarValidation.issuesByMatchId, dayFilter, drafts, fieldById, fieldFilter, groupById, groupFilter, issueFilter, matchSearch, orderedMatches, phaseFilter, statusFilter, teamById]);
+
+  const pendingMatches = useMemo(() => orderedMatches.filter((match) => !hasResult(match)), [orderedMatches]);
 
   async function loadData() {
     if (!id) return;
@@ -834,8 +881,40 @@ export default function TournamentManagerMatchesPage() {
       await autofillFinalPhase(currentMatches, { force: false });
     }
 
+    if (!matchesError && currentMatches) {
+      const updatedDrafts = currentMatches.reduce<Record<string, MatchDraft>>((acc, currentMatch) => {
+        acc[currentMatch.id] = matchToDraft(currentMatch);
+        return acc;
+      }, {});
+      setMatches(currentMatches as TournamentManagerMatch[]);
+      setDrafts(updatedDrafts);
+    } else {
+      setMatches((currentMatchesState) => currentMatchesState.map((currentMatch) => {
+        if (currentMatch.id !== match.id) return currentMatch;
+        return {
+          ...currentMatch,
+          phase: draft.phase,
+          match_date: draft.match_date || null,
+          match_time: draft.match_time ? `${draft.match_time}:00` : null,
+          field_id: draft.field_id || null,
+          team_a_id: draft.team_a_id || null,
+          team_b_id: draft.team_b_id || null,
+          team_a_placeholder: draft.team_a_placeholder || null,
+          team_b_placeholder: draft.team_b_placeholder || null,
+          team_a_source: draft.team_a_source || null,
+          team_b_source: draft.team_b_source || null,
+          round_number: draft.round_number ? Number(draft.round_number) : null,
+          status: (shouldAutoFinish ? 'finished' : draft.status) as TournamentManagerMatch['status'],
+          score_a: scoreA,
+          score_b: scoreB,
+          penalty_score_a: isPenaltyPhase && scoreA !== null && scoreB !== null && scoreA === scoreB ? penaltyScoreA : null,
+          penalty_score_b: isPenaltyPhase && scoreA !== null && scoreB !== null && scoreA === scoreB ? penaltyScoreB : null,
+          notes: draft.notes || null,
+        };
+      }));
+    }
+
     setSuccessMessage('Jogo guardado com sucesso.');
-    await loadData();
     setSavingMatchId(null);
   }
 
@@ -858,6 +937,36 @@ export default function TournamentManagerMatchesPage() {
     setSuccessMessage('Jogo removido com sucesso.');
     await loadData();
     setDeletingMatchId(null);
+  }
+
+  function expandMatch(matchId: string) {
+    setExpandedMatchId((current) => (current === matchId ? null : matchId));
+  }
+
+  function goToMatch(matchId: string) {
+    setExpandedMatchId(matchId);
+    window.setTimeout(() => {
+      document.getElementById(`match-${matchId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+
+  function goToNextPendingMatch() {
+    const nextPending = pendingMatches[0];
+    if (!nextPending) {
+      setSuccessMessage('Todos os jogos já têm resultado preenchido.');
+      return;
+    }
+    goToMatch(nextPending.id);
+  }
+
+  function clearMatchFilters() {
+    setMatchSearch('');
+    setStatusFilter('all');
+    setPhaseFilter('all');
+    setGroupFilter('all');
+    setFieldFilter('all');
+    setDayFilter('all');
+    setIssueFilter('all');
   }
 
   if (loading) {
@@ -923,10 +1032,30 @@ export default function TournamentManagerMatchesPage() {
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-900">Validação do calendário</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Erros: {calendarValidation.errorCount} · Avisos: {calendarValidation.warningCount}
-        </p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Validação do calendário</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Erros: {calendarValidation.errorCount} · Avisos: {calendarValidation.warningCount}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setIssueFilter('errors')}
+              className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100"
+            >
+              Ver erros
+            </button>
+            <button
+              type="button"
+              onClick={() => setIssueFilter('warnings')}
+              className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs font-bold text-yellow-800 hover:bg-yellow-100"
+            >
+              Ver avisos
+            </button>
+          </div>
+        </div>
         {lastCapacityReport.length > 0 && (
           <div className="mt-4 grid gap-2 md:grid-cols-2">
             {lastCapacityReport.map((item) => (
@@ -938,15 +1067,103 @@ export default function TournamentManagerMatchesPage() {
         )}
       </section>
 
-      <section className="space-y-4">
+      <section className="sticky top-0 z-20 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-green-700">Operação rápida</p>
+              <h2 className="text-xl font-bold text-slate-900">Encontrar e editar jogos</h2>
+              <p className="text-sm text-slate-500">
+                {filteredMatches.length} de {orderedMatches.length} jogo(s) visíveis · {pendingMatches.length} sem resultado
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={goToNextPendingMatch}
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+              >
+                Próximo sem resultado
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('scheduled')}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Pendentes
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('finished')}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Terminados
+              </button>
+              <button
+                type="button"
+                onClick={clearMatchFilters}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 xl:grid-cols-[minmax(220px,1.2fr)_repeat(6,minmax(120px,0.8fr))]">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={matchSearch}
+                onChange={(event) => setMatchSearch(event.target.value)}
+                className="input-control pl-9"
+                placeholder="Pesquisar equipa, jogo, campo..."
+              />
+            </label>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="input-control">
+              <option value="all">Todos os estados</option>
+              {statusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+            </select>
+            <select value={phaseFilter} onChange={(event) => setPhaseFilter(event.target.value)} className="input-control">
+              <option value="all">Todas as fases</option>
+              {Object.entries(phaseLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} className="input-control">
+              <option value="all">Todos os grupos</option>
+              {orderedGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </select>
+            <select value={fieldFilter} onChange={(event) => setFieldFilter(event.target.value)} className="input-control">
+              <option value="all">Todos os campos</option>
+              {orderedFields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}
+            </select>
+            <select value={dayFilter} onChange={(event) => setDayFilter(event.target.value)} className="input-control">
+              <option value="all">Todos os dias</option>
+              {days.map((day) => <option key={day.id} value={day.day_date}>{formatDate(day.day_date)}</option>)}
+            </select>
+            <select value={issueFilter} onChange={(event) => setIssueFilter(event.target.value as 'all' | 'errors' | 'warnings')} className="input-control">
+              <option value="all">Todos</option>
+              <option value="errors">Com erros</option>
+              <option value="warnings">Com avisos</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
         {orderedMatches.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-slate-600">
             Ainda não existem jogos. Clica em <strong>Gerar jogos</strong> para criar uma proposta inicial.
           </div>
+        ) : filteredMatches.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-slate-600">
+            Nenhum jogo encontrado com os filtros atuais.
+          </div>
         ) : (
-          orderedMatches.map((match) => {
+          filteredMatches.map((match) => {
             const draft = drafts[match.id] || matchToDraft(match);
             const issues = calendarValidation.issuesByMatchId[match.id] || [];
+            const errorIssues = issues.filter((issue) => issue.severity === 'error');
+            const warningIssues = issues.filter((issue) => issue.severity === 'warning');
             const endTime = draft.match_time ? getTournamentMatchEndTime(draft.match_time, rules) : '-';
             const group = match.group_id ? groupById[match.group_id] : null;
             const teamAName = getDraftTeamName(draft, 'a', teamById);
@@ -958,37 +1175,76 @@ export default function TournamentManagerMatchesPage() {
             const expectedScoreB = draft.score_b === '' ? null : Number(draft.score_b);
             const hasGoalWarningA = expectedScoreA !== null && expectedScoreA !== teamAGoals.length;
             const hasGoalWarningB = expectedScoreB !== null && expectedScoreB !== teamBGoals.length;
+            const isExpanded = expandedMatchId === match.id;
+            const fieldName = draft.field_id ? fieldById[draft.field_id]?.name || 'Campo' : 'Campo por definir';
+            const statusLabel = statusOptions.find((item) => item.value === draft.status)?.label || draft.status;
+            const hasScore = draft.score_a !== '' && draft.score_b !== '';
 
             return (
-              <article key={match.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <article
+                key={match.id}
+                id={`match-${match.id}`}
+                className={`scroll-mt-32 overflow-hidden rounded-2xl border bg-white shadow-sm ${isExpanded ? 'border-green-300 ring-2 ring-green-100' : 'border-slate-200'}`}
+              >
                 <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-900">Jogo {match.match_number}</h3>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${getPhaseBadgeClass(draft.phase)}`}>
-                        {phaseLabels[draft.phase] || draft.phase}
-                      </span>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${getStatusBadgeClass(draft.status)}`}>
-                        {statusOptions.find((item) => item.value === draft.status)?.label || draft.status}
-                      </span>
-                      {group && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">{group.name}</span>}
+                  <button type="button" onClick={() => expandMatch(match.id)} className="min-w-0 flex-1 text-left">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {isExpanded ? <ChevronDown className="h-4 w-4 text-green-700" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                          <h3 className="text-base font-bold text-slate-900">Jogo {match.match_number}</h3>
+                          <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${getPhaseBadgeClass(draft.phase)}`}>
+                            {phaseLabels[draft.phase] || draft.phase}
+                          </span>
+                          <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${getStatusBadgeClass(draft.status)}`}>
+                            {statusLabel}
+                          </span>
+                          {group && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">{group.name}</span>}
+                          {errorIssues.length > 0 && <span className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-bold text-red-700 ring-1 ring-red-200">{errorIssues.length} erro(s)</span>}
+                          {warningIssues.length > 0 && <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[11px] font-bold text-yellow-800 ring-1 ring-yellow-200">{warningIssues.length} aviso(s)</span>}
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+                          <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" /> {formatDate(draft.match_date)}</span>
+                          <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" /> {formatTime(draft.match_time)}–{endTime}</span>
+                          <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {fieldName}</span>
+                        </div>
+                      </div>
+                      <div className="min-w-0 rounded-xl bg-white px-4 py-3 text-center ring-1 ring-slate-200 xl:min-w-[360px]">
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                          <p className="truncate text-sm font-black text-slate-900">{teamAName}</p>
+                          <div className="rounded-xl bg-slate-950 px-3 py-2 text-white shadow-sm">
+                            <span className="text-lg font-black">{hasScore ? draft.score_a : '-'}</span>
+                            <span className="mx-2 text-sm font-black text-slate-300">x</span>
+                            <span className="text-lg font-black">{hasScore ? draft.score_b : '-'}</span>
+                          </div>
+                          <p className="truncate text-sm font-black text-slate-900">{teamBName}</p>
+                        </div>
+                        <p className="mt-1 text-[11px] font-semibold text-slate-500">{matchGoalList.length} marcador(es) registado(s)</p>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-3 text-xs text-slate-600">
-                      <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" /> {formatDate(draft.match_date)}</span>
-                      <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" /> {formatTime(draft.match_time)}–{endTime}</span>
-                      <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {draft.field_id ? fieldById[draft.field_id]?.name || 'Campo' : 'Campo por definir'}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => saveMatch(match)}
-                      disabled={savingMatchId === match.id}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:opacity-60"
-                    >
-                      <Save className="h-4 w-4" />
-                      {savingMatchId === match.id ? 'A guardar...' : 'Guardar'}
-                    </button>
+                  </button>
+
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {!isExpanded && (
+                      <button
+                        type="button"
+                        onClick={() => expandMatch(match.id)}
+                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white"
+                      >
+                        Editar
+                      </button>
+                    )}
+                    {isExpanded && (
+                      <button
+                        type="button"
+                        onClick={() => saveMatch(match)}
+                        disabled={savingMatchId === match.id}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:opacity-60"
+                      >
+                        <Save className="h-4 w-4" />
+                        {savingMatchId === match.id ? 'A guardar...' : 'Guardar'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => deleteMatch(match)}
@@ -1001,7 +1257,7 @@ export default function TournamentManagerMatchesPage() {
                   </div>
                 </div>
 
-                {issues.length > 0 && (
+                {isExpanded && issues.length > 0 && (
                   <div className="border-b border-slate-200 bg-amber-50 px-5 py-3">
                     <div className="flex flex-wrap gap-2">
                       {issues.map((issue) => (
@@ -1016,146 +1272,150 @@ export default function TournamentManagerMatchesPage() {
                   </div>
                 )}
 
-                <div className="grid gap-4 p-4 xl:grid-cols-[210px_minmax(520px,1fr)_210px]">
-                  <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Dados do jogo</h4>
-                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-                      <Field label="Fase">
-                        <select value={draft.phase} onChange={(event) => updateDraft(match.id, 'phase', event.target.value)} className="input-control">
-                          <option value="group">Fase de grupos</option>
-                          <option value="quarter_final">Quartos de final</option>
-                          <option value="semi_final">Meias-finais</option>
-                          <option value="third_place">3.º e 4.º lugar</option>
-                          <option value="final">Final</option>
-                          <option value="manual">Manual</option>
-                        </select>
-                      </Field>
-                      <Field label="Data">
-                        <select value={draft.match_date} onChange={(event) => updateDraft(match.id, 'match_date', event.target.value)} className="input-control">
-                          <option value="">Selecionar</option>
-                          {days.map((day) => <option key={day.id} value={day.day_date}>{formatDate(day.day_date)}</option>)}
-                        </select>
-                      </Field>
-                      <Field label="Hora">
-                        <input type="time" value={draft.match_time} onChange={(event) => updateDraft(match.id, 'match_time', event.target.value)} className="input-control" />
-                      </Field>
-                      <Field label="Campo">
-                        <select value={draft.field_id} onChange={(event) => updateDraft(match.id, 'field_id', event.target.value)} className="input-control">
-                          <option value="">Selecionar</option>
-                          {activeFields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}
-                        </select>
-                      </Field>
-                    </div>
-                  </div>
+                {isExpanded && (
+                  <>
+                    <div className="grid gap-4 p-4 xl:grid-cols-[210px_minmax(520px,1fr)_210px]">
+                      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Dados do jogo</h4>
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                          <Field label="Fase">
+                            <select value={draft.phase} onChange={(event) => updateDraft(match.id, 'phase', event.target.value)} className="input-control">
+                              <option value="group">Fase de grupos</option>
+                              <option value="quarter_final">Quartos de final</option>
+                              <option value="semi_final">Meias-finais</option>
+                              <option value="third_place">3.º e 4.º lugar</option>
+                              <option value="final">Final</option>
+                              <option value="manual">Manual</option>
+                            </select>
+                          </Field>
+                          <Field label="Data">
+                            <select value={draft.match_date} onChange={(event) => updateDraft(match.id, 'match_date', event.target.value)} className="input-control">
+                              <option value="">Selecionar</option>
+                              {days.map((day) => <option key={day.id} value={day.day_date}>{formatDate(day.day_date)}</option>)}
+                            </select>
+                          </Field>
+                          <Field label="Hora">
+                            <input type="time" value={draft.match_time} onChange={(event) => updateDraft(match.id, 'match_time', event.target.value)} className="input-control" />
+                          </Field>
+                          <Field label="Campo">
+                            <select value={draft.field_id} onChange={(event) => updateDraft(match.id, 'field_id', event.target.value)} className="input-control">
+                              <option value="">Selecionar</option>
+                              {activeFields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}
+                            </select>
+                          </Field>
+                        </div>
+                      </div>
 
-                  <div className="rounded-xl border border-slate-200 p-3">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wide text-slate-600">Confronto e resultado</h4>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{teamAName} x {teamBName}</span>
-                    </div>
-
-                    <div className="grid items-center gap-3 lg:grid-cols-[1fr_150px_1fr]">
-                      <TeamPanel
-                        label="Equipa A"
-                        teamId={draft.team_a_id}
-                        placeholder={draft.team_a_placeholder}
-                        teams={orderedTeams}
-                        onTeamChange={(value) => updateDraft(match.id, 'team_a_id', value)}
-                        onPlaceholderChange={(value) => updateDraft(match.id, 'team_a_placeholder', value)}
-                      />
-
-                      <div className="rounded-xl bg-slate-950 p-3 text-center text-white shadow-lg">
-                        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.22em] text-slate-300">Resultado</p>
-                        <div className="flex items-center justify-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={draft.score_a}
-                            onChange={(event) => updateDraft(match.id, 'score_a', event.target.value)}
-                            className="h-12 w-14 rounded-lg border-0 bg-white text-center text-xl font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
-                          />
-                          <span className="text-xl font-black">x</span>
-                          <input
-                            type="number"
-                            min="0"
-                            value={draft.score_b}
-                            onChange={(event) => updateDraft(match.id, 'score_b', event.target.value)}
-                            className="h-12 w-14 rounded-lg border-0 bg-white text-center text-xl font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
-                          />
+                      <div className="rounded-xl border border-slate-200 p-3">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h4 className="text-xs font-bold uppercase tracking-wide text-slate-600">Confronto e resultado</h4>
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{teamAName} x {teamBName}</span>
                         </div>
 
-                        {isFinalPhase(draft.phase) && draft.score_a !== '' && draft.score_b !== '' && draft.score_a === draft.score_b && (
-                          <div className="mt-3 rounded-lg bg-white/10 p-2">
-                            <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-300">Penáltis</p>
+                        <div className="grid items-center gap-3 lg:grid-cols-[1fr_150px_1fr]">
+                          <TeamPanel
+                            label="Equipa A"
+                            teamId={draft.team_a_id}
+                            placeholder={draft.team_a_placeholder}
+                            teams={orderedTeams}
+                            onTeamChange={(value) => updateDraft(match.id, 'team_a_id', value)}
+                            onPlaceholderChange={(value) => updateDraft(match.id, 'team_a_placeholder', value)}
+                          />
+
+                          <div className="rounded-xl bg-slate-950 p-3 text-center text-white shadow-lg">
+                            <p className="mb-2 text-[9px] font-black uppercase tracking-[0.22em] text-slate-300">Resultado</p>
                             <div className="flex items-center justify-center gap-2">
                               <input
                                 type="number"
                                 min="0"
-                                value={draft.penalty_score_a}
-                                onChange={(event) => updateDraft(match.id, 'penalty_score_a', event.target.value)}
-                                className="h-9 w-12 rounded-md border-0 bg-white text-center text-sm font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
+                                value={draft.score_a}
+                                onChange={(event) => updateDraft(match.id, 'score_a', event.target.value)}
+                                className="h-12 w-14 rounded-lg border-0 bg-white text-center text-xl font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
                               />
-                              <span className="text-sm font-black">x</span>
+                              <span className="text-xl font-black">x</span>
                               <input
                                 type="number"
                                 min="0"
-                                value={draft.penalty_score_b}
-                                onChange={(event) => updateDraft(match.id, 'penalty_score_b', event.target.value)}
-                                className="h-9 w-12 rounded-md border-0 bg-white text-center text-sm font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
+                                value={draft.score_b}
+                                onChange={(event) => updateDraft(match.id, 'score_b', event.target.value)}
+                                className="h-12 w-14 rounded-lg border-0 bg-white text-center text-xl font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
                               />
                             </div>
-                            <p className="mt-1 text-[10px] font-semibold text-slate-300">Usado apenas para definir quem avança.</p>
+
+                            {isFinalPhase(draft.phase) && draft.score_a !== '' && draft.score_b !== '' && draft.score_a === draft.score_b && (
+                              <div className="mt-3 rounded-lg bg-white/10 p-2">
+                                <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-300">Penáltis</p>
+                                <div className="flex items-center justify-center gap-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={draft.penalty_score_a}
+                                    onChange={(event) => updateDraft(match.id, 'penalty_score_a', event.target.value)}
+                                    className="h-9 w-12 rounded-md border-0 bg-white text-center text-sm font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
+                                  />
+                                  <span className="text-sm font-black">x</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={draft.penalty_score_b}
+                                    onChange={(event) => updateDraft(match.id, 'penalty_score_b', event.target.value)}
+                                    className="h-9 w-12 rounded-md border-0 bg-white text-center text-sm font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
+                                  />
+                                </div>
+                                <p className="mt-1 text-[10px] font-semibold text-slate-300">Usado apenas para definir quem avança.</p>
+                              </div>
+                            )}
                           </div>
-                        )}
+
+                          <TeamPanel
+                            label="Equipa B"
+                            teamId={draft.team_b_id}
+                            placeholder={draft.team_b_placeholder}
+                            teams={orderedTeams}
+                            onTeamChange={(value) => updateDraft(match.id, 'team_b_id', value)}
+                            onPlaceholderChange={(value) => updateDraft(match.id, 'team_b_placeholder', value)}
+                          />
+                        </div>
                       </div>
 
-                      <TeamPanel
-                        label="Equipa B"
-                        teamId={draft.team_b_id}
-                        placeholder={draft.team_b_placeholder}
-                        teams={orderedTeams}
-                        onTeamChange={(value) => updateDraft(match.id, 'team_b_id', value)}
-                        onPlaceholderChange={(value) => updateDraft(match.id, 'team_b_placeholder', value)}
-                      />
+                      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Estado e notas</h4>
+                        <Field label="Estado">
+                          <select value={draft.status} onChange={(event) => updateDraft(match.id, 'status', event.target.value)} className="input-control">
+                            {statusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                          </select>
+                        </Field>
+                        <Field label="Notas">
+                          <textarea
+                            value={draft.notes}
+                            onChange={(event) => updateDraft(match.id, 'notes', event.target.value)}
+                            rows={3}
+                            className="input-control min-h-[88px] resize-y text-sm"
+                            placeholder="Notas internas, ronda, observações..."
+                          />
+                        </Field>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Estado e notas</h4>
-                    <Field label="Estado">
-                      <select value={draft.status} onChange={(event) => updateDraft(match.id, 'status', event.target.value)} className="input-control">
-                        {statusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="Notas">
-                      <textarea
-                        value={draft.notes}
-                        onChange={(event) => updateDraft(match.id, 'notes', event.target.value)}
-                        rows={3}
-                        className="input-control min-h-[88px] resize-y text-sm"
-                        placeholder="Notas internas, ronda, observações..."
-                      />
-                    </Field>
-                  </div>
-                </div>
-
-                <MatchScorersEditor
-                  match={match}
-                  teamAName={teamAName}
-                  teamBName={teamBName}
-                  teamAPlayers={match.team_a_id ? playersByTeamId[match.team_a_id] || [] : []}
-                  teamBPlayers={match.team_b_id ? playersByTeamId[match.team_b_id] || [] : []}
-                  teamAGoals={teamAGoals}
-                  teamBGoals={teamBGoals}
-                  playerById={playerById}
-                  expectedScoreA={expectedScoreA}
-                  expectedScoreB={expectedScoreB}
-                  hasGoalWarningA={hasGoalWarningA}
-                  hasGoalWarningB={hasGoalWarningB}
-                  savingGoalKey={savingGoalKey}
-                  onAddGoal={addGoal}
-                  onRemoveGoal={removeGoal}
-                />
+                    <MatchScorersEditor
+                      match={match}
+                      teamAName={teamAName}
+                      teamBName={teamBName}
+                      teamAPlayers={match.team_a_id ? playersByTeamId[match.team_a_id] || [] : []}
+                      teamBPlayers={match.team_b_id ? playersByTeamId[match.team_b_id] || [] : []}
+                      teamAGoals={teamAGoals}
+                      teamBGoals={teamBGoals}
+                      playerById={playerById}
+                      expectedScoreA={expectedScoreA}
+                      expectedScoreB={expectedScoreB}
+                      hasGoalWarningA={hasGoalWarningA}
+                      hasGoalWarningB={hasGoalWarningB}
+                      savingGoalKey={savingGoalKey}
+                      onAddGoal={addGoal}
+                      onRemoveGoal={removeGoal}
+                    />
+                  </>
+                )}
               </article>
             );
           })
