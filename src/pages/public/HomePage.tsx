@@ -366,21 +366,45 @@ export function HomePage() {
 
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
-      <section className="relative min-h-[760px] overflow-hidden bg-[#24180f] text-white">
+      <style>{`
+        @keyframes boavistaHeroPulse {
+          0%, 100% { opacity: .45; transform: scale(1); }
+          50% { opacity: .8; transform: scale(1.12); }
+        }
+        @keyframes boavistaHeroDrift {
+          0%, 100% { opacity: .25; transform: translateX(0) rotate(-18deg); }
+          50% { opacity: .55; transform: translateX(-60px) rotate(-18deg); }
+        }
+      `}</style>
+      <section className="relative min-h-[760px] overflow-hidden bg-[#090604] text-white md:min-h-[820px]">
         <img
-          src="/hero-boavista.webp"
-          alt="GDR Boavista"
-          className="absolute inset-0 h-full w-full object-cover opacity-45"
+          src="/hero-boavista-premium-mobile.webp"
+          alt="Ambiente premium do GDR Boavista"
+          className="absolute inset-0 h-full w-full object-cover opacity-85 md:hidden"
+        />
+        <img
+          src="/hero-boavista-premium.webp"
+          alt="Ambiente premium do GDR Boavista"
+          className="absolute inset-0 hidden h-full w-full object-cover opacity-90 md:block"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#24180f]/80 to-black/30" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_35%)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-[#120b08]/90 to-black/20" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_58%,rgba(220,38,38,0.20),transparent_33%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#090604] to-transparent" />
+        <div
+          className="pointer-events-none absolute -right-24 top-20 h-[26rem] w-[26rem] rounded-full bg-red-600/15 blur-3xl"
+          style={{ animation: 'boavistaHeroPulse 7s ease-in-out infinite' }}
+        />
+        <div
+          className="pointer-events-none absolute bottom-16 right-0 h-1 w-[34rem] rotate-[-18deg] rounded-full bg-red-500/45 blur-sm"
+          style={{ animation: 'boavistaHeroDrift 10s ease-in-out infinite' }}
+        />
 
-        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-6 py-24 sm:px-8 lg:px-16 xl:px-28">
+        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-6 py-24 sm:px-8 md:min-h-[820px] lg:px-16 xl:px-28">
           <div className="max-w-3xl lg:ml-8 xl:ml-10">
-            <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center md:mb-12">
-              <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-[2rem] bg-white p-4 shadow-2xl ring-4 ring-white/15 md:h-36 md:w-36 md:rounded-[2.35rem] md:p-5">
-                <div className="absolute -inset-2 rounded-[2.25rem] bg-red-700/20 blur-xl md:rounded-[2.65rem]" />
+            <div className="mb-10 flex flex-col gap-7 sm:flex-row sm:items-center md:mb-12">
+              <div className="relative flex h-36 w-36 shrink-0 items-center justify-center rounded-[2.2rem] bg-white/95 p-4 shadow-2xl ring-4 ring-white/15 backdrop-blur md:h-44 md:w-44 md:rounded-[2.8rem] md:p-5">
+                <div className="absolute -inset-3 rounded-[2.6rem] bg-red-700/25 blur-2xl md:rounded-[3.2rem]" />
                 <img
                   src="/logo-gdr-boavista-header-256.png"
                   alt="GDR Boavista"
@@ -395,20 +419,13 @@ export function HomePage() {
                 <p className="mt-3 max-w-xl font-serif text-2xl font-light leading-tight text-white md:text-3xl">
                   Grupo Desportivo e Recreativo Boavista
                 </p>
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.22em] text-zinc-200">
-                  <span>Leiria</span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                  <span>Formação</span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                  <span>Comunidade</span>
-                </div>
               </div>
             </div>
 
-            <h1 className="max-w-3xl font-serif text-5xl font-light leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
+            <h1 className="max-w-3xl font-serif text-5xl font-light leading-[0.96] tracking-tight drop-shadow-2xl sm:text-6xl md:text-7xl">
               Formar atletas,
               <br />
-              unir famílias.
+              <span className="text-red-500">unir famílias.</span>
             </h1>
 
             <p className="mt-8 max-w-xl text-base leading-8 text-zinc-300 md:text-lg">
@@ -420,7 +437,7 @@ export function HomePage() {
             <div className="mt-9 flex flex-wrap gap-4">
               <Link
                 to="/socios"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-[0_18px_45px_rgba(185,28,28,0.35)] transition hover:-translate-y-0.5 hover:bg-red-800"
               >
                 Quero ser sócio
                 <ChevronRight size={18} />
@@ -428,7 +445,7 @@ export function HomePage() {
 
               <Link
                 to="/equipas"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:bg-zinc-100"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/25 bg-white/10 px-6 py-4 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white hover:text-[#24180f]"
               >
                 Ver equipas
                 <ChevronRight size={18} />
