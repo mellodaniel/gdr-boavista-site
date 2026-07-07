@@ -107,3 +107,28 @@ export type GdrbTournament = {
   created_at: string;
   updated_at: string | null;
 };
+
+export type GdrbRosterGroup =
+  | 'Guarda-redes'
+  | 'Defesas'
+  | 'Médios'
+  | 'Avançados'
+  | 'Equipa técnica';
+
+export type GdrbRosterPlayer = {
+  id: string;
+  team_key: string;
+  name: string;
+  shirt_number: number | null;
+  position: string | null;
+  roster_group: GdrbRosterGroup;
+  photo_url: string | null;
+  height: string | null;
+  birth_year: number | null;
+  nationality: string | null;
+  notes: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string | null;
+};

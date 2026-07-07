@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Eye,
   EyeOff,
@@ -30,6 +31,13 @@ const categoryOptions = [
 ];
 
 const footballTypes = ['Futebol 5', 'Futebol 7', 'Futebol 9', 'Futebol 11'];
+
+function isSeniorTeam(team: GdrbTeam) {
+  const name = team.name.toLowerCase();
+  const category = team.category.toLowerCase();
+
+  return name.includes('senior') || category.includes('senior');
+}
 
 export function AdminTeamsPage() {
   const [teams, setTeams] = useState<GdrbTeam[]>([]);
@@ -455,6 +463,15 @@ export function AdminTeamsPage() {
                   >
                     Editar
                   </button>
+
+                  {isSeniorTeam(team) && (
+                    <Link
+                      to="/admin/equipas/seniores/plantel"
+                      className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-black text-red-700 hover:bg-red-100"
+                    >
+                      Gerir plantel
+                    </Link>
+                  )}
 
                   <button
                     type="button"

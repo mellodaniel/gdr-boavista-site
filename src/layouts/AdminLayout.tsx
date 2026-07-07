@@ -30,6 +30,7 @@ const fullAdminNavigation: AdminNavigationItem[] = [
   { label: 'Notícias', path: '/admin/noticias', icon: Newspaper },
   { label: 'Facebook', path: '/admin/facebook', icon: MessageCircle },
   { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
+  { label: 'Plantel Sénior', path: '/admin/equipas/seniores/plantel', icon: Users },
   { label: 'Jogos / Agenda', path: '/admin/jogos', icon: CalendarDays },
   { label: 'Torneios', path: '/admin/torneios', icon: Trophy },
   { label: 'Gestão de Torneios Boavista', path: '/admin/gestor-torneios', icon: CalendarDays },
