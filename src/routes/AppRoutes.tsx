@@ -17,6 +17,7 @@ import { ContactsPage } from '../pages/public/ContactsPage';
 import { ResultsPage } from '../pages/public/ResultsPage';
 import { ShopPage } from '../pages/public/ShopPage';
 import { AppInstallPage } from '../pages/public/AppInstallPage';
+import { SeniorMatchCenterPage } from '../pages/app/SeniorMatchCenterPage';
 
 import { AdminLoginPage } from '../pages/admin/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
@@ -83,6 +84,7 @@ export function AppRoutes() {
       <Route path="/admin/login" element={<AdminLoginPage />} />
 
       <Route element={<ProtectedAdminRoute />}>
+        <Route path="/app/jogo" element={<SeniorMatchCenterPage />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
           <Route path="analytics" element={<AdminAnalyticsPage />} />

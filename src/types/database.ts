@@ -132,3 +132,117 @@ export type GdrbRosterPlayer = {
   created_at: string;
   updated_at: string | null;
 };
+
+export type GdrbSeniorMatch = {
+  id: string;
+  season: string | null;
+  competition: string | null;
+  match_date: string;
+  match_time: string | null;
+  venue: string | null;
+  home_away: string;
+  home_team: string;
+  away_team: string;
+  opponent_name: string;
+  result_home: number | null;
+  result_away: number | null;
+  status: string;
+  initial_formation: string | null;
+  coach_name: string | null;
+  assistant_name: string | null;
+  pre_match_notes: string | null;
+  current_period: string | null;
+  current_minute: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
+
+export type GdrbSeniorMatchSquad = {
+  id: string;
+  match_id: string;
+  player_id: string;
+  shirt_number: number | null;
+  role: string;
+  position: string | null;
+  is_starting: boolean;
+  is_captain: boolean;
+  is_goalkeeper: boolean;
+  status: string;
+  created_at: string;
+};
+
+export type GdrbSeniorMatchEvent = {
+  id: string;
+  match_id: string;
+  event_type: string;
+  period: string | null;
+  minute: number | null;
+  second: number | null;
+  player_id: string | null;
+  related_player_id: string | null;
+  team: string | null;
+  zone: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type GdrbSeniorSubstitution = {
+  id: string;
+  match_id: string;
+  minute: number | null;
+  period: string | null;
+  player_out_id: string;
+  player_in_id: string;
+  reason: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type GdrbSeniorTacticalNote = {
+  id: string;
+  match_id: string;
+  minute: number | null;
+  period: string | null;
+  category: string | null;
+  tag: string | null;
+  player_id: string | null;
+  zone: string | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type GdrbSeniorOpponentAnalysis = {
+  id: string;
+  match_id: string;
+  opponent_name: string;
+  opponent_formation: string | null;
+  strong_side: string | null;
+  weak_side: string | null;
+  danger_player_name: string | null;
+  pressing_style: string | null;
+  build_up_style: string | null;
+  set_pieces_offensive: string | null;
+  set_pieces_defensive: string | null;
+  space_to_exploit: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
+
+export type GdrbSeniorMatchReport = {
+  id: string;
+  match_id: string;
+  summary: string | null;
+  positive_points: string | null;
+  improvement_points: string | null;
+  players_highlighted: string | null;
+  training_notes: string | null;
+  opponent_notes: string | null;
+  generated_text: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
