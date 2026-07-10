@@ -179,6 +179,102 @@ const phaseLabels: Record<string, string> = {
   manual: 'Manual',
 };
 
+const tournamentInterviewVideos = [
+  {
+    id: 'Lh2rZLupPIc',
+    title: 'Melhor guarda-redes',
+    person: 'Lukene',
+    description: 'Entrevista conduzida por Valdemar, Diretor do GDR Boavista, após a distinção de melhor guarda-redes do torneio.',
+  },
+  {
+    id: 'TX9sTricB_E',
+    title: 'Melhor marcador',
+    person: 'Pedro Faustino',
+    description: 'O melhor marcador do torneio partilha a emoção do prémio e do percurso vivido dentro de campo.',
+  },
+  {
+    id: 'UxpfEp-_vKY',
+    title: 'Treinador do Saka',
+    person: 'Bocas',
+    description: 'O treinador do Saka deixa o seu testemunho sobre a participação da equipa e o espírito vivido no torneio.',
+  },
+  {
+    id: '_S5kgDobxWU',
+    title: 'Treinador do ABC',
+    person: 'David Lopes',
+    description: 'O treinador do ABC fala sobre a equipa, a competição e a importância destes momentos para o futebol local.',
+  },
+];
+
+const tournamentMemoryPhotos = [
+  {
+    src: '/tournaments/fut7-2026/memorias/trofeus-mesa.webp',
+    title: 'A mesa dos troféus',
+    description: 'Os prémios que marcaram o encerramento do torneio.',
+    featured: true,
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/premio-melhor-guarda-redes-lukene.webp',
+    title: 'Melhor guarda-redes',
+    description: 'Lukene recebeu o prémio de melhor guarda-redes do torneio.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/premio-melhor-marcador-pedro-faustino.webp',
+    title: 'Melhor marcador',
+    description: 'Pedro Faustino foi distinguido como melhor marcador.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/campeoes-abc.webp',
+    title: 'Campeões do torneio',
+    description: 'A equipa vencedora celebra o título no relvado.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/segundo-lugar-equipa.webp',
+    title: 'Finalistas',
+    description: 'A equipa finalista no momento da entrega de prémios. Parabéns ao SAKA pela 2º classificação.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/terceiro-lugar-grupo.webp',
+    title: 'Pódio do torneio 3º classificação',
+    description: 'Mais um momento de reconhecimento e celebração. Parabéns aos Cozinheiros da bola.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/ultra-porqueiros-bandeira.webp',
+    title: 'Espírito de equipa',
+    description: 'A festa, a identidade e a boa disposição das equipas.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/ultra-porqueiros-festa.webp',
+    title: 'Celebração no relvado, 7º classificação',
+    description: 'A alegria de quem viveu o torneio até ao fim. Parabéns Ultras Porqueiros.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/campeoes-celebracao.webp',
+    title: 'Festa dos vencedores do Bar',
+    description: 'O momento de celebração que encerrou a competição e com o Bar :)',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/entrega-premios-mesa.webp',
+    title: 'Entrega de prémios',
+    description: 'Organização, equipas e prémios numa noite de futebol.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/treinador-saka-bocas.webp',
+    title: 'Reconhecimento',
+    description: 'Um dos testemunhos que marcou o encerramento do torneio. Obrigado Paulo, o nosso Fisioterapeuta.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/premio-quarto-lugar.webp',
+    title: 'Momento especial 4º classificação',
+    description: 'Entrega de prémio e espírito de confraternização. Parabéns NJCar.',
+  },
+  {
+    src: '/tournaments/fut7-2026/memorias/premio-sexto-lugar-peladinhas-caxieira.webp',
+    title: '6.º classificação',
+    description: 'Entrega do prémio à equipa Peladinhas da Caxieira pelo 6.º lugar no torneio.',
+  },
+];
+
 function formatDate(value: string | null) {
   if (!value) return 'Data por definir';
 
@@ -614,9 +710,35 @@ export default function PublicTournamentPage() {
     return groupsToShow;
   }, [filteredMatches, scheduleDates, dateFilter]);
 
-  const finishedMatches = useMemo(() => {
-    return matches.filter((match) => hasResult(match));
+  const totalGoals = useMemo(() => {
+    return matches.reduce((total, match) => {
+      if (!hasResult(match)) return total;
+      return total + (match.score_a || 0) + (match.score_b || 0);
+    }, 0);
   }, [matches]);
+
+  const tournamentNumbers = useMemo(() => [
+    {
+      label: 'Jogos',
+      value: matches.length,
+      description: 'partidas programadas ao longo do torneio',
+    },
+    {
+      label: 'Equipas',
+      value: teams.length,
+      description: 'equipas participantes na competição',
+    },
+    {
+      label: 'Atletas',
+      value: players.length,
+      description: 'jogadores registados nas equipas',
+    },
+    {
+      label: 'Golos',
+      value: totalGoals,
+      description: 'golos marcados nos jogos com resultado',
+    },
+  ], [matches.length, players.length, teams.length, totalGoals]);
 
   const latestResults = useMemo(() => {
     return matches.filter((match) => hasResult(match)).sort(sortMatchesDescending).slice(0, 6);
@@ -814,24 +936,19 @@ export default function PublicTournamentPage() {
 
       <nav className="sticky top-0 z-20 border-y border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto pb-1 text-xs font-bold uppercase tracking-wide text-slate-700 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <a href="#jogos" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Próximos</a>
-          <a href="#calendario" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Calendário</a>
+          <a href="#numeros" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Números</a>
+          <a href="#jogos" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Jogos</a>
+          <a href="#memorias" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Memórias</a>
+          <a href="#entrevistas" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Entrevistas</a>
           <a href="#classificacao" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Classificação</a>
           <a href="#marcadores" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Marcadores</a>
           <a href="#equipas" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Equipas</a>
-          <a href="#local" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Local</a>
-          <a href="#parceiros" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Parceiros</a>
         </div>
       </nav>
 
       <section className="px-4 py-6 sm:px-6 md:py-10">
         <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-            <SummaryCard label="Equipas" value={teams.length} />
-            <SummaryCard label="Grupos" value={groups.length} />
-            <SummaryCard label="Jogos" value={matches.length} />
-            <SummaryCard label="Resultados" value={finishedMatches.length} />
-          </div>
+          <TournamentNumbersSection numbers={tournamentNumbers} />
 
           <div id="local" className="scroll-mt-20 grid gap-4 lg:grid-cols-3 md:gap-6">
             <div className="rounded-2xl bg-white p-5 shadow-sm md:p-6 lg:col-span-2">
@@ -858,7 +975,6 @@ export default function PublicTournamentPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Ao vivo</p>
                 <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Próximos jogos</h2>
               </div>
-              <p className="text-sm text-slate-500">Os próximos jogos aparecem primeiro para consulta rápida no telemóvel.</p>
             </div>
 
             {upcomingMatches.length === 0 ? (
@@ -1140,6 +1256,8 @@ export default function PublicTournamentPage() {
             )}
           </section>
 
+          <TournamentMemoriesSection />
+
           <details id="classificacao" className="group scroll-mt-20 rounded-2xl bg-white shadow-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 border-b border-slate-200 p-5 md:p-6">
               <div>
@@ -1293,6 +1411,262 @@ export default function PublicTournamentPage() {
 }
 
 
+
+function TournamentNumbersSection({
+  numbers,
+}: {
+  numbers: Array<{ label: string; value: number; description: string }>;
+}) {
+  return (
+    <section id="numeros" className="scroll-mt-20 overflow-hidden rounded-3xl bg-[#24170f] text-white shadow-sm">
+      <div className="relative p-5 md:p-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.35),transparent_34%)]" />
+        <div className="relative">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.32em] text-red-300 md:text-sm">O torneio em números</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">A dimensão de uma grande noite de futebol.</h2>
+            </div>
+          </div>
+
+          <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {numbers.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+                <p className="text-4xl font-black text-white md:text-5xl">{item.value}</p>
+                <p className="mt-2 text-sm font-black uppercase tracking-[0.18em] text-red-300">{item.label}</p>
+                <p className="mt-3 text-sm leading-6 text-white/65">{item.description}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">
+            Mais do que um torneio, vivemos uma noite de união, amizade e paixão pelo futebol. Obrigado a todos os que fizeram parte desta história do GDR Boavista.
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TournamentMemoriesSection() {
+  return (
+    <section id="memorias" className="scroll-mt-20 space-y-6">
+      <section className="overflow-hidden rounded-3xl bg-white shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="p-6 md:p-8 lg:p-10">
+            <p className="text-xs font-black uppercase tracking-[0.32em] text-red-700 md:text-sm">Memórias do torneio</p>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900 md:text-5xl">
+              Uma noite de prémios, entrevistas e futebol vivido em comunidade.
+            </h2>
+            <p className="mt-5 max-w-3xl text-base leading-8 text-slate-600">
+              O 1.º Torneio Fut 7 GDR Boavista terminou, mas ficam os momentos, as equipas, os testemunhos e o orgulho de todos os que fizeram parte desta grande festa do futebol.
+            </p>
+          </div>
+          <div className="relative min-h-[300px] overflow-hidden bg-[#24170f]">
+            <img
+              src="/tournaments/fut7-2026/memorias/trofeus-mesa.webp"
+              alt="Troféus do 1.º Torneio Fut 7 GDR Boavista"
+              className="h-full min-h-[300px] w-full object-cover opacity-90"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#24170f]/80 via-transparent to-transparent" />
+            <div className="absolute bottom-5 left-5 right-5 rounded-2xl bg-white/90 p-4 shadow-lg backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-red-700">Entrega de prémios</p>
+              <p className="mt-1 text-lg font-black text-slate-900">Os momentos que encerraram o torneio.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <TournamentInterviewsSection />
+      <TournamentAwardsGallery />
+
+      <section className="rounded-3xl bg-gradient-to-r from-[#24170f] via-[#3b2118] to-red-800 p-6 text-white shadow-sm md:p-8">
+        <p className="text-xs font-black uppercase tracking-[0.32em] text-red-200">Obrigado</p>
+        <h2 className="mt-3 text-3xl font-black md:text-4xl">Mais do que resultados, ficam as pessoas.</h2>
+        <p className="mt-4 max-w-4xl text-sm leading-7 text-white/75 md:text-base">
+          Obrigado a todos os atletas, equipas, treinadores, famílias, parceiros e amigos que fizeram parte do 1.º Torneio Fut 7 GDR Boavista. A força do clube também se constrói nestes momentos de união, convívio e paixão pelo futebol.
+        </p>
+      </section>
+    </section>
+  );
+}
+
+function TournamentInterviewsSection() {
+  return (
+    <section id="entrevistas" className="scroll-mt-20 rounded-3xl bg-white p-5 shadow-sm md:p-6 lg:p-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.32em] text-red-700 md:text-sm">Vozes do torneio</p>
+          <h2 className="mt-3 text-2xl font-black text-slate-900 md:text-3xl">Entrevistas e testemunhos</h2>
+        </div>
+        <p className="max-w-xl text-sm leading-6 text-slate-500">
+          Conversas conduzidas por Valdemar, Diretor do GDR Boavista, com alguns dos protagonistas do torneio.
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {tournamentInterviewVideos.map((video) => (
+          <article key={video.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm">
+            <div className="bg-[#24170f] p-3">
+              <div className="aspect-[9/16] overflow-hidden rounded-2xl bg-black">
+                <iframe
+                  src={`https://www.youtube.com/embed/${video.id}`}
+                  title={`${video.title} - ${video.person}`}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  loading="lazy"
+                />
+              </div>
+            </div>
+            <div className="p-5">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-red-700">{video.title}</p>
+              <h3 className="mt-2 text-xl font-black text-slate-900">{video.person}</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{video.description}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TournamentAwardsGallery() {
+  const featuredPhoto = tournamentMemoryPhotos.find((photo) => photo.featured) || tournamentMemoryPhotos[0];
+  const otherPhotos = tournamentMemoryPhotos.filter((photo) => photo !== featuredPhoto);
+  const [selectedPhoto, setSelectedPhoto] = useState<(typeof tournamentMemoryPhotos)[number] | null>(null);
+
+  const openPhoto = (photo: (typeof tournamentMemoryPhotos)[number]) => {
+    setSelectedPhoto(photo);
+  };
+
+  const closePhoto = () => {
+    setSelectedPhoto(null);
+  };
+
+  return (
+    <section id="premios" className="scroll-mt-20 rounded-3xl bg-white p-5 shadow-sm md:p-6 lg:p-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.32em] text-red-700 md:text-sm">Entrega de prémios</p>
+          <h2 className="mt-3 text-2xl font-black text-slate-900 md:text-3xl">Galeria de campeões e momentos</h2>
+        </div>
+        <p className="max-w-xl text-sm leading-6 text-slate-500">
+          Uma seleção de imagens da entrega de prémios e dos momentos finais do torneio. Clica numa fotografia para ampliar.
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <button
+          type="button"
+          onClick={() => openPhoto(featuredPhoto)}
+          className="group relative min-h-[360px] overflow-hidden rounded-3xl bg-[#24170f] text-left shadow-sm outline-none ring-offset-2 transition focus-visible:ring-2 focus-visible:ring-red-700"
+          aria-label={`Ampliar fotografia: ${featuredPhoto.title}`}
+        >
+          <img
+            src={featuredPhoto.src}
+            alt={featuredPhoto.title}
+            className="h-full min-h-[360px] w-full object-cover transition duration-700 group-hover:scale-105"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+          <div className="absolute right-5 top-5 rounded-full bg-white/90 px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-slate-900 opacity-0 shadow-sm backdrop-blur transition group-hover:opacity-100 group-focus-visible:opacity-100">
+            Ampliar
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-red-300">Destaque</p>
+            <h3 className="mt-2 text-3xl font-black">{featuredPhoto.title}</h3>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/75">{featuredPhoto.description}</p>
+          </div>
+        </button>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          {otherPhotos.slice(0, 3).map((photo) => (
+            <button
+              key={photo.src}
+              type="button"
+              onClick={() => openPhoto(photo)}
+              className="group grid grid-cols-[120px_1fr] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm outline-none ring-offset-2 transition hover:border-red-200 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-700"
+              aria-label={`Ampliar fotografia: ${photo.title}`}
+            >
+              <div className="relative h-full min-h-[130px] overflow-hidden">
+                <img src={photo.src} alt={photo.title} className="h-full min-h-[130px] w-full object-cover transition duration-700 group-hover:scale-105" loading="lazy" />
+              </div>
+              <div className="p-4">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-red-700">Momento</p>
+                <h3 className="mt-1 font-black text-slate-900">{photo.title}</h3>
+                <p className="mt-2 text-sm leading-5 text-slate-600">{photo.description}</p>
+                <span className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 shadow-sm transition group-hover:text-red-700">
+                  Ver maior
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {otherPhotos.slice(3).map((photo) => (
+          <button
+            key={photo.src}
+            type="button"
+            onClick={() => openPhoto(photo)}
+            className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-left shadow-sm outline-none ring-offset-2 transition hover:border-red-200 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-700"
+            aria-label={`Ampliar fotografia: ${photo.title}`}
+          >
+            <div className="relative aspect-[4/3] overflow-hidden bg-slate-200">
+              <img src={photo.src} alt={photo.title} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" loading="lazy" />
+              <span className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-800 opacity-0 shadow-sm backdrop-blur transition group-hover:opacity-100 group-focus-visible:opacity-100">
+                Ampliar
+              </span>
+            </div>
+            <div className="p-4">
+              <h3 className="font-black text-slate-900">{photo.title}</h3>
+              <p className="mt-2 text-sm leading-5 text-slate-600">{photo.description}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedPhoto.title}
+          onClick={closePhoto}
+        >
+          <div
+            className="relative max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closePhoto}
+              className="absolute right-4 top-4 z-10 rounded-full bg-white/95 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-900 shadow-lg transition hover:bg-red-700 hover:text-white"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[78vh] bg-black">
+              <img
+                src={selectedPhoto.src}
+                alt={selectedPhoto.title}
+                className="mx-auto max-h-[78vh] w-full object-contain"
+              />
+            </div>
+            <div className="border-t border-slate-200 p-5 md:p-6">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-red-700">Entrega de prémios</p>
+              <h3 className="mt-2 text-2xl font-black text-slate-900">{selectedPhoto.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{selectedPhoto.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MemberCallToAction() {
   return (
     <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#24170f] via-[#3b2118] to-red-700 p-1 shadow-sm">
@@ -1385,15 +1759,6 @@ function SponsorSection({
         </div>
       )}
     </section>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm">
-      <p className="text-sm font-semibold text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-slate-900">{value}</p>
-    </div>
   );
 }
 

@@ -972,7 +972,7 @@ export function HomePage() {
 
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link
-                    to="/patrocinadores"
+                    to="/parceiros"
                     className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#24180f]"
                   >
                     Ver parceiros

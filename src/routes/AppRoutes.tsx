@@ -74,6 +74,7 @@ export function AppRoutes() {
         <Route path="socios" element={<MembersPage />} />
         <Route path="galeria" element={<GalleryPage />} />
         <Route path="patrocinadores" element={<SponsorsPage />} />
+        <Route path="parceiros" element={<SponsorsPage />} />
         <Route path="contactos" element={<ContactsPage />} />
         <Route path="resultados" element={<ResultsPage />} />
         <Route path="loja" element={<ShopPage />} />
