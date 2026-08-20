@@ -77,22 +77,49 @@ export function ContactsPage() {
 
     setIsSubmitting(true);
 
-    const { error } = await supabase.from('gdrb_contact_requests').insert({
+    const contactPayload = {
       name: form.name.trim(),
       email: form.email.trim() || null,
       subject: form.subject.trim() || null,
       message: form.message.trim(),
       status: 'novo',
-    });
+    };
 
-    setIsSubmitting(false);
+    const { error } = await supabase
+      .from('gdrb_contact_requests')
+      .insert(contactPayload);
 
     if (error) {
+      setIsSubmitting(false);
       console.error('Erro ao enviar contacto:', error);
       setErrorMessage('Não foi possível enviar a mensagem. Tenta novamente.');
       return;
     }
 
+    try {
+      const notificationResponse = await fetch('/api/send-contact-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contact: contactPayload,
+        }),
+      });
+
+      if (!notificationResponse.ok) {
+        console.warn(
+          'Contacto gravado, mas a notificação por email não foi enviada.',
+        );
+      }
+    } catch (notificationError) {
+      console.warn(
+        'Contacto gravado, mas ocorreu uma falha ao enviar a notificação por email:',
+        notificationError,
+      );
+    }
+
+    setIsSubmitting(false);
     setSuccessMessage('Mensagem enviada com sucesso.');
     trackAnalyticsEvent({
       eventName: 'contact_submit',
