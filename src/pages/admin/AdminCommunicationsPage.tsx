@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Archive,
+  ChevronDown,
   CheckCircle2,
+  Copy,
   Mail,
   RefreshCw,
+  Search,
   Save,
   Send,
   Users,
@@ -127,6 +131,7 @@ const statusLabels: Record<Communication['status'], string> = {
   sent: 'Enviada',
   archived: 'Arquivada',
 };
+
 
 const communicationTypeLabels: Record<CommunicationType, string> = {
   newsletter: 'Newsletter geral',
@@ -300,6 +305,12 @@ export function AdminCommunicationsPage() {
   const [sendingTest, setSendingTest] = useState(false);
   const [sendingFinal, setSendingFinal] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | Communication['status']>('all');
+  const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | CommunicationType>('all');
+  const [historyDateFrom, setHistoryDateFrom] = useState('');
+  const [historyDateTo, setHistoryDateTo] = useState('');
+  const [expandedCommunicationId, setExpandedCommunicationId] = useState<string | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -412,6 +423,35 @@ export function AdminCommunicationsPage() {
 
     return { total, drafts, ready, sent };
   }, [communications]);
+
+
+  const filteredCommunications = useMemo(() => {
+    const term = historySearchTerm.trim().toLowerCase();
+
+    return communications.filter((communication) => {
+      const searchable = [
+        communication.title,
+        communication.subject,
+        communication.preview_text,
+        communication.body,
+        communicationTypeLabels[communication.communication_type || 'newsletter'],
+        groupsLabel(communication.id),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      const matchesSearch = !term || searchable.includes(term);
+      const matchesStatus = historyStatusFilter === 'all' || communication.status === historyStatusFilter;
+      const matchesType = historyTypeFilter === 'all' || communication.communication_type === historyTypeFilter;
+
+      const referenceDate = new Date(communication.sent_at || communication.created_at);
+      const matchesDateFrom = !historyDateFrom || referenceDate >= new Date(`${historyDateFrom}T00:00:00`);
+      const matchesDateTo = !historyDateTo || referenceDate <= new Date(`${historyDateTo}T23:59:59`);
+
+      return matchesSearch && matchesStatus && matchesType && matchesDateFrom && matchesDateTo;
+    });
+  }, [communications, historySearchTerm, historyStatusFilter, historyTypeFilter, historyDateFrom, historyDateTo, targets, groups]);
 
   function resetForm() {
     setForm(emptyForm);
@@ -650,6 +690,92 @@ export function AdminCommunicationsPage() {
     return names.length ? names.join(', ') : 'Grupos selecionados';
   }
 
+  async function archiveCommunication(communication: Communication) {
+    const confirmed = window.confirm(`Arquivar a comunicação "${communication.title}"?`);
+    if (!confirmed) return;
+
+    setMessage(null);
+
+    const { error } = await supabase
+      .from('gdrb_communications')
+      .update({
+        status: 'archived',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', communication.id);
+
+    if (error) {
+      console.error(error);
+      setMessage({ type: 'error', text: 'Não foi possível arquivar a comunicação.' });
+      return;
+    }
+
+    if (selectedCommunicationId === communication.id) {
+      resetForm();
+    }
+
+    setMessage({ type: 'success', text: 'Comunicação arquivada com sucesso.' });
+    await loadData();
+  }
+
+  async function duplicateCommunication(communication: Communication) {
+    setMessage(null);
+
+    try {
+      const groupIds = targets
+        .filter((target) => target.communication_id === communication.id)
+        .map((target) => target.group_id);
+
+      const { data, error } = await supabase
+        .from('gdrb_communications')
+        .insert({
+          title: `Cópia de ${communication.title}`,
+          subject: communication.subject,
+          preview_text: communication.preview_text,
+          body: communication.body,
+          channel: communication.channel,
+          status: 'draft',
+          from_name: communication.from_name || 'GDR Boavista',
+          from_email: communication.from_email || 'notificacoes@send.gdrboavista.pt',
+          communication_type: communication.communication_type || 'newsletter',
+          audience_mode: communication.audience_mode || 'selected_groups',
+          estimated_recipients: 0,
+          excluded_no_consent: 0,
+          excluded_inactive: 0,
+          excluded_no_email: 0,
+          sent_count: 0,
+          failed_count: 0,
+          created_by: 'admin',
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      const newCommunicationId = data?.id;
+      if (!newCommunicationId) throw new Error('Não foi possível criar a cópia.');
+
+      await saveTargets(newCommunicationId, groupIds);
+      await loadData();
+
+      const { data: duplicated } = await supabase
+        .from('gdrb_communications')
+        .select('*')
+        .eq('id', newCommunicationId)
+        .single();
+
+      if (duplicated) {
+        editCommunication(duplicated as Communication);
+      }
+
+      setExpandedCommunicationId(null);
+      setMessage({ type: 'success', text: 'Comunicação duplicada como rascunho.' });
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: 'error', text: 'Não foi possível duplicar a comunicação.' });
+    }
+  }
+
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#21150f] via-[#3b120f] to-[#8b1d1d] p-8 text-white shadow-xl">
@@ -701,6 +827,9 @@ export function AdminCommunicationsPage() {
             <div>
               <p className="text-xs font-black uppercase tracking-[0.24em] text-red-600">Histórico</p>
               <h2 className="mt-1 font-serif text-3xl font-bold text-zinc-900">Comunicações</h2>
+              <p className="mt-2 text-sm text-zinc-500">
+                Lista compacta com pesquisa, filtros e detalhes recolhidos.
+              </p>
             </div>
             <button
               type="button"
@@ -709,6 +838,58 @@ export function AdminCommunicationsPage() {
             >
               Nova
             </button>
+          </div>
+
+          <div className="mb-4 grid gap-3 xl:grid-cols-[1fr_150px_170px_140px_140px]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+              <input
+                value={historySearchTerm}
+                onChange={(event) => setHistorySearchTerm(event.target.value)}
+                placeholder="Pesquisar por título, assunto, mensagem ou grupo..."
+                className="w-full rounded-xl border border-zinc-200 py-3 pl-11 pr-4 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+              />
+            </div>
+
+            <select
+              value={historyStatusFilter}
+              onChange={(event) => setHistoryStatusFilter(event.target.value as 'all' | Communication['status'])}
+              className="rounded-xl border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+            >
+              <option value="all">Todos estados</option>
+              <option value="draft">Rascunho</option>
+              <option value="ready">Pronta</option>
+              <option value="sent">Enviada</option>
+              <option value="archived">Arquivada</option>
+            </select>
+
+            <select
+              value={historyTypeFilter}
+              onChange={(event) => setHistoryTypeFilter(event.target.value as 'all' | CommunicationType)}
+              className="rounded-xl border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+            >
+              <option value="all">Todos tipos</option>
+              <option value="newsletter">Newsletter</option>
+              <option value="escalao">Escalão</option>
+              <option value="interno">Interna</option>
+              <option value="socios">Sócios</option>
+              <option value="parceiros">Parceiros</option>
+              <option value="geral">Geral</option>
+            </select>
+
+            <input
+              type="date"
+              value={historyDateFrom}
+              onChange={(event) => setHistoryDateFrom(event.target.value)}
+              className="rounded-xl border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+            />
+
+            <input
+              type="date"
+              value={historyDateTo}
+              onChange={(event) => setHistoryDateTo(event.target.value)}
+              className="rounded-xl border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+            />
           </div>
 
           {loading ? (
@@ -721,41 +902,144 @@ export function AdminCommunicationsPage() {
               <p className="font-black text-zinc-900">Ainda não existem comunicações.</p>
               <p className="mt-1 text-sm text-zinc-500">Cria a primeira comunicação no formulário ao lado.</p>
             </div>
+          ) : filteredCommunications.length === 0 ? (
+            <div className="rounded-xl bg-zinc-50 p-8 text-center text-sm font-semibold text-zinc-500">
+              Nenhuma comunicação encontrada com os filtros atuais.
+            </div>
           ) : (
-            <div className="space-y-3">
-              {communications.map((communication) => (
-                <button
-                  key={communication.id}
-                  type="button"
-                  onClick={() => editCommunication(communication)}
-                  className={`w-full rounded-xl border p-4 text-left transition hover:border-red-200 hover:bg-red-50/40 ${
-                    selectedCommunicationId === communication.id
-                      ? 'border-red-300 bg-red-50/60'
-                      : 'border-zinc-200 bg-white'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-black text-zinc-900">{communication.title}</h3>
-                      <p className="mt-1 text-sm text-zinc-500">{communication.subject || 'Sem assunto'}</p>
-                    </div>
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass(
-                        communication.status,
-                      )}`}
-                    >
-                      {statusLabels[communication.status]}
-                    </span>
-                  </div>
+            <div className="overflow-hidden rounded-xl border border-zinc-200">
+              <div className="hidden grid-cols-[1.2fr_0.9fr_0.7fr_0.7fr_0.9fr] gap-3 bg-zinc-50 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-zinc-500 xl:grid">
+                <span>Comunicação</span>
+                <span>Tipo / Grupos</span>
+                <span>Estado</span>
+                <span>Envio</span>
+                <span className="text-right">Ações</span>
+              </div>
 
-                  <div className="mt-3 grid gap-2 text-xs font-semibold text-zinc-500 sm:grid-cols-2">
-                    <span>{communicationTypeLabels[communication.communication_type || 'newsletter']}</span>
-                    <span>{groupsLabel(communication.id)}</span>
-                    <span>Criada: {formatDate(communication.created_at)}</span>
-                    <span>Enviados: {communication.sent_count || 0} / Falhas: {communication.failed_count || 0}</span>
-                  </div>
-                </button>
-              ))}
+              <div className="divide-y divide-zinc-100">
+                {filteredCommunications.map((communication) => {
+                  const isExpanded = expandedCommunicationId === communication.id;
+                  const communicationDeliveries = deliveries.filter((delivery) => delivery.communication_id === communication.id);
+
+                  return (
+                    <div
+                      key={communication.id}
+                      className={selectedCommunicationId === communication.id ? 'bg-red-50/40' : 'bg-white'}
+                    >
+                      <div className="grid gap-3 px-4 py-4 xl:grid-cols-[1.2fr_0.9fr_0.7fr_0.7fr_0.9fr] xl:items-center">
+                        <div>
+                          <h3 className="font-black text-zinc-900">{communication.title}</h3>
+                          <p className="mt-1 text-sm text-zinc-500">{communication.subject || 'Sem assunto'}</p>
+                          <p className="mt-1 text-xs text-zinc-400">Criada: {formatDate(communication.created_at)}</p>
+                        </div>
+
+                        <div className="text-sm font-semibold text-zinc-600">
+                          <div>{communicationTypeLabels[communication.communication_type || 'newsletter']}</div>
+                          <div className="mt-1 line-clamp-2 text-xs text-zinc-400">{groupsLabel(communication.id)}</div>
+                        </div>
+
+                        <div>
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass(
+                              communication.status,
+                            )}`}
+                          >
+                            {statusLabels[communication.status]}
+                          </span>
+                        </div>
+
+                        <div className="text-sm font-semibold text-zinc-600">
+                          <div>{communication.sent_at ? formatDate(communication.sent_at) : 'Ainda não enviada'}</div>
+                          <div className="mt-1 text-xs text-zinc-400">
+                            {communication.sent_count || 0} enviados · {communication.failed_count || 0} falhas
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
+                          <button
+                            type="button"
+                            onClick={() => editCommunication(communication)}
+                            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setExpandedCommunicationId(isExpanded ? null : communication.id)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                          >
+                            Detalhes
+                            <ChevronDown className={`h-3.5 w-3.5 transition ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => duplicateCommunication(communication)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            Duplicar
+                          </button>
+
+                          {communication.status !== 'archived' && (
+                            <button
+                              type="button"
+                              onClick={() => archiveCommunication(communication)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-black text-white transition hover:bg-zinc-700"
+                            >
+                              <Archive className="h-3.5 w-3.5" />
+                              Arquivar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="border-t border-zinc-100 bg-zinc-50 px-4 py-4">
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            <div className="rounded-xl bg-white p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Resumo</p>
+                              <div className="mt-3 grid gap-2 text-sm text-zinc-600">
+                                <div><strong>Assunto:</strong> {communication.subject || '—'}</div>
+                                <div><strong>Prévia:</strong> {communication.preview_text || '—'}</div>
+                                <div><strong>Destinatários estimados:</strong> {communication.estimated_recipients || 0}</div>
+                                <div><strong>Sem consentimento:</strong> {communication.excluded_no_consent || 0}</div>
+                                <div><strong>Inativos:</strong> {communication.excluded_inactive || 0}</div>
+                                <div><strong>Sem email:</strong> {communication.excluded_no_email || 0}</div>
+                              </div>
+                            </div>
+
+                            <div className="rounded-xl bg-white p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Entregas recentes</p>
+                              {communicationDeliveries.length === 0 ? (
+                                <p className="mt-3 text-sm text-zinc-500">Ainda não existem entregas registadas.</p>
+                              ) : (
+                                <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+                                  {communicationDeliveries.slice(0, 10).map((delivery) => (
+                                    <div key={delivery.id} className="rounded-lg bg-zinc-50 px-3 py-2 text-sm">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                          <p className="font-bold text-zinc-800">{delivery.recipient_name || delivery.recipient_email}</p>
+                                          <p className="text-xs text-zinc-500">{delivery.recipient_email}</p>
+                                          {delivery.error_message && (
+                                            <p className="mt-1 text-xs text-red-600">{delivery.error_message}</p>
+                                          )}
+                                        </div>
+                                        <span className="text-xs font-black uppercase text-zinc-500">{delivery.status}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
