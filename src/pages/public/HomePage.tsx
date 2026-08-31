@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import {
   CalendarDays,
+  CheckCircle2,
   ChevronRight,
   ExternalLink,
   HeartHandshake,
   MapPin,
+  Mail,
   Newspaper,
   QrCode,
   ShieldCheck,
   Smartphone,
-  ThumbsUp,
+  Send,
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -202,36 +205,188 @@ type AgendaItem =
       data: GdrbTournament;
     };
 
+function NewsletterSignupSection() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [acceptsNewsletter, setAcceptsNewsletter] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-type GdrbFacebookPost = {
-  id: string;
-  title: string;
-  description: string | null;
-  facebook_url: string;
-  image_url: string | null;
-  published_at: string | null;
-  is_active: boolean;
-  sort_order: number | null;
-  created_at: string | null;
-};
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-function formatFacebookPostDate(date: string | null) {
-  if (!date) {
-    return 'Publicação do Facebook';
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setErrorMessage('Indica o teu email para subscrever a newsletter.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setErrorMessage('Indica um email válido.');
+      return;
+    }
+
+    if (!acceptsNewsletter) {
+      setErrorMessage('Tens de aceitar receber comunicações para subscrever a newsletter.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/subscribe-newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: normalizedEmail,
+          consentEmail: acceptsNewsletter,
+          privacyPolicyAccepted: acceptsNewsletter,
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result?.error || 'Não foi possível concluir a subscrição.');
+      }
+
+      setSuccessMessage('Subscrição registada com sucesso. Obrigado por acompanhares o GDR Boavista.');
+      setName('');
+      setEmail('');
+      setAcceptsNewsletter(false);
+      trackAnalyticsEvent({
+        eventName: 'newsletter_subscribe',
+        entityType: 'newsletter',
+        entityName: 'Homepage',
+      });
+    } catch (error) {
+      console.error('Erro ao subscrever newsletter:', error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível concluir a subscrição. Tenta novamente.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  return new Date(date).toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return (
+    <section className="bg-[#f6f2ec] py-24">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="overflow-hidden rounded-sm border border-[#eadfce] bg-white shadow-xl shadow-zinc-950/5">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="relative overflow-hidden bg-[#24180f] p-8 text-white md:p-12">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.36),transparent_38%)]" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[#24180f] via-[#24180f]/95 to-red-950" />
+
+              <div className="relative">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-red-200 ring-1 ring-white/15">
+                  <Mail size={24} />
+                </div>
+
+                <p className="mt-8 text-sm font-bold uppercase tracking-[0.4em] text-red-300">
+                  Newsletter
+                </p>
+
+                <h2 className="mt-5 font-serif text-5xl font-light leading-tight md:text-6xl">
+                  Recebe novidades do clube.
+                </h2>
+
+                <p className="mt-6 max-w-xl text-base leading-8 text-zinc-300">
+                  Subscreve para receber notícias, jogos, eventos, torneios e comunicados oficiais do GDR Boavista.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-8 md:p-12">
+              {successMessage && (
+                <div className="mb-6 flex items-start gap-3 rounded-sm border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
+                  <CheckCircle2 size={20} />
+                  <span>{successMessage}</span>
+                </div>
+              )}
+
+              {errorMessage && (
+                <div className="mb-6 rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+                  {errorMessage}
+                </div>
+              )}
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-black text-zinc-800">
+                    Nome
+                  </label>
+
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="O teu nome"
+                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-black text-zinc-800">
+                    Email *
+                  </label>
+
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="email@exemplo.pt"
+                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  />
+                </div>
+              </div>
+
+              <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-sm border border-zinc-200 bg-[#f8f3ec] p-4 text-sm leading-6 text-zinc-600">
+                <input
+                  type="checkbox"
+                  checked={acceptsNewsletter}
+                  onChange={(event) => setAcceptsNewsletter(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-zinc-300 text-red-700 focus:ring-red-700"
+                />
+                <span>
+                  Aceito receber comunicações do GDR Boavista por email e sei que posso cancelar a subscrição a qualquer momento.
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
+              >
+                {isSubmitting ? 'A subscrever...' : 'Subscrever newsletter'}
+                <Send size={16} />
+              </button>
+
+              <p className="mt-4 text-xs leading-6 text-zinc-500">
+                Usaremos o teu email apenas para comunicações do clube. Todos os emails enviados terão opção de cancelamento da subscrição.
+              </p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function HomePage() {
   const [matches, setMatches] = useState<GdrbMatch[]>([]);
   const [tournaments, setTournaments] = useState<GdrbTournament[]>([]);
   const [news, setNews] = useState<GdrbNews[]>([]);
-  const [facebookPosts, setFacebookPosts] = useState<GdrbFacebookPost[]>([]);
   const [sponsors, setSponsors] = useState<GdrbSponsor[]>([]);
   const [isLoadingAgenda, setIsLoadingAgenda] = useState(true);
 
@@ -239,13 +394,7 @@ export function HomePage() {
     async function loadHomeData() {
       setIsLoadingAgenda(true);
 
-      const [
-        matchesResult,
-        tournamentsResult,
-        newsResult,
-        facebookPostsResult,
-        sponsorsResult,
-      ] = await Promise.all([
+      const [matchesResult, tournamentsResult, newsResult, sponsorsResult] = await Promise.all([
         supabase
           .from('gdrb_matches')
           .select('*')
@@ -272,15 +421,6 @@ export function HomePage() {
           .limit(12),
 
         supabase
-          .from('gdrb_facebook_posts')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true })
-          .order('published_at', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false })
-          .limit(6),
-
-        supabase
           .from('gdrb_sponsors')
           .select('*')
           .eq('is_active', true)
@@ -301,10 +441,6 @@ export function HomePage() {
         console.error('Erro ao carregar notícias:', newsResult.error);
       }
 
-      if (facebookPostsResult.error) {
-        console.error('Erro ao carregar publicações do Facebook:', facebookPostsResult.error);
-      }
-
       if (sponsorsResult.error) {
         console.error('Erro ao carregar parceiros:', sponsorsResult.error);
       }
@@ -312,7 +448,6 @@ export function HomePage() {
       setMatches(matchesResult.data ?? []);
       setTournaments(tournamentsResult.data ?? []);
       setNews(newsResult.data ?? []);
-      setFacebookPosts(facebookPostsResult.data ?? []);
       setSponsors(sponsorsResult.data ?? []);
       setIsLoadingAgenda(false);
     }
@@ -366,45 +501,21 @@ export function HomePage() {
 
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
-      <style>{`
-        @keyframes boavistaHeroPulse {
-          0%, 100% { opacity: .45; transform: scale(1); }
-          50% { opacity: .8; transform: scale(1.12); }
-        }
-        @keyframes boavistaHeroDrift {
-          0%, 100% { opacity: .25; transform: translateX(0) rotate(-18deg); }
-          50% { opacity: .55; transform: translateX(-60px) rotate(-18deg); }
-        }
-      `}</style>
-      <section className="relative min-h-[760px] overflow-hidden bg-[#090604] text-white md:min-h-[820px]">
+      <section className="relative min-h-[760px] overflow-hidden bg-[#24180f] text-white">
         <img
-          src="/hero-boavista-premium-mobile.webp"
-          alt="Ambiente premium do GDR Boavista"
-          className="absolute inset-0 h-full w-full object-cover opacity-85 md:hidden"
-        />
-        <img
-          src="/hero-boavista-premium.webp"
-          alt="Ambiente premium do GDR Boavista"
-          className="absolute inset-0 hidden h-full w-full object-cover opacity-90 md:block"
+          src="/hero-boavista.webp"
+          alt="GDR Boavista"
+          className="absolute inset-0 h-full w-full object-cover opacity-45"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-[#120b08]/90 to-black/20" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_58%,rgba(220,38,38,0.20),transparent_33%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#090604] to-transparent" />
-        <div
-          className="pointer-events-none absolute -right-24 top-20 h-[26rem] w-[26rem] rounded-full bg-red-600/15 blur-3xl"
-          style={{ animation: 'boavistaHeroPulse 7s ease-in-out infinite' }}
-        />
-        <div
-          className="pointer-events-none absolute bottom-16 right-0 h-1 w-[34rem] rotate-[-18deg] rounded-full bg-red-500/45 blur-sm"
-          style={{ animation: 'boavistaHeroDrift 10s ease-in-out infinite' }}
-        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#24180f]/80 to-black/30" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_35%)]" />
 
-        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-6 py-24 sm:px-8 md:min-h-[820px] lg:px-16 xl:px-28">
+        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-6 py-24 sm:px-8 lg:px-16 xl:px-28">
           <div className="max-w-3xl lg:ml-8 xl:ml-10">
-            <div className="mb-10 flex flex-col gap-7 sm:flex-row sm:items-center md:mb-12">
-              <div className="relative flex h-36 w-36 shrink-0 items-center justify-center rounded-[2.2rem] bg-white/95 p-4 shadow-2xl ring-4 ring-white/15 backdrop-blur md:h-44 md:w-44 md:rounded-[2.8rem] md:p-5">
-                <div className="absolute -inset-3 rounded-[2.6rem] bg-red-700/25 blur-2xl md:rounded-[3.2rem]" />
+            <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center md:mb-12">
+              <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-[2rem] bg-white p-4 shadow-2xl ring-4 ring-white/15 md:h-36 md:w-36 md:rounded-[2.35rem] md:p-5">
+                <div className="absolute -inset-2 rounded-[2.25rem] bg-red-700/20 blur-xl md:rounded-[2.65rem]" />
                 <img
                   src="/logo-gdr-boavista-header-256.png"
                   alt="GDR Boavista"
@@ -419,13 +530,20 @@ export function HomePage() {
                 <p className="mt-3 max-w-xl font-serif text-2xl font-light leading-tight text-white md:text-3xl">
                   Grupo Desportivo e Recreativo Boavista
                 </p>
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.22em] text-zinc-200">
+                  <span>Leiria</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                  <span>Formação</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                  <span>Comunidade</span>
+                </div>
               </div>
             </div>
 
-            <h1 className="max-w-3xl font-serif text-5xl font-light leading-[0.96] tracking-tight drop-shadow-2xl sm:text-6xl md:text-7xl">
+            <h1 className="max-w-3xl font-serif text-5xl font-light leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
               Formar atletas,
               <br />
-              <span className="text-red-500">unir famílias.</span>
+              unir famílias.
             </h1>
 
             <p className="mt-8 max-w-xl text-base leading-8 text-zinc-300 md:text-lg">
@@ -437,7 +555,7 @@ export function HomePage() {
             <div className="mt-9 flex flex-wrap gap-4">
               <Link
                 to="/socios"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-[0_18px_45px_rgba(185,28,28,0.35)] transition hover:-translate-y-0.5 hover:bg-red-800"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
               >
                 Quero ser sócio
                 <ChevronRight size={18} />
@@ -445,7 +563,7 @@ export function HomePage() {
 
               <Link
                 to="/equipas"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/25 bg-white/10 px-6 py-4 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white hover:text-[#24180f]"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:bg-zinc-100"
               >
                 Ver equipas
                 <ChevronRight size={18} />
@@ -808,125 +926,6 @@ export function HomePage() {
         </div>
       </section>
 
-
-      <section className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
-                Redes sociais
-              </p>
-
-              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
-                Boavista no Facebook
-              </h2>
-            </div>
-
-            <a
-              href="https://www.facebook.com/G.D.R.BoaVista"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-[#24180f] px-5 py-3 text-sm font-bold text-white transition hover:bg-red-700"
-            >
-              Ver página oficial
-              <ExternalLink size={16} />
-            </a>
-          </div>
-
-          {facebookPosts.length === 0 ? (
-            <div className="mt-10 rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-10 text-center">
-              <Newspaper className="mx-auto text-red-700" size={32} />
-
-              <h3 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
-                Publicações em preparação
-              </h3>
-
-              <p className="mt-3 text-zinc-500">
-                As publicações selecionadas no admin aparecem automaticamente aqui.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-10 grid gap-6 md:grid-cols-3">
-              {facebookPosts.map((post) => (
-                <article
-                  key={post.id}
-                  className="group overflow-hidden rounded-sm border border-zinc-200 bg-[#f6f2ec] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="h-1.5 bg-red-700" />
-
-                  {post.image_url ? (
-                    <div className="h-56 overflow-hidden bg-zinc-200">
-                      <img
-                        src={post.image_url}
-                        alt={post.title}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-56 items-center justify-center bg-[#24180f] text-white">
-                      <div className="text-center">
-                        <img
-                          src="/logo-gdr-boavista-header-256.png"
-                          alt="GDR Boavista"
-                          className="mx-auto h-20 w-20 object-contain"
-                        />
-                        <p className="mt-4 text-xs font-black uppercase tracking-[0.28em] text-red-300">
-                          Facebook oficial
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-7">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                        Facebook
-                      </span>
-
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-600">
-                        {formatFacebookPostDate(post.published_at)}
-                      </span>
-                    </div>
-
-                    <h3 className="mt-5 font-serif text-3xl font-light leading-tight text-[#24180f]">
-                      {post.title}
-                    </h3>
-
-                    {post.description && (
-                      <p className="mt-4 text-sm leading-7 text-zinc-600">
-                        {post.description}
-                      </p>
-                    )}
-
-                    <div className="mt-7 flex flex-wrap gap-3 border-t border-zinc-200 pt-5">
-                      <a
-                        href={post.facebook_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-red-800"
-                      >
-                        <ThumbsUp size={15} />
-                        Gosto / comentar
-                      </a>
-
-                      <a
-                        href={post.facebook_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-md bg-[#24180f] px-4 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-zinc-900"
-                      >
-                        Ver publicação
-                        <ExternalLink size={15} />
-                      </a>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
       <section className="overflow-hidden bg-white py-24">
         <style>{`
           @keyframes gdrb-sponsor-marquee {
@@ -972,7 +971,7 @@ export function HomePage() {
 
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link
-                    to="/parceiros"
+                    to="/patrocinadores"
                     className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#24180f]"
                   >
                     Ver parceiros
@@ -1133,6 +1132,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <NewsletterSignupSection />
 
       <section className="bg-[#24180f] py-24 text-white">
         <div className="mx-auto max-w-7xl px-4">

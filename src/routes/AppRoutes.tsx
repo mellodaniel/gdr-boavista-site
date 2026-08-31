@@ -14,6 +14,7 @@ import { MembersPage } from '../pages/public/MembersPage';
 import { GalleryPage } from '../pages/public/GalleryPage';
 import { SponsorsPage } from '../pages/public/SponsorsPage';
 import { ContactsPage } from '../pages/public/ContactsPage';
+import { NewsletterUnsubscribePage } from '../pages/public/NewsletterUnsubscribePage';
 import { ResultsPage } from '../pages/public/ResultsPage';
 import { ShopPage } from '../pages/public/ShopPage';
 import { AppInstallPage } from '../pages/public/AppInstallPage';
@@ -76,6 +77,7 @@ export function AppRoutes() {
         <Route path="patrocinadores" element={<SponsorsPage />} />
         <Route path="parceiros" element={<SponsorsPage />} />
         <Route path="contactos" element={<ContactsPage />} />
+        <Route path="newsletter/cancelar/:token" element={<NewsletterUnsubscribePage />} />
         <Route path="resultados" element={<ResultsPage />} />
         <Route path="loja" element={<ShopPage />} />
         <Route path="app" element={<AppInstallPage />} />
