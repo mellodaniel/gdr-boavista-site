@@ -129,6 +129,15 @@ async function getTargetGroupIds(communicationId) {
   return Array.isArray(data) ? data.map((item) => item.group_id).filter(Boolean) : [];
 }
 
+async function getManualRecipientIds(communicationId) {
+  const data = await supabaseRequest(
+    `gdrb_communication_manual_recipients?communication_id=eq.${encodeURIComponent(communicationId)}&select=subscriber_id`,
+    { method: 'GET' },
+  );
+
+  return Array.isArray(data) ? data.map((item) => item.subscriber_id).filter(Boolean) : [];
+}
+
 async function getSubscriberGroups() {
   const data = await supabaseRequest('gdrb_subscriber_groups?select=subscriber_id,group_id', {
     method: 'GET',
@@ -182,10 +191,12 @@ function subscriberMatchesType(subscriber, communicationType) {
   return true;
 }
 
-function filterRecipients({ communication, subscribers, subscriberGroups, targetGroupIds }) {
+function filterRecipients({ communication, subscribers, subscriberGroups, targetGroupIds, manualRecipientIds = [] }) {
   const selectedGroups = new Set(targetGroupIds);
+  const manualRecipients = new Set(manualRecipientIds);
   const subscriberGroupsMap = new Map();
   const communicationType = communication.communication_type || 'newsletter';
+  const isManual = communication.audience_mode === 'manual';
 
   subscriberGroups.forEach((entry) => {
     if (!subscriberGroupsMap.has(entry.subscriber_id)) {
@@ -201,9 +212,11 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
   let excludedNoEmail = 0;
 
   subscribers.forEach((subscriber) => {
-    if (!subscriberMatchesType(subscriber, communicationType)) return;
+    if (isManual) {
+      if (!manualRecipients.has(subscriber.id)) return;
+    } else if (!subscriberMatchesType(subscriber, communicationType)) return;
 
-    if (selectedGroups.size > 0) {
+    if (!isManual && selectedGroups.size > 0) {
       const groupsForSubscriber = subscriberGroupsMap.get(subscriber.id);
       const inSelectedGroup = groupsForSubscriber
         ? Array.from(selectedGroups).some((groupId) => groupsForSubscriber.has(groupId))
@@ -224,7 +237,7 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
       return;
     }
 
-    if (!subscriberHasConsent(subscriber, communicationType)) {
+    if (!isManual && !subscriberHasConsent(subscriber, communicationType)) {
       excludedNoConsent += 1;
       return;
     }
@@ -323,9 +336,8 @@ export default async function handler(request, response) {
     return response.status(500).json({ error: 'SUPABASE_SERVICE_ROLE_KEY is not configured' });
   }
 
-  const mode = request.body?.mode === 'send' ? 'send' : 'test';
+  const mode = 'send';
   const communicationId = String(request.body?.communicationId ?? '').trim();
-  const testEmail = normalizeEmail(request.body?.testEmail);
 
   if (!communicationId) {
     return response.status(400).json({ error: 'Comunicação inválida.' });
@@ -342,39 +354,21 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'A comunicação precisa ter assunto e mensagem.' });
     }
 
-    if (mode === 'test') {
-      if (!testEmail || !isValidEmail(testEmail)) {
-        return response.status(400).json({ error: 'Indica um email de teste válido.' });
-      }
-
-      await sendEmail({
-        communication,
-        recipientEmail: testEmail,
-        subscriber: {
-          name: 'Teste',
-          email: testEmail,
-          unsubscribe_token: 'teste-newsletter',
-        },
-      });
-
-      await updateCommunication(communicationId, {
-        test_sent_at: new Date().toISOString(),
-        last_error: null,
-      });
-
-      return response.status(200).json({ ok: true, mode: 'test' });
-    }
-
-    const [targetGroupIds, subscriberGroups, subscribers] = await Promise.all([
+    const [targetGroupIds, manualRecipientIds, subscriberGroups, subscribers] = await Promise.all([
       getTargetGroupIds(communicationId),
+      getManualRecipientIds(communicationId),
       getSubscriberGroups(),
       getAllSubscribers(),
     ]);
 
     const groupedTypes = ['escalao', 'interno', 'socios', 'parceiros'];
 
-    if (groupedTypes.includes(communication.communication_type || 'newsletter') && targetGroupIds.length === 0) {
+    if (communication.audience_mode !== 'manual' && groupedTypes.includes(communication.communication_type || 'newsletter') && targetGroupIds.length === 0) {
       return response.status(400).json({ error: 'Seleciona pelo menos um grupo para este tipo de comunicação.' });
+    }
+
+    if (communication.audience_mode === 'manual' && manualRecipientIds.length === 0) {
+      return response.status(400).json({ error: 'Seleciona um contacto individual para esta comunicação.' });
     }
 
     const audience = filterRecipients({
@@ -382,6 +376,7 @@ export default async function handler(request, response) {
       subscribers,
       subscriberGroups,
       targetGroupIds,
+      manualRecipientIds,
     });
 
     if (audience.recipients.length === 0) {

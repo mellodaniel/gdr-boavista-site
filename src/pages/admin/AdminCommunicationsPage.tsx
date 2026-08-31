@@ -16,6 +16,7 @@ import {
 import { supabase } from '../../lib/supabase';
 
 type CommunicationType = 'newsletter' | 'escalao' | 'interno' | 'socios' | 'parceiros' | 'geral';
+type CommunicationKind = CommunicationType | 'individual';
 type AudienceMode = 'all_active' | 'selected_groups' | 'manual';
 
 type Communication = {
@@ -58,6 +59,11 @@ type CommunicationTarget = {
   group_id: string;
 };
 
+type ManualRecipient = {
+  communication_id: string;
+  subscriber_id: string;
+};
+
 type SubscriberGroup = {
   subscriber_id: string;
   group_id: string;
@@ -67,6 +73,8 @@ type Subscriber = {
   id: string;
   name: string | null;
   email: string | null;
+  phone: string | null;
+  athlete_name: string | null;
   contact_type: string;
   communication_scope: string;
   consent_email: boolean;
@@ -97,9 +105,10 @@ type FormState = {
   status: 'draft' | 'ready' | 'sent' | 'archived';
   from_name: string;
   from_email: string;
-  communication_type: CommunicationType;
+  communication_type: CommunicationKind;
   audience_mode: AudienceMode;
   groupIds: string[];
+  manualRecipientId: string;
 };
 
 type AudienceSummary = {
@@ -108,7 +117,8 @@ type AudienceSummary = {
   excludedInactive: number;
   excludedNoEmail: number;
   needsGroups: boolean;
-};
+  isManual: boolean;
+}
 
 const emptyForm: FormState = {
   id: null,
@@ -123,6 +133,7 @@ const emptyForm: FormState = {
   communication_type: 'newsletter',
   audience_mode: 'selected_groups',
   groupIds: [],
+  manualRecipientId: '',
 };
 
 const statusLabels: Record<Communication['status'], string> = {
@@ -133,22 +144,24 @@ const statusLabels: Record<Communication['status'], string> = {
 };
 
 
-const communicationTypeLabels: Record<CommunicationType, string> = {
+const communicationTypeLabels: Record<CommunicationKind, string> = {
   newsletter: 'Newsletter geral',
   escalao: 'Comunicação por escalão',
   interno: 'Comunicação interna',
   socios: 'Comunicação para sócios',
   parceiros: 'Comunicação para parceiros',
   geral: 'Comunicação geral do clube',
+  individual: 'Contacto individual',
 };
 
-const communicationTypeDescriptions: Record<CommunicationType, string> = {
+const communicationTypeDescriptions: Record<CommunicationKind, string> = {
   newsletter: 'Apenas pessoas que subscreveram voluntariamente a newsletter pública do site.',
   escalao: 'Pais, encarregados, atletas e contactos associados a escalões/equipas específicas.',
   interno: 'Direção, treinadores, equipa técnica e contactos internos do clube.',
   socios: 'Contactos classificados como sócios.',
   parceiros: 'Contactos classificados como parceiros/patrocinadores.',
   geral: 'Comunicação institucional para todos os contactos ativos com consentimento aplicável.',
+  individual: 'Envio único para uma pessoa/contacto específico pesquisado na base de contactos.',
 };
 
 function formatDate(value: string | null | undefined) {
@@ -178,7 +191,8 @@ function statusClass(status: Communication['status']) {
   return 'border-slate-200 bg-slate-50 text-slate-700';
 }
 
-function groupMatchesCommunicationType(group: CommunicationGroup, type: CommunicationType) {
+function groupMatchesCommunicationType(group: CommunicationGroup, type: CommunicationKind) {
+  if (type === 'individual') return false;
   if (type === 'newsletter') return group.group_type === 'newsletter';
   if (type === 'escalao') return group.group_type === 'escalao';
   if (type === 'interno') return group.group_type === 'direcao' || group.group_type === 'tecnica';
@@ -228,13 +242,41 @@ function calculateAudienceSummary({
   subscriberGroups,
   communicationType,
   groupIds,
+  manualRecipientId,
 }: {
   subscribers: Subscriber[];
   subscriberGroups: SubscriberGroup[];
-  communicationType: CommunicationType;
+  communicationType: CommunicationKind;
   groupIds: string[];
+  manualRecipientId: string;
 }): AudienceSummary {
-  const needsGroups = ['escalao', 'interno', 'socios', 'parceiros'].includes(communicationType) && groupIds.length === 0;
+  const isManual = communicationType === 'individual';
+  const needsGroups = !isManual && ['escalao', 'interno', 'socios', 'parceiros'].includes(communicationType) && groupIds.length === 0;
+
+  if (isManual) {
+    const subscriber = subscribers.find((item) => item.id === manualRecipientId);
+
+    if (!subscriber) {
+      return { recipients: 0, excludedNoConsent: 0, excludedInactive: 0, excludedNoEmail: 0, needsGroups: false, isManual: true };
+    }
+
+    if (!subscriber.is_active || subscriber.unsubscribed_at) {
+      return { recipients: 0, excludedNoConsent: 0, excludedInactive: 1, excludedNoEmail: 0, needsGroups: false, isManual: true };
+    }
+
+    if (!normalizeEmail(subscriber.email)) {
+      return { recipients: 0, excludedNoConsent: 0, excludedInactive: 0, excludedNoEmail: 1, needsGroups: false, isManual: true };
+    }
+
+    return {
+      recipients: 1,
+      excludedNoConsent: subscriberHasConsent(subscriber, 'geral') ? 0 : 1,
+      excludedInactive: 0,
+      excludedNoEmail: 0,
+      needsGroups: false,
+      isManual: true,
+    };
+  }
   const selectedGroups = new Set(groupIds);
   const subscriberGroupsMap = new Map<string, Set<string>>();
 
@@ -252,7 +294,7 @@ function calculateAudienceSummary({
   let excludedNoEmail = 0;
 
   subscribers.forEach((subscriber) => {
-    if (!subscriberMatchesType(subscriber, communicationType)) return;
+    if (!subscriberMatchesType(subscriber, communicationType as CommunicationType)) return;
 
     if (selectedGroups.size > 0) {
       const groupsForSubscriber = subscriberGroupsMap.get(subscriber.id);
@@ -273,7 +315,7 @@ function calculateAudienceSummary({
       return;
     }
 
-    if (!subscriberHasConsent(subscriber, communicationType)) {
+    if (!subscriberHasConsent(subscriber, communicationType as CommunicationType)) {
       excludedNoConsent += 1;
       return;
     }
@@ -287,6 +329,7 @@ function calculateAudienceSummary({
     excludedInactive,
     excludedNoEmail,
     needsGroups,
+    isManual,
   };
 }
 
@@ -294,6 +337,7 @@ export function AdminCommunicationsPage() {
   const [communications, setCommunications] = useState<Communication[]>([]);
   const [groups, setGroups] = useState<CommunicationGroup[]>([]);
   const [targets, setTargets] = useState<CommunicationTarget[]>([]);
+  const [manualRecipients, setManualRecipients] = useState<ManualRecipient[]>([]);
   const [subscriberGroups, setSubscriberGroups] = useState<SubscriberGroup[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -305,16 +349,17 @@ export function AdminCommunicationsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | Communication['status']>('all');
-  const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | CommunicationType>('all');
+  const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | CommunicationKind>('all');
   const [historyDateFrom, setHistoryDateFrom] = useState('');
   const [historyDateTo, setHistoryDateTo] = useState('');
   const [expandedCommunicationId, setExpandedCommunicationId] = useState<string | null>(null);
+  const [recipientSearchTerm, setRecipientSearchTerm] = useState('');
 
   async function loadData() {
     setLoading(true);
     setMessage(null);
 
-    const [communicationsResult, groupsResult, targetsResult, subscriberGroupsResult, subscribersResult, deliveriesResult] = await Promise.all([
+    const [communicationsResult, groupsResult, targetsResult, manualRecipientsResult, subscriberGroupsResult, subscribersResult, deliveriesResult] = await Promise.all([
       supabase
         .from('gdrb_communications')
         .select('*')
@@ -328,11 +373,14 @@ export function AdminCommunicationsPage() {
         .from('gdrb_communication_targets')
         .select('communication_id,group_id'),
       supabase
+        .from('gdrb_communication_manual_recipients')
+        .select('communication_id,subscriber_id'),
+      supabase
         .from('gdrb_subscriber_groups')
         .select('subscriber_id,group_id'),
       supabase
         .from('gdrb_subscribers')
-        .select('id,name,email,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at'),
+        .select('id,name,email,phone,athlete_name,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at'),
       supabase
         .from('gdrb_communication_deliveries')
         .select('id,communication_id,recipient_email,recipient_name,status,error_message,sent_at,created_at')
@@ -360,6 +408,13 @@ export function AdminCommunicationsPage() {
       setTargets([]);
     } else {
       setTargets((targetsResult.data || []) as CommunicationTarget[]);
+    }
+
+    if (manualRecipientsResult.error) {
+      console.error(manualRecipientsResult.error);
+      setManualRecipients([]);
+    } else {
+      setManualRecipients((manualRecipientsResult.data || []) as ManualRecipient[]);
     }
 
     if (subscriberGroupsResult.error) {
@@ -401,6 +456,7 @@ export function AdminCommunicationsPage() {
   }, [deliveries, selectedCommunicationId]);
 
   const compatibleGroups = useMemo(() => {
+    if (form.communication_type === 'individual') return [];
     return groups.filter((group) => groupMatchesCommunicationType(group, form.communication_type));
   }, [groups, form.communication_type]);
 
@@ -410,8 +466,9 @@ export function AdminCommunicationsPage() {
       subscriberGroups,
       communicationType: form.communication_type,
       groupIds: form.groupIds,
+      manualRecipientId: form.manualRecipientId,
     });
-  }, [subscribers, subscriberGroups, form.communication_type, form.groupIds]);
+  }, [subscribers, subscriberGroups, form.communication_type, form.groupIds, form.manualRecipientId]);
 
   const stats = useMemo(() => {
     const visibleCommunications = communications.filter((item) => item.status !== 'archived');
@@ -433,7 +490,7 @@ export function AdminCommunicationsPage() {
         communication.subject,
         communication.preview_text,
         communication.body,
-        communicationTypeLabels[communication.communication_type || 'newsletter'],
+        communication.audience_mode === 'manual' ? communicationTypeLabels.individual : communicationTypeLabels[communication.communication_type || 'newsletter'],
         groupsLabel(communication.id),
       ]
         .filter(Boolean)
@@ -445,7 +502,11 @@ export function AdminCommunicationsPage() {
         historyStatusFilter === 'all'
           ? communication.status !== 'archived'
           : communication.status === historyStatusFilter;
-      const matchesType = historyTypeFilter === 'all' || communication.communication_type === historyTypeFilter;
+      const matchesType =
+        historyTypeFilter === 'all' ||
+        (historyTypeFilter === 'individual'
+          ? communication.audience_mode === 'manual'
+          : communication.communication_type === historyTypeFilter && communication.audience_mode !== 'manual');
 
       const referenceDate = new Date(communication.sent_at || communication.created_at);
       const matchesDateFrom = !historyDateFrom || referenceDate >= new Date(`${historyDateFrom}T00:00:00`);
@@ -453,11 +514,34 @@ export function AdminCommunicationsPage() {
 
       return matchesSearch && matchesStatus && matchesType && matchesDateFrom && matchesDateTo;
     });
-  }, [communications, historySearchTerm, historyStatusFilter, historyTypeFilter, historyDateFrom, historyDateTo, targets, groups]);
+  }, [communications, historySearchTerm, historyStatusFilter, historyTypeFilter, historyDateFrom, historyDateTo, targets, groups, manualRecipients, subscribers]);
+
+
+  const selectedManualSubscriber = useMemo(() => {
+    if (!form.manualRecipientId) return null;
+    return subscribers.find((subscriber) => subscriber.id === form.manualRecipientId) || null;
+  }, [subscribers, form.manualRecipientId]);
+
+  const filteredRecipientOptions = useMemo(() => {
+    const term = recipientSearchTerm.trim().toLowerCase();
+
+    return subscribers
+      .filter((subscriber) => normalizeEmail(subscriber.email))
+      .filter((subscriber) => {
+        if (!term) return true;
+        return [subscriber.name, subscriber.email, subscriber.phone, subscriber.athlete_name, subscriber.contact_type]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(term);
+      })
+      .slice(0, 12);
+  }, [subscribers, recipientSearchTerm]);
 
   function resetForm() {
     setForm(emptyForm);
     setSelectedCommunicationId(null);
+    setRecipientSearchTerm('');
     setMessage(null);
   }
 
@@ -465,6 +549,7 @@ export function AdminCommunicationsPage() {
     const groupIds = targets
       .filter((target) => target.communication_id === communication.id)
       .map((target) => target.group_id);
+    const manualRecipientId = manualRecipients.find((recipient) => recipient.communication_id === communication.id)?.subscriber_id || '';
 
     setSelectedCommunicationId(communication.id);
     setForm({
@@ -477,19 +562,23 @@ export function AdminCommunicationsPage() {
       status: communication.status || 'draft',
       from_name: communication.from_name || 'GDR Boavista',
       from_email: communication.from_email || 'notificacoes@send.gdrboavista.pt',
-      communication_type: communication.communication_type || 'newsletter',
+      communication_type: communication.audience_mode === 'manual' ? 'individual' : communication.communication_type || 'newsletter',
       audience_mode: communication.audience_mode || 'selected_groups',
       groupIds,
+      manualRecipientId,
     });
+    const selected = subscribers.find((subscriber) => subscriber.id === manualRecipientId);
+    setRecipientSearchTerm(selected ? `${selected.name || 'Sem nome'} — ${selected.email || ''}` : '');
     setMessage(null);
   }
 
-  function changeCommunicationType(type: CommunicationType) {
+  function changeCommunicationType(type: CommunicationKind) {
     setForm((current) => ({
       ...current,
       communication_type: type,
-      audience_mode: type === 'geral' ? 'all_active' : 'selected_groups',
+      audience_mode: type === 'individual' ? 'manual' : type === 'geral' ? 'all_active' : 'selected_groups',
       groupIds: [],
+      manualRecipientId: '',
     }));
   }
 
@@ -522,6 +611,26 @@ export function AdminCommunicationsPage() {
     if (insertError) throw insertError;
   }
 
+  async function saveManualRecipients(communicationId: string, subscriberId: string) {
+    const { error: deleteError } = await supabase
+      .from('gdrb_communication_manual_recipients')
+      .delete()
+      .eq('communication_id', communicationId);
+
+    if (deleteError) throw deleteError;
+
+    if (!subscriberId) return;
+
+    const { error: insertError } = await supabase
+      .from('gdrb_communication_manual_recipients')
+      .insert({
+        communication_id: communicationId,
+        subscriber_id: subscriberId,
+      });
+
+    if (insertError) throw insertError;
+  }
+
   async function saveCommunication() {
     const title = form.title.trim();
     const subject = form.subject.trim();
@@ -537,6 +646,11 @@ export function AdminCommunicationsPage() {
       return;
     }
 
+    if (form.communication_type === 'individual' && !form.manualRecipientId) {
+      setMessage({ type: 'error', text: 'Seleciona o contacto individual que vai receber esta comunicação.' });
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
 
@@ -549,8 +663,8 @@ export function AdminCommunicationsPage() {
       status: form.status === 'sent' ? 'ready' : form.status,
       from_name: form.from_name.trim() || 'GDR Boavista',
       from_email: form.from_email.trim() || 'notificacoes@send.gdrboavista.pt',
-      communication_type: form.communication_type,
-      audience_mode: form.audience_mode,
+      communication_type: form.communication_type === 'individual' ? 'geral' : form.communication_type,
+      audience_mode: form.communication_type === 'individual' ? 'manual' : form.audience_mode,
       estimated_recipients: audienceSummary.recipients,
       excluded_no_consent: audienceSummary.excludedNoConsent,
       excluded_inactive: audienceSummary.excludedInactive,
@@ -586,7 +700,8 @@ export function AdminCommunicationsPage() {
         throw new Error('Não foi possível identificar a comunicação.');
       }
 
-      await saveTargets(communicationId, form.groupIds);
+      await saveTargets(communicationId, form.communication_type === 'individual' ? [] : form.groupIds);
+      await saveManualRecipients(communicationId, form.communication_type === 'individual' ? form.manualRecipientId : '');
 
       setMessage({ type: 'success', text: 'Comunicação guardada com sucesso.' });
       await loadData();
@@ -617,13 +732,20 @@ export function AdminCommunicationsPage() {
       return;
     }
 
+    if (form.communication_type === 'individual' && !form.manualRecipientId) {
+      setMessage({ type: 'error', text: 'Seleciona o contacto individual antes do envio definitivo.' });
+      return;
+    }
+
     if (audienceSummary.recipients === 0) {
       setMessage({ type: 'error', text: 'Não existem destinatários ativos com consentimento para esta comunicação.' });
       return;
     }
 
     const confirmed = window.confirm(
-      `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
+      form.communication_type === 'individual'
+        ? `Confirmas o envio desta comunicação para ${selectedManualSubscriber?.name || selectedManualSubscriber?.email || '1 destinatário'}?\n\nEsta ação não pode ser desfeita.`
+        : `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
     );
 
     if (!confirmed) return;
@@ -667,6 +789,12 @@ export function AdminCommunicationsPage() {
   }
 
   function groupsLabel(communicationId: string) {
+    const manualRecipientId = manualRecipients.find((recipient) => recipient.communication_id === communicationId)?.subscriber_id;
+    if (manualRecipientId) {
+      const subscriber = subscribers.find((item) => item.id === manualRecipientId);
+      return subscriber ? `${subscriber.name || 'Sem nome'} — ${subscriber.email || 'sem email'}` : 'Contacto individual';
+    }
+
     const groupIds = targets
       .filter((target) => target.communication_id === communicationId)
       .map((target) => target.group_id);
@@ -715,6 +843,7 @@ export function AdminCommunicationsPage() {
       const groupIds = targets
         .filter((target) => target.communication_id === communication.id)
         .map((target) => target.group_id);
+      const manualRecipientId = manualRecipients.find((recipient) => recipient.communication_id === communication.id)?.subscriber_id || '';
 
       const { data, error } = await supabase
         .from('gdrb_communications')
@@ -746,6 +875,7 @@ export function AdminCommunicationsPage() {
       if (!newCommunicationId) throw new Error('Não foi possível criar a cópia.');
 
       await saveTargets(newCommunicationId, groupIds);
+      await saveManualRecipients(newCommunicationId, manualRecipientId);
       await loadData();
 
       const { data: duplicated } = await supabase
@@ -848,7 +978,7 @@ export function AdminCommunicationsPage() {
 
             <select
               value={historyTypeFilter}
-              onChange={(event) => setHistoryTypeFilter(event.target.value as 'all' | CommunicationType)}
+              onChange={(event) => setHistoryTypeFilter(event.target.value as 'all' | CommunicationKind)}
               className="rounded-xl border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
             >
               <option value="all">Todos tipos</option>
@@ -858,6 +988,7 @@ export function AdminCommunicationsPage() {
               <option value="socios">Sócios</option>
               <option value="parceiros">Parceiros</option>
               <option value="geral">Geral</option>
+              <option value="individual">Contacto individual</option>
             </select>
 
             <input
@@ -917,7 +1048,7 @@ export function AdminCommunicationsPage() {
                         </div>
 
                         <div className="text-sm font-semibold text-zinc-600">
-                          <div>{communicationTypeLabels[communication.communication_type || 'newsletter']}</div>
+                          <div>{communication.audience_mode === 'manual' ? communicationTypeLabels.individual : communicationTypeLabels[communication.communication_type || 'newsletter']}</div>
                           <div className="mt-1 line-clamp-2 text-xs text-zinc-400">{groupsLabel(communication.id)}</div>
                         </div>
 
@@ -1050,7 +1181,7 @@ export function AdminCommunicationsPage() {
           <div className="mb-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
             <p className="mb-3 text-sm font-black text-zinc-900">1. Tipo de comunicação</p>
             <div className="grid gap-2 md:grid-cols-2">
-              {(Object.keys(communicationTypeLabels) as CommunicationType[]).map((type) => (
+              {(Object.keys(communicationTypeLabels) as CommunicationKind[]).map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -1153,12 +1284,96 @@ export function AdminCommunicationsPage() {
               <div>
                 <p className="text-sm font-black text-zinc-900">2. Destinatários compatíveis</p>
                 <p className="text-xs text-zinc-500">
-                  Os grupos abaixo mudam conforme o tipo de comunicação selecionado.
+                  {form.communication_type === 'individual'
+                    ? 'Pesquisa e seleciona uma pessoa/contacto específico.'
+                    : 'Os grupos abaixo mudam conforme o tipo de comunicação selecionado.'}
                 </p>
               </div>
             </div>
 
-            {compatibleGroups.length === 0 ? (
+            {form.communication_type === 'individual' ? (
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    value={recipientSearchTerm}
+                    onChange={(event) => {
+                      setRecipientSearchTerm(event.target.value);
+                      setForm((current) => ({ ...current, manualRecipientId: '' }));
+                    }}
+                    placeholder="Pesquisar por nome, email, telefone ou atleta..."
+                    className="w-full rounded-xl border border-zinc-200 bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                  />
+                </div>
+
+                {selectedManualSubscriber ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-black text-emerald-900">{selectedManualSubscriber.name || 'Sem nome'}</p>
+                        <p className="mt-1 text-sm font-semibold text-emerald-800">{selectedManualSubscriber.email}</p>
+                        <p className="mt-1 text-xs text-emerald-700">
+                          Tipo: {selectedManualSubscriber.contact_type || '—'} · Escopo: {selectedManualSubscriber.communication_scope || '—'}
+                        </p>
+                        {selectedManualSubscriber.athlete_name && (
+                          <p className="mt-1 text-xs text-emerald-700">Atleta: {selectedManualSubscriber.athlete_name}</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm((current) => ({ ...current, manualRecipientId: '' }));
+                          setRecipientSearchTerm('');
+                        }}
+                        className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+                      >
+                        Trocar contacto
+                      </button>
+                    </div>
+
+                    {audienceSummary.excludedNoConsent > 0 && (
+                      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                        Este contacto não tem consentimento registado para comunicações gerais. Usa apenas para comunicação operacional/administrativa justificada.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                    {filteredRecipientOptions.length === 0 ? (
+                      <div className="p-4 text-sm font-semibold text-zinc-500">
+                        Nenhum contacto com email encontrado para a pesquisa atual.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-zinc-100">
+                        {filteredRecipientOptions.map((subscriber) => (
+                          <button
+                            key={subscriber.id}
+                            type="button"
+                            onClick={() => {
+                              setForm((current) => ({ ...current, manualRecipientId: subscriber.id }));
+                              setRecipientSearchTerm(`${subscriber.name || 'Sem nome'} — ${subscriber.email || ''}`);
+                            }}
+                            className="flex w-full flex-col gap-1 px-4 py-3 text-left transition hover:bg-red-50 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <span>
+                              <span className="block text-sm font-black text-zinc-900">{subscriber.name || 'Sem nome'}</span>
+                              <span className="block text-xs font-semibold text-zinc-500">
+                                {subscriber.email}
+                                {subscriber.phone ? ` · ${subscriber.phone}` : ''}
+                                {subscriber.athlete_name ? ` · Atleta: ${subscriber.athlete_name}` : ''}
+                              </span>
+                            </span>
+                            <span className="text-xs font-black uppercase tracking-[0.12em] text-zinc-400">
+                              {subscriber.is_active && !subscriber.unsubscribed_at ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : compatibleGroups.length === 0 ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">
                 Não existem grupos compatíveis para este tipo de comunicação.
               </div>
@@ -1244,7 +1459,11 @@ export function AdminCommunicationsPage() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Send className="h-4 w-4" />
-              {sendingFinal ? 'A enviar comunicação...' : `Enviar definitivo para ${audienceSummary.recipients} destinatário(s)`}
+              {sendingFinal
+                ? 'A enviar comunicação...'
+                : form.communication_type === 'individual'
+                  ? 'Enviar para contacto selecionado'
+                  : `Enviar definitivo para ${audienceSummary.recipients} destinatário(s)`}
             </button>
           </div>
 
