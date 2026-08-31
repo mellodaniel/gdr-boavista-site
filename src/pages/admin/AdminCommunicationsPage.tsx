@@ -299,10 +299,8 @@ export function AdminCommunicationsPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [selectedCommunicationId, setSelectedCommunicationId] = useState<string | null>(null);
-  const [testEmail, setTestEmail] = useState('mello.daniel@gmail.com');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [sendingTest, setSendingTest] = useState(false);
   const [sendingFinal, setSendingFinal] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
@@ -416,10 +414,11 @@ export function AdminCommunicationsPage() {
   }, [subscribers, subscriberGroups, form.communication_type, form.groupIds]);
 
   const stats = useMemo(() => {
-    const total = communications.length;
-    const drafts = communications.filter((item) => item.status === 'draft').length;
-    const ready = communications.filter((item) => item.status === 'ready').length;
-    const sent = communications.filter((item) => item.status === 'sent').length;
+    const visibleCommunications = communications.filter((item) => item.status !== 'archived');
+    const total = visibleCommunications.length;
+    const drafts = visibleCommunications.filter((item) => item.status === 'draft').length;
+    const ready = visibleCommunications.filter((item) => item.status === 'ready').length;
+    const sent = visibleCommunications.filter((item) => item.status === 'sent').length;
 
     return { total, drafts, ready, sent };
   }, [communications]);
@@ -442,7 +441,10 @@ export function AdminCommunicationsPage() {
         .toLowerCase();
 
       const matchesSearch = !term || searchable.includes(term);
-      const matchesStatus = historyStatusFilter === 'all' || communication.status === historyStatusFilter;
+      const matchesStatus =
+        historyStatusFilter === 'all'
+          ? communication.status !== 'archived'
+          : communication.status === historyStatusFilter;
       const matchesType = historyTypeFilter === 'all' || communication.communication_type === historyTypeFilter;
 
       const referenceDate = new Date(communication.sent_at || communication.created_at);
@@ -604,35 +606,29 @@ export function AdminCommunicationsPage() {
     }
   }
 
-  async function sendNewsletter(mode: 'test' | 'send') {
+  async function sendNewsletter() {
     if (!form.id) {
       setMessage({ type: 'error', text: 'Guarda a comunicação antes de enviar.' });
       return;
     }
 
-    if (mode === 'send') {
-      if (audienceSummary.needsGroups) {
-        setMessage({ type: 'error', text: 'Seleciona pelo menos um grupo antes do envio definitivo.' });
-        return;
-      }
-
-      if (audienceSummary.recipients === 0) {
-        setMessage({ type: 'error', text: 'Não existem destinatários ativos com consentimento para esta comunicação.' });
-        return;
-      }
+    if (audienceSummary.needsGroups) {
+      setMessage({ type: 'error', text: 'Seleciona pelo menos um grupo antes do envio definitivo.' });
+      return;
     }
 
-    if (mode === 'test') {
-      setSendingTest(true);
-    } else {
-      const confirmed = window.confirm(
-        `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
-      );
-
-      if (!confirmed) return;
-      setSendingFinal(true);
+    if (audienceSummary.recipients === 0) {
+      setMessage({ type: 'error', text: 'Não existem destinatários ativos com consentimento para esta comunicação.' });
+      return;
     }
 
+    const confirmed = window.confirm(
+      `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
+    );
+
+    if (!confirmed) return;
+
+    setSendingFinal(true);
     setMessage(null);
 
     try {
@@ -643,8 +639,7 @@ export function AdminCommunicationsPage() {
         },
         body: JSON.stringify({
           communicationId: form.id,
-          mode,
-          testEmail,
+          mode: 'send',
         }),
       });
 
@@ -654,14 +649,10 @@ export function AdminCommunicationsPage() {
         throw new Error(result?.error || 'Não foi possível enviar a comunicação.');
       }
 
-      if (mode === 'test') {
-        setMessage({ type: 'success', text: `Email de teste enviado para ${testEmail}.` });
-      } else {
-        setMessage({
-          type: 'success',
-          text: `Envio concluído. Enviados: ${result.sentCount || 0}. Falhas: ${result.failedCount || 0}.`,
-        });
-      }
+      setMessage({
+        type: 'success',
+        text: `Envio concluído. Enviados: ${result.sentCount || 0}. Falhas: ${result.failedCount || 0}.`,
+      });
 
       await loadData();
     } catch (error) {
@@ -671,7 +662,6 @@ export function AdminCommunicationsPage() {
         text: error instanceof Error ? error.message : 'Não foi possível enviar a comunicação.',
       });
     } finally {
-      setSendingTest(false);
       setSendingFinal(false);
     }
   }
@@ -821,26 +811,19 @@ export function AdminCommunicationsPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <section className="grid gap-6">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.24em] text-red-600">Histórico</p>
               <h2 className="mt-1 font-serif text-3xl font-bold text-zinc-900">Comunicações</h2>
               <p className="mt-2 text-sm text-zinc-500">
-                Lista compacta com pesquisa, filtros e detalhes recolhidos.
+                Lista compacta com pesquisa, filtros e detalhes recolhidos. Comunicações arquivadas ficam apenas no filtro “Arquivadas”.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700"
-            >
-              Nova
-            </button>
           </div>
 
-          <div className="mb-4 grid gap-3 xl:grid-cols-[1fr_150px_170px_140px_140px]">
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_170px_190px_150px_150px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <input
@@ -856,11 +839,11 @@ export function AdminCommunicationsPage() {
               onChange={(event) => setHistoryStatusFilter(event.target.value as 'all' | Communication['status'])}
               className="rounded-xl border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
             >
-              <option value="all">Todos estados</option>
+              <option value="all">Todos</option>
               <option value="draft">Rascunho</option>
               <option value="ready">Pronta</option>
               <option value="sent">Enviada</option>
-              <option value="archived">Arquivada</option>
+              <option value="archived">Arquivadas</option>
             </select>
 
             <select
@@ -908,7 +891,7 @@ export function AdminCommunicationsPage() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-zinc-200">
-              <div className="hidden grid-cols-[1.2fr_0.9fr_0.7fr_0.7fr_0.9fr] gap-3 bg-zinc-50 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-zinc-500 xl:grid">
+              <div className="hidden grid-cols-[1.4fr_1fr_0.65fr_0.8fr_1.15fr] gap-4 bg-zinc-50 px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-zinc-500 xl:grid">
                 <span>Comunicação</span>
                 <span>Tipo / Grupos</span>
                 <span>Estado</span>
@@ -926,7 +909,7 @@ export function AdminCommunicationsPage() {
                       key={communication.id}
                       className={selectedCommunicationId === communication.id ? 'bg-red-50/40' : 'bg-white'}
                     >
-                      <div className="grid gap-3 px-4 py-4 xl:grid-cols-[1.2fr_0.9fr_0.7fr_0.7fr_0.9fr] xl:items-center">
+                      <div className="grid gap-4 px-5 py-4 xl:grid-cols-[1.4fr_1fr_0.65fr_0.8fr_1.15fr] xl:items-center">
                         <div>
                           <h3 className="font-black text-zinc-900">{communication.title}</h3>
                           <p className="mt-1 text-sm text-zinc-500">{communication.subject || 'Sem assunto'}</p>
@@ -1243,14 +1226,7 @@ export function AdminCommunicationsPage() {
             )}
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto_auto]">
-            <input
-              value={testEmail}
-              onChange={(event) => setTestEmail(event.target.value)}
-              placeholder="Email para teste"
-              className="rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-            />
-
+          <div className="mt-5 grid gap-3 md:grid-cols-[auto_1fr]">
             <button
               type="button"
               onClick={saveCommunication}
@@ -1263,24 +1239,14 @@ export function AdminCommunicationsPage() {
 
             <button
               type="button"
-              onClick={() => sendNewsletter('test')}
-              disabled={sendingTest || saving || !form.id}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#24180f] px-5 py-3 text-sm font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={sendNewsletter}
+              disabled={sendingFinal || saving || !form.id || audienceSummary.needsGroups || audienceSummary.recipients === 0}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Mail className="h-4 w-4" />
-              {sendingTest ? 'A enviar...' : 'Enviar teste'}
+              <Send className="h-4 w-4" />
+              {sendingFinal ? 'A enviar comunicação...' : `Enviar definitivo para ${audienceSummary.recipients} destinatário(s)`}
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => sendNewsletter('send')}
-            disabled={sendingFinal || saving || !form.id || audienceSummary.needsGroups || audienceSummary.recipients === 0}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Send className="h-4 w-4" />
-            {sendingFinal ? 'A enviar comunicação...' : `Enviar definitivo para ${audienceSummary.recipients} destinatário(s)`}
-          </button>
 
           {selectedCommunication && (
             <div className="mt-5 rounded-2xl border border-zinc-200 bg-white p-4">
