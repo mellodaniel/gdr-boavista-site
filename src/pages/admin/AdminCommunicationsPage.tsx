@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   CheckCircle2,
   Mail,
   RefreshCw,
@@ -9,6 +10,9 @@ import {
   XCircle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+
+type CommunicationType = 'newsletter' | 'escalao' | 'interno' | 'socios' | 'parceiros' | 'geral';
+type AudienceMode = 'all_active' | 'selected_groups' | 'manual';
 
 type Communication = {
   id: string;
@@ -20,6 +24,12 @@ type Communication = {
   status: 'draft' | 'ready' | 'sent' | 'archived';
   from_name: string | null;
   from_email: string | null;
+  communication_type: CommunicationType;
+  audience_mode: AudienceMode;
+  estimated_recipients: number;
+  excluded_no_consent: number;
+  excluded_inactive: number;
+  excluded_no_email: number;
   test_sent_at: string | null;
   sent_at: string | null;
   sent_count: number;
@@ -44,6 +54,24 @@ type CommunicationTarget = {
   group_id: string;
 };
 
+type SubscriberGroup = {
+  subscriber_id: string;
+  group_id: string;
+};
+
+type Subscriber = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  contact_type: string;
+  communication_scope: string;
+  consent_email: boolean;
+  consent_email_newsletter: boolean;
+  consent_email_club: boolean;
+  is_active: boolean;
+  unsubscribed_at: string | null;
+};
+
 type Delivery = {
   id: string;
   communication_id: string;
@@ -65,7 +93,17 @@ type FormState = {
   status: 'draft' | 'ready' | 'sent' | 'archived';
   from_name: string;
   from_email: string;
+  communication_type: CommunicationType;
+  audience_mode: AudienceMode;
   groupIds: string[];
+};
+
+type AudienceSummary = {
+  recipients: number;
+  excludedNoConsent: number;
+  excludedInactive: number;
+  excludedNoEmail: number;
+  needsGroups: boolean;
 };
 
 const emptyForm: FormState = {
@@ -78,6 +116,8 @@ const emptyForm: FormState = {
   status: 'draft',
   from_name: 'GDR Boavista',
   from_email: 'notificacoes@send.gdrboavista.pt',
+  communication_type: 'newsletter',
+  audience_mode: 'selected_groups',
   groupIds: [],
 };
 
@@ -88,10 +128,22 @@ const statusLabels: Record<Communication['status'], string> = {
   archived: 'Arquivada',
 };
 
-const channelLabels: Record<Communication['channel'], string> = {
-  email: 'Email',
-  whatsapp: 'WhatsApp',
-  email_whatsapp: 'Email + WhatsApp',
+const communicationTypeLabels: Record<CommunicationType, string> = {
+  newsletter: 'Newsletter geral',
+  escalao: 'Comunicação por escalão',
+  interno: 'Comunicação interna',
+  socios: 'Comunicação para sócios',
+  parceiros: 'Comunicação para parceiros',
+  geral: 'Comunicação geral do clube',
+};
+
+const communicationTypeDescriptions: Record<CommunicationType, string> = {
+  newsletter: 'Apenas pessoas que subscreveram voluntariamente a newsletter pública do site.',
+  escalao: 'Pais, encarregados, atletas e contactos associados a escalões/equipas específicas.',
+  interno: 'Direção, treinadores, equipa técnica e contactos internos do clube.',
+  socios: 'Contactos classificados como sócios.',
+  parceiros: 'Contactos classificados como parceiros/patrocinadores.',
+  geral: 'Comunicação institucional para todos os contactos ativos com consentimento aplicável.',
 };
 
 function formatDate(value: string | null | undefined) {
@@ -110,6 +162,10 @@ function formatDate(value: string | null | undefined) {
   }
 }
 
+function normalizeEmail(email: string | null | undefined) {
+  return String(email || '').trim().toLowerCase();
+}
+
 function statusClass(status: Communication['status']) {
   if (status === 'sent') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (status === 'ready') return 'border-amber-200 bg-amber-50 text-amber-700';
@@ -117,10 +173,124 @@ function statusClass(status: Communication['status']) {
   return 'border-slate-200 bg-slate-50 text-slate-700';
 }
 
+function groupMatchesCommunicationType(group: CommunicationGroup, type: CommunicationType) {
+  if (type === 'newsletter') return group.group_type === 'newsletter';
+  if (type === 'escalao') return group.group_type === 'escalao';
+  if (type === 'interno') return group.group_type === 'direcao' || group.group_type === 'tecnica';
+  if (type === 'socios') return group.group_type === 'socios';
+  if (type === 'parceiros') return group.group_type === 'parceiros';
+  return true;
+}
+
+function subscriberHasConsent(subscriber: Subscriber, type: CommunicationType) {
+  if (type === 'newsletter') {
+    return subscriber.consent_email_newsletter || subscriber.consent_email;
+  }
+
+  if (type === 'geral') {
+    return subscriber.consent_email_club || subscriber.consent_email_newsletter || subscriber.consent_email;
+  }
+
+  return subscriber.consent_email_club || subscriber.consent_email;
+}
+
+function subscriberMatchesType(subscriber: Subscriber, type: CommunicationType) {
+  if (type === 'newsletter') {
+    return subscriber.communication_scope === 'newsletter' || subscriber.contact_type === 'newsletter';
+  }
+
+  if (type === 'escalao') {
+    return subscriber.communication_scope === 'escalao' || subscriber.contact_type === 'encarregado' || subscriber.contact_type === 'atleta';
+  }
+
+  if (type === 'interno') {
+    return subscriber.communication_scope === 'interno' || ['treinador', 'direcao', 'staff'].includes(subscriber.contact_type);
+  }
+
+  if (type === 'socios') {
+    return subscriber.communication_scope === 'socios' || subscriber.contact_type === 'socio';
+  }
+
+  if (type === 'parceiros') {
+    return subscriber.communication_scope === 'parceiros' || subscriber.contact_type === 'parceiro';
+  }
+
+  return true;
+}
+
+function calculateAudienceSummary({
+  subscribers,
+  subscriberGroups,
+  communicationType,
+  groupIds,
+}: {
+  subscribers: Subscriber[];
+  subscriberGroups: SubscriberGroup[];
+  communicationType: CommunicationType;
+  groupIds: string[];
+}): AudienceSummary {
+  const needsGroups = ['escalao', 'interno', 'socios', 'parceiros'].includes(communicationType) && groupIds.length === 0;
+  const selectedGroups = new Set(groupIds);
+  const subscriberGroupsMap = new Map<string, Set<string>>();
+
+  subscriberGroups.forEach((entry) => {
+    if (!subscriberGroupsMap.has(entry.subscriber_id)) {
+      subscriberGroupsMap.set(entry.subscriber_id, new Set<string>());
+    }
+
+    subscriberGroupsMap.get(entry.subscriber_id)?.add(entry.group_id);
+  });
+
+  let recipients = 0;
+  let excludedNoConsent = 0;
+  let excludedInactive = 0;
+  let excludedNoEmail = 0;
+
+  subscribers.forEach((subscriber) => {
+    if (!subscriberMatchesType(subscriber, communicationType)) return;
+
+    if (selectedGroups.size > 0) {
+      const groupsForSubscriber = subscriberGroupsMap.get(subscriber.id);
+      const inSelectedGroup = groupsForSubscriber
+        ? Array.from(selectedGroups).some((groupId) => groupsForSubscriber.has(groupId))
+        : false;
+
+      if (!inSelectedGroup) return;
+    }
+
+    if (!subscriber.is_active || subscriber.unsubscribed_at) {
+      excludedInactive += 1;
+      return;
+    }
+
+    if (!normalizeEmail(subscriber.email)) {
+      excludedNoEmail += 1;
+      return;
+    }
+
+    if (!subscriberHasConsent(subscriber, communicationType)) {
+      excludedNoConsent += 1;
+      return;
+    }
+
+    recipients += 1;
+  });
+
+  return {
+    recipients,
+    excludedNoConsent,
+    excludedInactive,
+    excludedNoEmail,
+    needsGroups,
+  };
+}
+
 export function AdminCommunicationsPage() {
   const [communications, setCommunications] = useState<Communication[]>([]);
   const [groups, setGroups] = useState<CommunicationGroup[]>([]);
   const [targets, setTargets] = useState<CommunicationTarget[]>([]);
+  const [subscriberGroups, setSubscriberGroups] = useState<SubscriberGroup[]>([]);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [selectedCommunicationId, setSelectedCommunicationId] = useState<string | null>(null);
@@ -135,7 +305,7 @@ export function AdminCommunicationsPage() {
     setLoading(true);
     setMessage(null);
 
-    const [communicationsResult, groupsResult, targetsResult, deliveriesResult] = await Promise.all([
+    const [communicationsResult, groupsResult, targetsResult, subscriberGroupsResult, subscribersResult, deliveriesResult] = await Promise.all([
       supabase
         .from('gdrb_communications')
         .select('*')
@@ -149,10 +319,16 @@ export function AdminCommunicationsPage() {
         .from('gdrb_communication_targets')
         .select('communication_id,group_id'),
       supabase
+        .from('gdrb_subscriber_groups')
+        .select('subscriber_id,group_id'),
+      supabase
+        .from('gdrb_subscribers')
+        .select('id,name,email,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at'),
+      supabase
         .from('gdrb_communication_deliveries')
         .select('id,communication_id,recipient_email,recipient_name,status,error_message,sent_at,created_at')
         .order('created_at', { ascending: false })
-        .limit(80),
+        .limit(120),
     ]);
 
     if (communicationsResult.error) {
@@ -175,6 +351,20 @@ export function AdminCommunicationsPage() {
       setTargets([]);
     } else {
       setTargets((targetsResult.data || []) as CommunicationTarget[]);
+    }
+
+    if (subscriberGroupsResult.error) {
+      console.error(subscriberGroupsResult.error);
+      setSubscriberGroups([]);
+    } else {
+      setSubscriberGroups((subscriberGroupsResult.data || []) as SubscriberGroup[]);
+    }
+
+    if (subscribersResult.error) {
+      console.error(subscribersResult.error);
+      setSubscribers([]);
+    } else {
+      setSubscribers((subscribersResult.data || []) as Subscriber[]);
     }
 
     if (deliveriesResult.error) {
@@ -200,6 +390,19 @@ export function AdminCommunicationsPage() {
     if (!selectedCommunicationId) return [];
     return deliveries.filter((delivery) => delivery.communication_id === selectedCommunicationId);
   }, [deliveries, selectedCommunicationId]);
+
+  const compatibleGroups = useMemo(() => {
+    return groups.filter((group) => groupMatchesCommunicationType(group, form.communication_type));
+  }, [groups, form.communication_type]);
+
+  const audienceSummary = useMemo(() => {
+    return calculateAudienceSummary({
+      subscribers,
+      subscriberGroups,
+      communicationType: form.communication_type,
+      groupIds: form.groupIds,
+    });
+  }, [subscribers, subscriberGroups, form.communication_type, form.groupIds]);
 
   const stats = useMemo(() => {
     const total = communications.length;
@@ -232,9 +435,20 @@ export function AdminCommunicationsPage() {
       status: communication.status || 'draft',
       from_name: communication.from_name || 'GDR Boavista',
       from_email: communication.from_email || 'notificacoes@send.gdrboavista.pt',
+      communication_type: communication.communication_type || 'newsletter',
+      audience_mode: communication.audience_mode || 'selected_groups',
       groupIds,
     });
     setMessage(null);
+  }
+
+  function changeCommunicationType(type: CommunicationType) {
+    setForm((current) => ({
+      ...current,
+      communication_type: type,
+      audience_mode: type === 'geral' ? 'all_active' : 'selected_groups',
+      groupIds: [],
+    }));
   }
 
   function toggleGroup(groupId: string) {
@@ -276,6 +490,11 @@ export function AdminCommunicationsPage() {
       return;
     }
 
+    if (audienceSummary.needsGroups) {
+      setMessage({ type: 'error', text: 'Seleciona pelo menos um grupo compatível com este tipo de comunicação.' });
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
 
@@ -288,6 +507,12 @@ export function AdminCommunicationsPage() {
       status: form.status === 'sent' ? 'ready' : form.status,
       from_name: form.from_name.trim() || 'GDR Boavista',
       from_email: form.from_email.trim() || 'notificacoes@send.gdrboavista.pt',
+      communication_type: form.communication_type,
+      audience_mode: form.audience_mode,
+      estimated_recipients: audienceSummary.recipients,
+      excluded_no_consent: audienceSummary.excludedNoConsent,
+      excluded_inactive: audienceSummary.excludedInactive,
+      excluded_no_email: audienceSummary.excludedNoEmail,
       updated_at: new Date().toISOString(),
     };
 
@@ -312,15 +537,14 @@ export function AdminCommunicationsPage() {
           .single();
 
         if (error) throw error;
-        communicationId = data.id;
+        communicationId = data?.id || null;
       }
 
       if (!communicationId) {
+        throw new Error('Não foi possível identificar a comunicação.');
+      }
 
-  throw new Error('Não foi possível identificar a comunicação.');
-
-}
-await saveTargets(communicationId, form.groupIds);
+      await saveTargets(communicationId, form.groupIds);
 
       setMessage({ type: 'success', text: 'Comunicação guardada com sucesso.' });
       await loadData();
@@ -346,11 +570,23 @@ await saveTargets(communicationId, form.groupIds);
       return;
     }
 
+    if (mode === 'send') {
+      if (audienceSummary.needsGroups) {
+        setMessage({ type: 'error', text: 'Seleciona pelo menos um grupo antes do envio definitivo.' });
+        return;
+      }
+
+      if (audienceSummary.recipients === 0) {
+        setMessage({ type: 'error', text: 'Não existem destinatários ativos com consentimento para esta comunicação.' });
+        return;
+      }
+    }
+
     if (mode === 'test') {
       setSendingTest(true);
     } else {
       const confirmed = window.confirm(
-        'Confirmas o envio definitivo desta comunicação para os subscritores ativos selecionados?',
+        `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
       );
 
       if (!confirmed) return;
@@ -405,7 +641,7 @@ await saveTargets(communicationId, form.groupIds);
       .filter((target) => target.communication_id === communicationId)
       .map((target) => target.group_id);
 
-    if (groupIds.length === 0) return 'Todos os subscritores ativos';
+    if (groupIds.length === 0) return 'Todos os contactos compatíveis';
 
     const names = groups
       .filter((group) => groupIds.includes(group.id))
@@ -423,7 +659,7 @@ await saveTargets(communicationId, form.groupIds);
           </p>
           <h1 className="font-serif text-5xl font-bold">Comunicações.</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-white/80">
-            Cria newsletters e comunicações oficiais para os subscritores do GDR Boavista.
+            Cria newsletters, comunicações por escalão e mensagens oficiais para contactos segmentados do GDR Boavista.
           </p>
         </div>
       </section>
@@ -464,7 +700,7 @@ await saveTargets(communicationId, form.groupIds);
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.24em] text-red-600">Histórico</p>
-              <h2 className="mt-1 font-serif text-3xl font-bold text-zinc-900">Newsletters</h2>
+              <h2 className="mt-1 font-serif text-3xl font-bold text-zinc-900">Comunicações</h2>
             </div>
             <button
               type="button"
@@ -483,7 +719,7 @@ await saveTargets(communicationId, form.groupIds);
             <div className="rounded-xl bg-zinc-50 p-8 text-center">
               <Mail className="mx-auto mb-3 h-9 w-9 text-zinc-300" />
               <p className="font-black text-zinc-900">Ainda não existem comunicações.</p>
-              <p className="mt-1 text-sm text-zinc-500">Cria a primeira newsletter no formulário ao lado.</p>
+              <p className="mt-1 text-sm text-zinc-500">Cria a primeira comunicação no formulário ao lado.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -513,7 +749,7 @@ await saveTargets(communicationId, form.groupIds);
                   </div>
 
                   <div className="mt-3 grid gap-2 text-xs font-semibold text-zinc-500 sm:grid-cols-2">
-                    <span>{channelLabels[communication.channel]}</span>
+                    <span>{communicationTypeLabels[communication.communication_type || 'newsletter']}</span>
                     <span>{groupsLabel(communication.id)}</span>
                     <span>Criada: {formatDate(communication.created_at)}</span>
                     <span>Enviados: {communication.sent_count || 0} / Falhas: {communication.failed_count || 0}</span>
@@ -531,7 +767,7 @@ await saveTargets(communicationId, form.groupIds);
                 {form.id ? 'Editar comunicação' : 'Nova comunicação'}
               </p>
               <h2 className="mt-1 font-serif text-3xl font-bold text-zinc-900">
-                {form.id ? form.title || 'Comunicação' : 'Criar newsletter'}
+                {form.id ? form.title || 'Comunicação' : 'Criar comunicação'}
               </h2>
             </div>
             <button
@@ -542,6 +778,27 @@ await saveTargets(communicationId, form.groupIds);
               <RefreshCw className="h-4 w-4" />
               Atualizar
             </button>
+          </div>
+
+          <div className="mb-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+            <p className="mb-3 text-sm font-black text-zinc-900">1. Tipo de comunicação</p>
+            <div className="grid gap-2 md:grid-cols-2">
+              {(Object.keys(communicationTypeLabels) as CommunicationType[]).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => changeCommunicationType(type)}
+                  className={`rounded-xl border p-3 text-left transition ${
+                    form.communication_type === type
+                      ? 'border-red-300 bg-red-50 text-red-800'
+                      : 'border-zinc-200 bg-white text-zinc-700 hover:border-red-200'
+                  }`}
+                >
+                  <span className="block text-sm font-black">{communicationTypeLabels[type]}</span>
+                  <span className="mt-1 block text-xs leading-5 text-zinc-500">{communicationTypeDescriptions[type]}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -610,24 +867,6 @@ await saveTargets(communicationId, form.groupIds);
                 <option value="archived">Arquivada</option>
               </select>
             </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-black text-zinc-800">Nome do remetente</span>
-              <input
-                value={form.from_name}
-                onChange={(event) => setForm((current) => ({ ...current, from_name: event.target.value }))}
-                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-black text-zinc-800">Email do remetente</span>
-              <input
-                value={form.from_email}
-                onChange={(event) => setForm((current) => ({ ...current, from_email: event.target.value }))}
-                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-              />
-            </label>
           </div>
 
           <label className="mt-4 block space-y-2">
@@ -645,34 +884,79 @@ await saveTargets(communicationId, form.groupIds);
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-red-600" />
               <div>
-                <p className="text-sm font-black text-zinc-900">Destinatários</p>
+                <p className="text-sm font-black text-zinc-900">2. Destinatários compatíveis</p>
                 <p className="text-xs text-zinc-500">
-                  Sem grupos selecionados, o envio vai para todos os subscritores ativos.
+                  Os grupos abaixo mudam conforme o tipo de comunicação selecionado.
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              {groups.map((group) => (
-                <label
-                  key={group.id}
-                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm font-semibold text-zinc-700 transition hover:border-red-200 hover:bg-red-50/40"
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.groupIds.includes(group.id)}
-                    onChange={() => toggleGroup(group.id)}
-                    className="mt-1"
-                  />
-                  <span>
-                    {group.name}
-                    {group.birth_years && (
-                      <span className="ml-1 text-xs text-zinc-400">({group.birth_years})</span>
-                    )}
-                  </span>
-                </label>
-              ))}
+            {compatibleGroups.length === 0 ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">
+                Não existem grupos compatíveis para este tipo de comunicação.
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {compatibleGroups.map((group) => (
+                  <label
+                    key={group.id}
+                    className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm font-semibold text-zinc-700 transition hover:border-red-200 hover:bg-red-50/40"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.groupIds.includes(group.id)}
+                      onChange={() => toggleGroup(group.id)}
+                      className="mt-1"
+                    />
+                    <span>
+                      {group.name}
+                      {group.birth_years && (
+                        <span className="ml-1 text-xs text-zinc-400">({group.birth_years})</span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-red-100 bg-red-50/40 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              {audienceSummary.needsGroups ? (
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              )}
+              <div>
+                <p className="text-sm font-black text-zinc-900">3. Prévia de envio</p>
+                <p className="text-xs text-zinc-500">Confirma sempre estes números antes do envio definitivo.</p>
+              </div>
             </div>
+
+            <div className="grid gap-3 sm:grid-cols-4">
+              <div className="rounded-xl bg-white p-3">
+                <p className="text-xs font-black uppercase text-zinc-400">Receberão</p>
+                <p className="mt-1 text-2xl font-black text-emerald-700">{audienceSummary.recipients}</p>
+              </div>
+              <div className="rounded-xl bg-white p-3">
+                <p className="text-xs font-black uppercase text-zinc-400">Sem consent.</p>
+                <p className="mt-1 text-2xl font-black text-amber-700">{audienceSummary.excludedNoConsent}</p>
+              </div>
+              <div className="rounded-xl bg-white p-3">
+                <p className="text-xs font-black uppercase text-zinc-400">Inativos</p>
+                <p className="mt-1 text-2xl font-black text-slate-700">{audienceSummary.excludedInactive}</p>
+              </div>
+              <div className="rounded-xl bg-white p-3">
+                <p className="text-xs font-black uppercase text-zinc-400">Sem email</p>
+                <p className="mt-1 text-2xl font-black text-red-700">{audienceSummary.excludedNoEmail}</p>
+              </div>
+            </div>
+
+            {audienceSummary.needsGroups && (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                Para este tipo de comunicação, seleciona pelo menos um grupo antes de guardar/enviar.
+              </p>
+            )}
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto_auto]">
@@ -707,11 +991,11 @@ await saveTargets(communicationId, form.groupIds);
           <button
             type="button"
             onClick={() => sendNewsletter('send')}
-            disabled={sendingFinal || saving || !form.id}
+            disabled={sendingFinal || saving || !form.id || audienceSummary.needsGroups || audienceSummary.recipients === 0}
             className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Send className="h-4 w-4" />
-            {sendingFinal ? 'A enviar comunicação...' : 'Enviar definitivo para subscritores ativos'}
+            {sendingFinal ? 'A enviar comunicação...' : `Enviar definitivo para ${audienceSummary.recipients} destinatário(s)`}
           </button>
 
           {selectedCommunication && (

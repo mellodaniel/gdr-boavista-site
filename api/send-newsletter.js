@@ -2,9 +2,7 @@ function getSupabaseConfig() {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    return null;
-  }
+  if (!supabaseUrl || !serviceRoleKey) return null;
 
   return {
     supabaseUrl: supabaseUrl.replace(/\/$/, ''),
@@ -70,7 +68,7 @@ function buildNewsletterHtml({ communication, subscriber }) {
 
           <div style="margin-top: 30px; padding-top: 22px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.6; color: #6b7280;">
             <p style="margin: 0 0 10px;">
-              Recebeste este e-mail porque subscreveste comunicações do GDR Boavista.
+              Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.
             </p>
             <p style="margin: 0;">
               Podes cancelar a subscrição a qualquer momento aqui:
@@ -131,36 +129,118 @@ async function getTargetGroupIds(communicationId) {
   return Array.isArray(data) ? data.map((item) => item.group_id).filter(Boolean) : [];
 }
 
-async function getSubscriberIdsForGroups(groupIds) {
-  if (!groupIds.length) return [];
+async function getSubscriberGroups() {
+  const data = await supabaseRequest('gdrb_subscriber_groups?select=subscriber_id,group_id', {
+    method: 'GET',
+  });
 
-  const data = await supabaseRequest(
-    `gdrb_subscriber_groups?group_id=in.(${groupIds.map(encodeURIComponent).join(',')})&select=subscriber_id`,
-    { method: 'GET' },
-  );
-
-  return Array.from(new Set((Array.isArray(data) ? data : []).map((item) => item.subscriber_id).filter(Boolean)));
+  return Array.isArray(data) ? data : [];
 }
 
-async function getActiveSubscribers(communicationId) {
-  const targetGroupIds = await getTargetGroupIds(communicationId);
-  const subscriberIds = await getSubscriberIdsForGroups(targetGroupIds);
-
-  if (targetGroupIds.length > 0 && subscriberIds.length === 0) {
-    return [];
-  }
-
-  const baseFilter = 'consent_email=eq.true&is_active=eq.true&unsubscribed_at=is.null&email=not.is.null';
-  const idFilter = subscriberIds.length
-    ? `&id=in.(${subscriberIds.map(encodeURIComponent).join(',')})`
-    : '';
-
+async function getAllSubscribers() {
   const data = await supabaseRequest(
-    `gdrb_subscribers?${baseFilter}${idFilter}&select=id,name,email,unsubscribe_token`,
+    'gdrb_subscribers?select=id,name,email,unsubscribe_token,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at',
     { method: 'GET' },
   );
 
   return Array.isArray(data) ? data : [];
+}
+
+function subscriberHasConsent(subscriber, communicationType) {
+  if (communicationType === 'newsletter') {
+    return Boolean(subscriber.consent_email_newsletter || subscriber.consent_email);
+  }
+
+  if (communicationType === 'geral') {
+    return Boolean(subscriber.consent_email_club || subscriber.consent_email_newsletter || subscriber.consent_email);
+  }
+
+  return Boolean(subscriber.consent_email_club || subscriber.consent_email);
+}
+
+function subscriberMatchesType(subscriber, communicationType) {
+  if (communicationType === 'newsletter') {
+    return subscriber.communication_scope === 'newsletter' || subscriber.contact_type === 'newsletter';
+  }
+
+  if (communicationType === 'escalao') {
+    return subscriber.communication_scope === 'escalao' || subscriber.contact_type === 'encarregado' || subscriber.contact_type === 'atleta';
+  }
+
+  if (communicationType === 'interno') {
+    return subscriber.communication_scope === 'interno' || ['treinador', 'direcao', 'staff'].includes(subscriber.contact_type);
+  }
+
+  if (communicationType === 'socios') {
+    return subscriber.communication_scope === 'socios' || subscriber.contact_type === 'socio';
+  }
+
+  if (communicationType === 'parceiros') {
+    return subscriber.communication_scope === 'parceiros' || subscriber.contact_type === 'parceiro';
+  }
+
+  return true;
+}
+
+function filterRecipients({ communication, subscribers, subscriberGroups, targetGroupIds }) {
+  const selectedGroups = new Set(targetGroupIds);
+  const subscriberGroupsMap = new Map();
+  const communicationType = communication.communication_type || 'newsletter';
+
+  subscriberGroups.forEach((entry) => {
+    if (!subscriberGroupsMap.has(entry.subscriber_id)) {
+      subscriberGroupsMap.set(entry.subscriber_id, new Set());
+    }
+
+    subscriberGroupsMap.get(entry.subscriber_id).add(entry.group_id);
+  });
+
+  const recipients = [];
+  let excludedNoConsent = 0;
+  let excludedInactive = 0;
+  let excludedNoEmail = 0;
+
+  subscribers.forEach((subscriber) => {
+    if (!subscriberMatchesType(subscriber, communicationType)) return;
+
+    if (selectedGroups.size > 0) {
+      const groupsForSubscriber = subscriberGroupsMap.get(subscriber.id);
+      const inSelectedGroup = groupsForSubscriber
+        ? Array.from(selectedGroups).some((groupId) => groupsForSubscriber.has(groupId))
+        : false;
+
+      if (!inSelectedGroup) return;
+    }
+
+    if (!subscriber.is_active || subscriber.unsubscribed_at) {
+      excludedInactive += 1;
+      return;
+    }
+
+    const recipientEmail = normalizeEmail(subscriber.email);
+
+    if (!recipientEmail || !isValidEmail(recipientEmail)) {
+      excludedNoEmail += 1;
+      return;
+    }
+
+    if (!subscriberHasConsent(subscriber, communicationType)) {
+      excludedNoConsent += 1;
+      return;
+    }
+
+    recipients.push({
+      ...subscriber,
+      email: recipientEmail,
+    });
+  });
+
+  return {
+    recipients,
+    excludedNoConsent,
+    excludedInactive,
+    excludedNoEmail,
+  };
 }
 
 async function createDelivery(delivery) {
@@ -285,24 +365,42 @@ export default async function handler(request, response) {
       return response.status(200).json({ ok: true, mode: 'test' });
     }
 
-    const subscribers = await getActiveSubscribers(communicationId);
+    const [targetGroupIds, subscriberGroups, subscribers] = await Promise.all([
+      getTargetGroupIds(communicationId),
+      getSubscriberGroups(),
+      getAllSubscribers(),
+    ]);
 
-    if (subscribers.length === 0) {
-      return response.status(400).json({ error: 'Não existem subscritores ativos para esta comunicação.' });
+    const groupedTypes = ['escalao', 'interno', 'socios', 'parceiros'];
+
+    if (groupedTypes.includes(communication.communication_type || 'newsletter') && targetGroupIds.length === 0) {
+      return response.status(400).json({ error: 'Seleciona pelo menos um grupo para este tipo de comunicação.' });
+    }
+
+    const audience = filterRecipients({
+      communication,
+      subscribers,
+      subscriberGroups,
+      targetGroupIds,
+    });
+
+    if (audience.recipients.length === 0) {
+      await updateCommunication(communicationId, {
+        estimated_recipients: 0,
+        excluded_no_consent: audience.excludedNoConsent,
+        excluded_inactive: audience.excludedInactive,
+        excluded_no_email: audience.excludedNoEmail,
+      });
+
+      return response.status(400).json({ error: 'Não existem destinatários ativos com consentimento para esta comunicação.' });
     }
 
     let sentCount = 0;
     let failedCount = 0;
     let lastError = null;
 
-    for (const subscriber of subscribers) {
+    for (const subscriber of audience.recipients) {
       const recipientEmail = normalizeEmail(subscriber.email);
-
-      if (!recipientEmail || !isValidEmail(recipientEmail)) {
-        failedCount += 1;
-        lastError = 'Email inválido';
-        continue;
-      }
 
       const delivery = await createDelivery({
         communication_id: communicationId,
@@ -338,6 +436,10 @@ export default async function handler(request, response) {
       sent_count: sentCount,
       failed_count: failedCount,
       last_error: lastError,
+      estimated_recipients: audience.recipients.length,
+      excluded_no_consent: audience.excludedNoConsent,
+      excluded_inactive: audience.excludedInactive,
+      excluded_no_email: audience.excludedNoEmail,
     });
 
     return response.status(200).json({
@@ -345,6 +447,9 @@ export default async function handler(request, response) {
       mode: 'send',
       sentCount,
       failedCount,
+      excludedNoConsent: audience.excludedNoConsent,
+      excludedInactive: audience.excludedInactive,
+      excludedNoEmail: audience.excludedNoEmail,
     });
   } catch (error) {
     console.error('Erro ao enviar newsletter:', error);
