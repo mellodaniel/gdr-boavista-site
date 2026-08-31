@@ -39,6 +39,7 @@ const fullAdminNavigation: AdminNavigationItem[] = [
   { label: 'Parceiros', path: '/admin/patrocinadores', icon: Shield },
   { label: 'Sócios', path: '/admin/socios', icon: Users },
   { label: 'Contactos', path: '/admin/contactos', icon: Mail },
+  { label: 'Subscritores', path: '/admin/subscritores', icon: Mail },
   { label: 'Galeria', path: '/admin/galeria', icon: Image },
   { label: 'Loja', path: '/admin/loja', icon: ShoppingBag },
 ];
