@@ -25,6 +25,7 @@ import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
 import { AdminMembersPage } from '../pages/admin/AdminMembersPage';
 import { AdminContactsPage } from '../pages/admin/AdminContactsPage';
 import { AdminSubscribersPage } from '../pages/admin/AdminSubscribersPage';
+import { AdminCommunicationsPage } from '../pages/admin/AdminCommunicationsPage';
 import { AdminNewsPage } from '../pages/admin/AdminNewsPage';
 import { AdminFacebookPostsPage } from '../pages/admin/AdminFacebookPostsPage';
 import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
@@ -114,6 +115,7 @@ export function AppRoutes() {
           <Route path="socios" element={<AdminMembersPage />} />
           <Route path="contactos" element={<AdminContactsPage />} />
           <Route path="subscritores" element={<AdminSubscribersPage />} />
+          <Route path="comunicacoes" element={<AdminCommunicationsPage />} />
           <Route
             path="galeria"
             element={<AdminPlaceholderPage title="Galeria" />}
