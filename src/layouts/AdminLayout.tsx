@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   CalendarDays,
-  ClipboardList,
+  ChevronDown,
   LineChart,
-  FileText,
   Image,
   LogOut,
   Mail,
@@ -24,23 +23,67 @@ type AdminNavigationItem = {
   icon: typeof BarChart3;
 };
 
-const fullAdminNavigation: AdminNavigationItem[] = [
+type AdminNavigationGroup = {
+  id: string;
+  label: string;
+  icon: typeof BarChart3;
+  items: AdminNavigationItem[];
+};
+
+const topAdminNavigation: AdminNavigationItem[] = [
   { label: 'Dashboard', path: '/admin', icon: BarChart3 },
   { label: 'Analytics', path: '/admin/analytics', icon: LineChart },
-  { label: 'Conteúdos', path: '/admin/conteudos', icon: FileText },
-  { label: 'Notícias', path: '/admin/noticias', icon: Newspaper },
-  { label: 'Facebook', path: '/admin/facebook', icon: MessageCircle },
-  { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
-  { label: 'Plantel Sénior', path: '/admin/equipas/seniores/plantel', icon: Users },
-  { label: 'Jogo Sénior', path: '/app/jogo', icon: ClipboardList },
-  { label: 'Jogos / Agenda', path: '/admin/jogos', icon: CalendarDays },
-  { label: 'Torneios', path: '/admin/torneios', icon: Trophy },
-  { label: 'Gestão de Torneios Boavista', path: '/admin/gestor-torneios', icon: CalendarDays },
-  { label: 'Parceiros', path: '/admin/patrocinadores', icon: Shield },
-  { label: 'Sócios', path: '/admin/socios', icon: Users },
-  { label: 'Contactos', path: '/admin/contactos', icon: Mail },
-  { label: 'Galeria', path: '/admin/galeria', icon: Image },
-  { label: 'Loja', path: '/admin/loja', icon: ShoppingBag },
+];
+
+const adminNavigationGroups: AdminNavigationGroup[] = [
+  {
+    id: 'conteudo',
+    label: 'Conteúdo',
+    icon: Newspaper,
+    items: [
+      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper },
+      { label: 'Publicações Facebook', path: '/admin/facebook', icon: MessageCircle },
+      { label: 'Galeria', path: '/admin/galeria', icon: Image },
+      { label: 'Parceiros', path: '/admin/patrocinadores', icon: Shield },
+    ],
+  },
+  {
+    id: 'futebol',
+    label: 'Futebol',
+    icon: Trophy,
+    items: [
+      { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
+      { label: 'Plantel Sénior', path: '/admin/equipas/seniores/plantel', icon: Users },
+      { label: 'Jogos / Agenda', path: '/admin/jogos', icon: CalendarDays },
+      { label: 'Participações em Torneios', path: '/admin/torneios', icon: Trophy },
+      { label: 'Torneios do Clube', path: '/admin/gestor-torneios', icon: CalendarDays },
+    ],
+  },
+  {
+    id: 'comunidade',
+    label: 'Comunidade',
+    icon: Users,
+    items: [
+      { label: 'Sócios', path: '/admin/socios', icon: Users },
+      { label: 'Contactos', path: '/admin/contactos', icon: Mail },
+      { label: 'Subscritores', path: '/admin/subscritores', icon: Mail },
+      { label: 'Comunicações', path: '/admin/comunicacoes', icon: Mail },
+      { label: 'Importar Contactos', path: '/admin/importar-contactos', icon: Users },
+    ],
+  },
+  {
+    id: 'loja',
+    label: 'Loja',
+    icon: ShoppingBag,
+    items: [
+      { label: 'Produtos e Pedidos', path: '/admin/loja', icon: ShoppingBag },
+    ],
+  },
+];
+
+const fullAdminNavigation: AdminNavigationItem[] = [
+  ...topAdminNavigation,
+  ...adminNavigationGroups.flatMap((group) => group.items),
 ];
 
 const tournamentManagerNavigation: AdminNavigationItem[] = [
@@ -66,12 +109,26 @@ function isTournamentManagerUser(email?: string | null) {
   return username === 'torneios';
 }
 
+function isAdminItemActive(pathname: string, itemPath: string) {
+  if (itemPath === '/admin') return pathname === '/admin';
+  if (itemPath === '/admin/equipas') return pathname === '/admin/equipas';
+  return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+}
+
+function getActiveAdminGroupId(pathname: string) {
+  return adminNavigationGroups.find((group) =>
+    group.items.some((item) => isAdminItemActive(pathname, item.path)),
+  )?.id;
+}
+
 export function AdminLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [resultAccess, setResultAccess] = useState<ResultAccess | null>(null);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
+  const [openAdminGroups, setOpenAdminGroups] = useState<string[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -122,6 +179,25 @@ export function AdminLayout() {
       subscription.unsubscribe();
     };
   }, []);
+
+  const activeAdminGroupId = getActiveAdminGroupId(location.pathname);
+
+  useEffect(() => {
+    if (!activeAdminGroupId) return;
+
+    setOpenAdminGroups((currentGroups) => {
+      if (currentGroups.includes(activeAdminGroupId)) return currentGroups;
+      return [...currentGroups, activeAdminGroupId];
+    });
+  }, [activeAdminGroupId]);
+
+  function toggleAdminGroup(groupId: string) {
+    setOpenAdminGroups((currentGroups) =>
+      currentGroups.includes(groupId)
+        ? currentGroups.filter((currentGroup) => currentGroup !== groupId)
+        : [...currentGroups, groupId],
+    );
+  }
 
   const isTournamentManager = isTournamentManagerUser(userEmail);
   const isResultsUser = Boolean(resultAccess);
@@ -174,7 +250,91 @@ export function AdminLayout() {
                 </div>
               )}
 
-              {adminNavigation.map((item) => {
+              {!isLoadingPermissions && !isResultsUser && !isTournamentManager && (
+                <>
+                  {topAdminNavigation.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end={item.path === '/admin'}
+                        className={({ isActive }) =>
+                          `group flex items-center gap-3 rounded-md px-4 py-3 text-sm font-bold transition ${
+                            isActive
+                              ? 'bg-red-700 text-white shadow-lg shadow-red-950/20'
+                              : 'text-zinc-300 hover:bg-white/10 hover:text-white'
+                          }`
+                        }
+                      >
+                        <Icon size={18} />
+                        {item.label}
+                      </NavLink>
+                    );
+                  })}
+
+                  <div className="my-3 border-t border-white/10" />
+
+                  {adminNavigationGroups.map((group) => {
+                    const GroupIcon = group.icon;
+                    const isOpen = openAdminGroups.includes(group.id);
+                    const isActiveGroup = activeAdminGroupId === group.id;
+
+                    return (
+                      <div key={group.id} className="rounded-lg">
+                        <button
+                          type="button"
+                          onClick={() => toggleAdminGroup(group.id)}
+                          className={`flex w-full items-center justify-between rounded-md px-4 py-3 text-sm font-black uppercase tracking-[0.16em] transition ${
+                            isActiveGroup
+                              ? 'bg-white/10 text-white'
+                              : 'text-zinc-400 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <GroupIcon size={17} />
+                            {group.label}
+                          </span>
+
+                          <ChevronDown
+                            size={17}
+                            className={`transition ${isOpen ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+
+                        {isOpen && (
+                          <div className="mt-1 grid gap-1 border-l border-white/10 pl-3">
+                            {group.items.map((item) => {
+                              const Icon = item.icon;
+
+                              return (
+                                <NavLink
+                                  key={item.path}
+                                  to={item.path}
+                                  end={item.path === '/admin' || item.path === '/admin/equipas'}
+                                  className={({ isActive }) =>
+                                    `group flex items-center gap-3 rounded-md px-4 py-2.5 text-sm font-bold transition ${
+                                      isActive
+                                        ? 'bg-red-700 text-white shadow-lg shadow-red-950/20'
+                                        : 'text-zinc-300 hover:bg-white/10 hover:text-white'
+                                    }`
+                                  }
+                                >
+                                  <Icon size={16} />
+                                  {item.label}
+                                </NavLink>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {!isLoadingPermissions && (isResultsUser || isTournamentManager) && adminNavigation.map((item) => {
                 const Icon = item.icon;
 
                 return (
