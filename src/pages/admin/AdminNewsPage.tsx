@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import {
   Archive,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   EyeOff,
   Image as ImageIcon,
@@ -9,6 +12,7 @@ import {
   Plus,
   RefreshCcw,
   Save,
+  Search,
   Trash2,
   Upload,
   X,
@@ -17,6 +21,8 @@ import { supabase } from '../../lib/supabase';
 import type { GdrbNews, GdrbNewsStatus } from '../../types/database';
 
 const NEWS_STORAGE_BUCKET = 'gdrb-news-images';
+
+type NewsFilter = 'all' | GdrbNewsStatus;
 
 const initialForm = {
   title: '',
@@ -48,16 +54,18 @@ const statusOptions: Array<{
     description: 'Aparece na página inicial e na página Notícias.',
   },
   {
-    value: 'archived',
-    label: 'Arquivada',
-    description: 'Fica apenas guardada no admin para consulta/pesquisa.',
-  },
-  {
     value: 'draft',
     label: 'Rascunho',
     description: 'Não aparece no site público.',
   },
+  {
+    value: 'archived',
+    label: 'Arquivada',
+    description: 'Fica apenas guardada no admin para consulta/pesquisa.',
+  },
 ];
+
+const pageSizeOptions = [10, 25, 50];
 
 function formatDate(date: string | null) {
   if (!date) {
@@ -91,19 +99,23 @@ function getStatusLabel(status: GdrbNewsStatus) {
 
 function getStatusBadgeClass(status: GdrbNewsStatus) {
   if (status === 'published') {
-    return 'bg-green-50 text-green-700';
+    return 'border-green-200 bg-green-50 text-green-700';
   }
 
   if (status === 'archived') {
-    return 'bg-amber-50 text-amber-700';
+    return 'border-amber-200 bg-amber-50 text-amber-700';
   }
 
-  return 'bg-zinc-100 text-zinc-700';
+  return 'border-zinc-200 bg-zinc-100 text-zinc-700';
 }
 
 export function AdminNewsPage() {
   const [news, setNews] = useState<GdrbNews[]>([]);
-  const [activeStatusFilter, setActiveStatusFilter] = useState<GdrbNewsStatus>('published');
+  const [activeStatusFilter, setActiveStatusFilter] = useState<NewsFilter>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedNewsId, setExpandedNewsId] = useState<string | null>(null);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -123,6 +135,10 @@ export function AdminNewsPage() {
       }
     };
   }, [imagePreview]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeStatusFilter, searchTerm, pageSize]);
 
   function setPreviewUrl(nextPreview: string) {
     setImagePreview((currentPreview) => {
@@ -353,6 +369,7 @@ export function AdminNewsPage() {
       return;
     }
 
+    setExpandedNewsId(null);
     await loadNews();
   }
 
@@ -385,13 +402,39 @@ export function AdminNewsPage() {
     { published: 0, draft: 0, archived: 0 },
   );
 
-  const filteredNews = news.filter(
-    (item) => getNewsStatus(item) === activeStatusFilter,
-  );
+  const filteredNews = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
 
-  const activeStatusOption = statusOptions.find(
-    (option) => option.value === activeStatusFilter,
-  );
+    return news.filter((item) => {
+      const status = getNewsStatus(item);
+
+      const matchesStatus =
+        activeStatusFilter === 'all'
+          ? status !== 'archived'
+          : status === activeStatusFilter;
+
+      const searchableText = `${item.title} ${item.summary ?? ''} ${
+        item.content ?? ''
+      } ${item.source}`
+        .toLowerCase()
+        .trim();
+
+      const matchesSearch =
+        !normalizedSearch || searchableText.includes(normalizedSearch);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [news, activeStatusFilter, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * pageSize;
+  const paginatedNews = filteredNews.slice(pageStart, pageStart + pageSize);
+
+  const activeStatusLabel =
+    activeStatusFilter === 'all'
+      ? 'Todos'
+      : statusOptions.find((option) => option.value === activeStatusFilter)?.label ?? 'Todos';
 
   return (
     <div>
@@ -464,8 +507,7 @@ export function AdminNewsPage() {
               Notícias do site
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">
-              Esta área gere apenas as notícias próprias do site. Publicações do Facebook
-              ficam separadas na área <strong>Facebook</strong>. Conteúdo arquivado fica
+              Esta área gere apenas as notícias próprias do site. Conteúdo arquivado fica
               guardado para consulta no admin e nunca aparece no site público.
             </p>
           </div>
@@ -476,33 +518,6 @@ export function AdminNewsPage() {
           >
             Gerir Facebook
           </a>
-        </div>
-      </section>
-
-      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-4 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-3">
-          {statusOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setActiveStatusFilter(option.value)}
-              className={`rounded-md border px-4 py-4 text-left transition ${
-                activeStatusFilter === option.value
-                  ? 'border-red-700 bg-red-50 ring-4 ring-red-100'
-                  : 'border-zinc-200 bg-white hover:border-red-200 hover:bg-red-50'
-              }`}
-            >
-              <span className="block text-xs font-black uppercase tracking-[0.22em] text-red-700">
-                {option.label}
-              </span>
-              <span className="mt-2 block text-3xl font-black text-zinc-950">
-                {newsCounts[option.value]}
-              </span>
-              <span className="mt-2 block text-xs leading-5 text-zinc-500">
-                {option.description}
-              </span>
-            </button>
-          ))}
         </div>
       </section>
 
@@ -742,6 +757,60 @@ export function AdminNewsPage() {
         </form>
       )}
 
+      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto] lg:items-center">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Pesquisar por título, resumo, conteúdo ou fonte..."
+              className="w-full rounded-md border border-zinc-200 py-3 pl-12 pr-4 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+            />
+          </div>
+
+          <select
+            value={activeStatusFilter}
+            onChange={(event) => setActiveStatusFilter(event.target.value as NewsFilter)}
+            className="rounded-md border border-zinc-200 px-4 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+          >
+            <option value="all">Todos</option>
+            <option value="published">Publicadas ({newsCounts.published})</option>
+            <option value="draft">Rascunhos ({newsCounts.draft})</option>
+            <option value="archived">Arquivadas ({newsCounts.archived})</option>
+          </select>
+
+          <select
+            value={pageSize}
+            onChange={(event) => setPageSize(Number(event.target.value))}
+            className="rounded-md border border-zinc-200 px-4 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+          >
+            {pageSizeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option} por página
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mt-4 flex flex-col justify-between gap-3 border-t border-zinc-200 pt-4 text-sm text-zinc-600 md:flex-row md:items-center">
+          <div>
+            <span className="font-black text-zinc-900">{activeStatusLabel}</span>{' '}
+            · {filteredNews.length} notícia(s) encontrada(s)
+            {activeStatusFilter === 'all' && (
+              <span className="ml-2 text-xs text-zinc-400">
+                Arquivadas ficam apenas no filtro Arquivadas.
+              </span>
+            )}
+          </div>
+
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">
+            Publicadas {newsCounts.published} · Rascunhos {newsCounts.draft} · Arquivadas {newsCounts.archived}
+          </div>
+        </div>
+      </section>
+
       {isLoading ? (
         <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
           A carregar notícias...
@@ -757,120 +826,229 @@ export function AdminNewsPage() {
           </h2>
 
           <p className="mt-3 text-zinc-500">
-            {activeStatusOption ? `Não existem notícias com estado ${activeStatusOption.label.toLowerCase()}.` : 'Não existem notícias nesta área.'}
+            Não existem notícias para os filtros selecionados.
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid gap-5">
-          {filteredNews.map((item) => {
-            const itemStatus = getNewsStatus(item);
+        <section className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-zinc-200">
+              <thead className="bg-zinc-50">
+                <tr>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Notícia
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Estado
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Fonte
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Data / ordem
+                  </th>
+                  <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
 
-            return (
-              <article
-                key={item.id}
-                className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm"
-              >
-                <div
-                  className={
-                    itemStatus === 'published'
-                      ? 'h-1.5 bg-red-700'
-                      : itemStatus === 'archived'
-                        ? 'h-1.5 bg-amber-500'
-                        : 'h-1.5 bg-zinc-300'
-                  }
-                />
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {paginatedNews.map((item) => {
+                  const itemStatus = getNewsStatus(item);
+                  const isExpanded = expandedNewsId === item.id;
 
-                <div className="grid gap-6 p-7 lg:grid-cols-[1fr_auto] lg:items-start">
-                  <div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                  return (
+                    <tr key={item.id} className="align-top transition hover:bg-zinc-50">
+                      <td className="px-5 py-5">
+                        <div className="flex gap-4">
+                          <div className="hidden h-16 w-20 flex-shrink-0 overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 md:block">
+                            {item.image_url ? (
+                              <img
+                                src={item.image_url}
+                                alt={item.title}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-zinc-400">
+                                <Newspaper size={22} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <h3 className="font-black leading-6 text-zinc-900">
+                              {item.title}
+                            </h3>
+
+                            {item.summary && (
+                              <p className="mt-1 line-clamp-2 max-w-2xl text-sm leading-6 text-zinc-500">
+                                {item.summary}
+                              </p>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedNewsId(isExpanded ? null : item.id)
+                              }
+                              className="mt-3 inline-flex items-center gap-1 text-xs font-black uppercase tracking-[0.16em] text-red-700 hover:text-red-900"
+                            >
+                              <ChevronDown
+                                size={14}
+                                className={`transition ${isExpanded ? 'rotate-180' : ''}`}
+                              />
+                              {isExpanded ? 'Ocultar detalhes' : 'Detalhes'}
+                            </button>
+
+                            {isExpanded && (
+                              <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-4 text-sm leading-7 text-zinc-600">
+                                {item.content ? (
+                                  <p className="whitespace-pre-wrap">{item.content}</p>
+                                ) : (
+                                  <p>Sem conteúdo detalhado.</p>
+                                )}
+
+                                {item.external_url && (
+                                  <a
+                                    href={item.external_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-3 inline-flex text-sm font-bold text-red-700 hover:text-red-900"
+                                  >
+                                    Abrir link externo
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-5">
+                        <span
+                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${getStatusBadgeClass(
+                            itemStatus,
+                          )}`}
+                        >
+                          {getStatusLabel(itemStatus)}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-5 text-sm font-semibold text-zinc-700">
                         {item.source}
-                      </span>
+                      </td>
 
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${getStatusBadgeClass(
-                          itemStatus,
-                        )}`}
-                      >
-                        {getStatusLabel(itemStatus)}
-                      </span>
+                      <td className="px-5 py-5 text-sm text-zinc-600">
+                        <div>{formatDate(item.published_at)}</div>
+                        <div className="mt-1 text-xs text-zinc-400">
+                          Posição {item.sort_order ?? 0}
+                        </div>
+                      </td>
 
-                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                        Posição {item.sort_order ?? 0}
-                      </span>
+                      <td className="px-5 py-5">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(item)}
+                            className="rounded-md border border-zinc-200 px-3 py-2 text-xs font-black text-zinc-700 hover:border-red-700 hover:text-red-700"
+                          >
+                            Editar
+                          </button>
 
-                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                        {formatDate(item.published_at)}
-                      </span>
-                    </div>
+                          {itemStatus !== 'published' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatus(item, 'published')}
+                              className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-3 py-2 text-xs font-black text-zinc-700 hover:border-red-700 hover:text-red-700"
+                            >
+                              <Eye size={14} />
+                              Publicar
+                            </button>
+                          )}
 
-                    <h3 className="mt-5 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                      {item.title}
-                    </h3>
+                          {itemStatus !== 'archived' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatus(item, 'archived')}
+                              className="inline-flex items-center gap-1 rounded-md border border-amber-200 px-3 py-2 text-xs font-black text-amber-700 hover:bg-amber-50"
+                            >
+                              <Archive size={14} />
+                              Arquivar
+                            </button>
+                          )}
 
-                    {item.summary && (
-                      <p className="mt-4 text-sm leading-7 text-zinc-600">
-                        {item.summary}
-                      </p>
-                    )}
-                  </div>
+                          {itemStatus !== 'draft' && itemStatus !== 'archived' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatus(item, 'draft')}
+                              className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-3 py-2 text-xs font-black text-zinc-700 hover:border-red-700 hover:text-red-700"
+                            >
+                              <EyeOff size={14} />
+                              Rascunho
+                            </button>
+                          )}
 
-                  <div className="flex flex-wrap gap-2 lg:justify-end">
-                    <button
-                      type="button"
-                      onClick={() => handleEdit(item)}
-                      className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
-                    >
-                      Editar
-                    </button>
+                          {itemStatus === 'archived' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatus(item, 'draft')}
+                              className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-3 py-2 text-xs font-black text-zinc-700 hover:border-red-700 hover:text-red-700"
+                            >
+                              <EyeOff size={14} />
+                              Reativar como rascunho
+                            </button>
+                          )}
 
-                    {itemStatus !== 'published' && (
-                      <button
-                        type="button"
-                        onClick={() => handleQuickStatus(item, 'published')}
-                        className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
-                      >
-                        <Eye size={16} />
-                        Publicar
-                      </button>
-                    )}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item)}
+                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 size={14} />
+                            Apagar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-                    {itemStatus !== 'archived' && (
-                      <button
-                        type="button"
-                        onClick={() => handleQuickStatus(item, 'archived')}
-                        className="inline-flex items-center gap-2 rounded-md border border-amber-200 px-4 py-2 text-sm font-bold text-amber-700 hover:bg-amber-50"
-                      >
-                        <Archive size={16} />
-                        Arquivar
-                      </button>
-                    )}
+          <div className="flex flex-col justify-between gap-4 border-t border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-zinc-600 md:flex-row md:items-center">
+            <div>
+              A mostrar {filteredNews.length === 0 ? 0 : pageStart + 1}–{Math.min(pageStart + pageSize, filteredNews.length)} de {filteredNews.length}
+            </div>
 
-                    {itemStatus !== 'draft' && (
-                      <button
-                        type="button"
-                        onClick={() => handleQuickStatus(item, 'draft')}
-                        className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
-                      >
-                        <EyeOff size={16} />
-                        Rascunho
-                      </button>
-                    )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={safeCurrentPage === 1}
+                className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft size={14} />
+                Anterior
+              </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item)}
-                      className="inline-flex items-center gap-2 rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 size={16} />
-                      Apagar definitivo
-                    </button>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+              <span className="px-2 text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                {safeCurrentPage} / {totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Próxima
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );
