@@ -30,7 +30,7 @@ export function SponsorsPage() {
   }, []);
 
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
@@ -79,7 +79,7 @@ export function SponsorsPage() {
             </div>
           </div>
 
-          <div className="mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-sm bg-[#24180f] text-white md:grid-cols-3">
+          <div className="mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-[1.35rem] bg-[#24180f] text-white md:grid-cols-3">
             <article className="border-b border-white/10 p-6 md:p-10 text-center md:border-b-0 md:border-r">
               <Handshake className="mx-auto text-red-500" size={30} />
               <h3 className="mt-6 font-serif text-2xl font-light">Parceria</h3>
@@ -127,11 +127,11 @@ export function SponsorsPage() {
           </div>
 
           {isLoading ? (
-            <div className="mt-10 rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-zinc-600">
+            <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-zinc-600">
               A carregar parceiros...
             </div>
           ) : sponsors.length === 0 ? (
-            <div className="mt-10 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-6 md:p-10 text-center">
+            <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-dashed border-zinc-300 bg-[#f6f2ec] p-6 md:p-10 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
                 <Handshake size={28} />
               </div>
@@ -149,7 +149,7 @@ export function SponsorsPage() {
               {sponsors.map((sponsor) => (
                 <article
                   key={sponsor.id}
-                  className="group overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  className="group overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
                   <div className="h-1.5 bg-red-700" />
 

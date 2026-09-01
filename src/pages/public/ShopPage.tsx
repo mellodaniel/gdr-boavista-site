@@ -437,7 +437,7 @@ export function ShopPage() {
   }
 
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#2f261e] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(184,51,54,0.20),transparent_38%)]" />
         <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-transparent to-[#4a2a22]/35" />
@@ -483,7 +483,7 @@ export function ShopPage() {
             </div>
           </div>
 
-          <aside className="relative hidden overflow-hidden rounded-2xl md:rounded-sm border border-white/12 bg-white/[0.055] p-6 md:p-8 shadow-lg md:shadow-2xl backdrop-blur lg:block">
+          <aside className="relative hidden overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-white/12 bg-white/[0.055] p-6 md:p-8 shadow-lg md:shadow-2xl backdrop-blur lg:block">
             <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#b83336]/10 blur-3xl" />
             <div className="absolute -bottom-20 -left-16 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
             <img
@@ -508,15 +508,15 @@ export function ShopPage() {
               </p>
 
               <div className="mt-8 grid gap-3">
-                <div className="flex items-center gap-3 rounded-2xl md:rounded-sm border border-white/10 bg-white/[0.07] px-5 md:px-4 py-3">
+                <div className="flex items-center gap-3 rounded-2xl md:rounded-[1.35rem] border border-white/10 bg-white/[0.07] px-5 md:px-4 py-3">
                   <ShieldCheck size={18} className="text-[#e1b9b2]" />
                   <span className="text-sm font-bold text-white">Produtos oficiais do clube</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-2xl md:rounded-sm border border-white/10 bg-white/[0.07] px-5 md:px-4 py-3">
+                <div className="flex items-center gap-3 rounded-2xl md:rounded-[1.35rem] border border-white/10 bg-white/[0.07] px-5 md:px-4 py-3">
                   <Store size={18} className="text-[#e1b9b2]" />
                   <span className="text-sm font-bold text-white">Recolha e confirmação pelo GDR Boavista</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-2xl md:rounded-sm border border-white/10 bg-white/[0.07] px-5 md:px-4 py-3">
+                <div className="flex items-center gap-3 rounded-2xl md:rounded-[1.35rem] border border-white/10 bg-white/[0.07] px-5 md:px-4 py-3">
                   <Sparkles size={18} className="text-[#e1b9b2]" />
                   <span className="text-sm font-bold text-white">Cada compra apoia a formação</span>
                 </div>
@@ -529,19 +529,19 @@ export function ShopPage() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="grid gap-6 md:grid-cols-3">
-            <article className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-5 md:p-7 shadow-sm">
+            <article className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-5 md:p-7 shadow-sm">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f8eeee] text-[#b83336]"><ShieldCheck size={26} /></div>
               <h3 className="mt-6 font-serif text-3xl font-light text-[#2f261e]">Produtos do clube</h3>
               <p className="mt-4 text-sm leading-7 text-zinc-600">Uma loja pensada para valorizar a identidade do GDR Boavista.</p>
             </article>
 
-            <article className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-5 md:p-7 shadow-sm">
+            <article className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-5 md:p-7 shadow-sm">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f8eeee] text-[#b83336]"><CreditCard size={26} /></div>
               <h3 className="mt-6 font-serif text-3xl font-light text-[#2f261e]">Checkout simples</h3>
               <p className="mt-4 text-sm leading-7 text-zinc-600">Adiciona produtos ao carrinho e finaliza o pedido com confirmação manual pelo clube.</p>
             </article>
 
-            <article className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-5 md:p-7 shadow-sm">
+            <article className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-5 md:p-7 shadow-sm">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f8eeee] text-[#b83336]"><Truck size={26} /></div>
               <h3 className="mt-6 font-serif text-3xl font-light text-[#2f261e]">Recolha combinada</h3>
               <p className="mt-4 text-sm leading-7 text-zinc-600">Levantamento combinado com o clube em dias de treino, jogos ou outros momentos definidos.</p>
@@ -574,7 +574,7 @@ export function ShopPage() {
           </div>
 
           {featuredProduct && (
-            <article className="mt-12 overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] shadow-sm">
+            <article className="mt-12 overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#f6f2ec] shadow-sm">
               <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
                 <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden bg-[#2f261e] p-6 md:p-10">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(184,51,54,0.18),transparent_46%)]" />
@@ -622,7 +622,7 @@ export function ShopPage() {
               const isUnavailable = product.stock_status === 'sold_out' || product.stock_status === 'soon';
 
               return (
-                <article id={`produto-${product.id}`} key={product.id} className="group flex h-full flex-col overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <article id={`produto-${product.id}`} key={product.id} className="group flex h-full flex-col overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
                   <div className="relative flex h-80 items-center justify-center overflow-hidden bg-[#2f261e]">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(184,51,54,0.16),transparent_44%)]" />
                     <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/70 to-transparent" />
@@ -731,7 +731,7 @@ export function ShopPage() {
           </div>
 
           {!isLoadingProducts && displayedProducts.length === 0 && (
-            <div className="mt-10 rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-center">
+            <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-center">
               <p className="font-serif text-3xl font-light text-[#2f261e]">Ainda não existem produtos nesta categoria.</p>
               <button type="button" onClick={() => setActiveCategory('Todos')} className="mt-5 rounded-full bg-[#2f261e] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#b83336]">Ver todos</button>
             </div>
@@ -752,7 +752,7 @@ export function ShopPage() {
 
             <div className="grid gap-3 md:grid-cols-2">
               {orderSteps.map((step, index) => (
-                <div key={step} className="flex gap-4 rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-4 shadow-sm">
+                <div key={step} className="flex gap-4 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-4 shadow-sm">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#b83336] text-sm font-black text-white">{index + 1}</div>
                   <p className="text-sm font-semibold leading-7 text-zinc-700">{step}</p>
                 </div>
@@ -764,7 +764,7 @@ export function ShopPage() {
 
       <section className="bg-white py-14 md:py-20">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
-          <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-[#2f261e] p-6 text-white shadow-md md:shadow-xl md:p-10">
+          <div className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#2f261e] p-6 text-white shadow-md md:shadow-xl md:p-10">
             <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.35em] text-[#e0b6ae]">Pagamento</p>
@@ -776,7 +776,7 @@ export function ShopPage() {
                 {paymentMethods.map((method) => {
                   const Icon = method.icon;
                   return (
-                    <article key={method.title} className="rounded-2xl md:rounded-sm bg-white p-5 text-[#2f261e]">
+                    <article key={method.title} className="rounded-2xl md:rounded-[1.35rem] bg-white p-5 text-[#2f261e]">
                       <Icon size={28} className="text-[#b83336]" />
                       <h3 className="mt-4 text-base font-black uppercase tracking-wide">{method.title}</h3>
                       <p className="mt-3 text-sm leading-6 text-zinc-600">{method.description}</p>
@@ -846,14 +846,14 @@ export function ShopPage() {
 
             <div className="flex-1 overflow-y-auto p-5">
               {(orderFeedback || orderError) && (
-                <div className={`mb-5 flex items-start gap-3 rounded-2xl md:rounded-sm border p-4 text-sm font-semibold ${orderError ? 'border-red-200 bg-[#f8eeee] text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+                <div className={`mb-5 flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border p-4 text-sm font-semibold ${orderError ? 'border-red-200 bg-[#f8eeee] text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
                   {orderError ? <AlertCircle size={18} className="mt-0.5 shrink-0" /> : <CheckCircle size={18} className="mt-0.5 shrink-0" />}
                   <span>{orderError ?? orderFeedback}</span>
                 </div>
               )}
 
               {!cartItems.length ? (
-                <div className="rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-white p-6 md:p-8 text-center">
+                <div className="rounded-2xl md:rounded-[1.35rem] border border-dashed border-zinc-300 bg-white p-6 md:p-8 text-center">
                   <Package className="mx-auto text-zinc-400" size={42} />
                   <h3 className="mt-4 text-xl font-black text-[#2f261e]">O carrinho está vazio</h3>
                   <p className="mt-2 text-sm leading-7 text-zinc-500">Escolhe um produto e adiciona ao carrinho para continuar.</p>
@@ -868,7 +868,7 @@ export function ShopPage() {
               ) : (
                 <div className="space-y-4">
                   {cartItems.map((item) => (
-                    <article key={`${item.product.id}-${item.size}`} className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-4 shadow-sm">
+                    <article key={`${item.product.id}-${item.size}`} className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-4 shadow-sm">
                       <div className="flex gap-4">
                         <img src={getPrimaryProductImage(item.product)} alt="" className="h-20 w-20 rounded-xl bg-[#2f261e] object-contain p-2" />
                         <div className="min-w-0 flex-1">
@@ -904,7 +904,7 @@ export function ShopPage() {
                     </article>
                   ))}
 
-                  <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+                  <div className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-sm font-black uppercase tracking-[0.18em] text-zinc-500">Total</span>
                       <span className="font-serif text-3xl font-light text-[#2f261e]">
@@ -936,7 +936,7 @@ export function ShopPage() {
                       </button>
                     </div>
                   ) : (
-                    <form onSubmit={handleCheckoutSubmit} className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+                    <form onSubmit={handleCheckoutSubmit} className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-5 shadow-sm">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.22em] text-[#b83336]">Checkout</p>
                         <h3 className="mt-2 text-2xl font-black text-[#2f261e]">Dados para confirmação</h3>
@@ -984,7 +984,7 @@ export function ShopPage() {
                         </label>
                       </div>
 
-                      <p className="mt-3 rounded-2xl md:rounded-sm border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-800">
+                      <p className="mt-3 rounded-2xl md:rounded-[1.35rem] border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-800">
                         MB WAY estará disponível em breve. Nesta fase, a confirmação será feita por transferência bancária ou pagamento presencial.
                       </p>
 

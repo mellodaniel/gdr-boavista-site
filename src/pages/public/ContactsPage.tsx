@@ -130,7 +130,7 @@ export function ContactsPage() {
   }
 
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
@@ -156,7 +156,7 @@ export function ContactsPage() {
         <div className="mx-auto grid max-w-7xl gap-10 px-5 md:px-4 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <form
             onSubmit={handleSubmit}
-            className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-5 md:p-7 shadow-lg md:shadow-2xl shadow-zinc-950/10"
+            className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-5 md:p-7 shadow-lg md:shadow-2xl shadow-zinc-950/10"
           >
             <div>
               <h2 className="font-serif text-4xl font-light text-[#24180f]">
@@ -170,14 +170,14 @@ export function ContactsPage() {
             </div>
 
             {successMessage && (
-              <div className="mt-6 flex items-start gap-3 rounded-2xl md:rounded-sm border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
+              <div className="mt-6 flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
                 <CheckCircle2 size={20} />
                 {successMessage}
               </div>
             )}
 
             {errorMessage && (
-              <div className="mt-6 rounded-2xl md:rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+              <div className="mt-6 rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
                 {errorMessage}
               </div>
             )}
@@ -267,7 +267,7 @@ export function ContactsPage() {
                 const Icon = item.icon;
 
                 const content = (
-                  <div className="flex items-start gap-4 rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 transition hover:-translate-y-1 hover:shadow-xl">
+                  <div className="flex items-start gap-4 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-6 transition hover:-translate-y-1 hover:shadow-xl">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-700">
                       <Icon size={22} />
                     </div>
@@ -311,7 +311,7 @@ export function ContactsPage() {
               })}
             </div>
 
-            <div className="mt-8 rounded-2xl md:rounded-sm bg-[#24180f] p-5 md:p-7 text-white">
+            <div className="mt-8 rounded-2xl md:rounded-[1.35rem] bg-[#24180f] p-5 md:p-7 text-white">
               <MessageCircle size={30} className="text-red-400" />
 
               <h3 className="mt-6 font-serif text-3xl font-light">

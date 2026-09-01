@@ -52,7 +52,7 @@ const timeline = [
 
 export function ClubPage() {
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
@@ -103,7 +103,7 @@ export function ClubPage() {
             </div>
           </div>
 
-          <div className="mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-sm bg-[#24180f] text-white md:grid-cols-3">
+          <div className="mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-[1.35rem] bg-[#24180f] text-white md:grid-cols-3">
             {timeline.map((item, index) => {
               const Icon = item.icon;
 
@@ -145,7 +145,7 @@ export function ClubPage() {
               </h2>
             </div>
 
-            <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 shadow-sm">
+            <div className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 shadow-sm">
               <p className="text-base leading-8 text-zinc-700">
                 A estrutura do Grupo Desportivo e Recreativo da Boavista visa
                 promover a formação e integração global dos atletas do clube nas
@@ -177,7 +177,7 @@ export function ClubPage() {
               </h2>
             </div>
 
-            <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 md:p-8 shadow-sm">
+            <div className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-6 md:p-8 shadow-sm">
               <p className="text-base leading-8 text-zinc-700">
                 A estrutura do Grupo Desportivo e Recreativo da Boavista
                 pretende constituir-se como referência na promoção e
@@ -198,7 +198,7 @@ export function ClubPage() {
         </div>
       </section>
 
-      <section className="bg-[#24180f] py-14 md:py-24 text-white">
+      <section className="gdrb-premium-dark bg-[#24180f] py-14 md:py-24 text-white">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
@@ -220,7 +220,7 @@ export function ClubPage() {
             {values.map((item) => (
               <article
                 key={item.title}
-                className="rounded-2xl md:rounded-sm border border-white/10 bg-white/5 p-6 md:p-8"
+                className="gdrb-glass-panel rounded-2xl md:rounded-[1.35rem] border border-white/10 bg-white/5 p-6 md:p-8"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-700 text-white">
                   <ShieldCheck size={22} />
@@ -230,7 +230,7 @@ export function ClubPage() {
                   {item.title}
                 </h3>
 
-                <p className="mt-4 text-sm leading-7 text-zinc-400">
+                <p className="mt-4 text-sm leading-7 text-zinc-300">
                   {item.description}
                 </p>
               </article>
@@ -241,7 +241,7 @@ export function ClubPage() {
 
       <section className="bg-white py-14 md:py-24">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
-          <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 shadow-sm md:p-14">
+          <div className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#f6f2ec] p-6 shadow-sm md:p-14">
             <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">

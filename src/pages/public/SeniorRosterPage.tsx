@@ -315,7 +315,7 @@ export function SeniorRosterPage() {
   }, []);
 
   return (
-    <div className="overflow-hidden bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page overflow-hidden bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#1f140d] text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(220,38,38,0.35),transparent_30%),linear-gradient(135deg,rgba(36,24,15,0.95),rgba(0,0,0,0.86))]" />
         <div className="absolute -right-20 top-8 h-96 w-96 rounded-full border border-white/10" />

@@ -51,7 +51,7 @@ export function NewsletterUnsubscribePage() {
   }
 
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
@@ -72,7 +72,7 @@ export function NewsletterUnsubscribePage() {
 
       <section className="py-14 md:py-24">
         <div className="mx-auto max-w-2xl px-5 md:px-4">
-          <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 text-center shadow-lg md:shadow-2xl shadow-zinc-950/10 md:p-12">
+          <div className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-6 text-center shadow-lg md:shadow-2xl shadow-zinc-950/10 md:p-12">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-700">
               <MailX size={30} />
             </div>
@@ -86,14 +86,14 @@ export function NewsletterUnsubscribePage() {
             </p>
 
             {successMessage && (
-              <div className="mt-7 flex items-start gap-3 rounded-2xl md:rounded-sm border border-green-200 bg-green-50 p-4 text-left text-sm font-semibold text-green-800">
+              <div className="mt-7 flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-4 text-left text-sm font-semibold text-green-800">
                 <CheckCircle2 size={20} />
                 <span>{successMessage}</span>
               </div>
             )}
 
             {errorMessage && (
-              <div className="mt-7 rounded-2xl md:rounded-sm border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-800">
+              <div className="mt-7 rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-800">
                 {errorMessage}
               </div>
             )}

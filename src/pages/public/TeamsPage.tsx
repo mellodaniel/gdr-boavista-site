@@ -145,7 +145,7 @@ export function TeamsPage() {
   }, []);
 
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
@@ -201,7 +201,7 @@ export function TeamsPage() {
           </div>
 
           {isLoading ? (
-            <div className="mt-10 rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 md:p-8 text-zinc-600">
+            <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-6 md:p-8 text-zinc-600">
               A carregar equipas...
             </div>
           ) : (
@@ -209,7 +209,7 @@ export function TeamsPage() {
               {visibleTeams.map((team) => (
                 <article
                   key={team.id}
-                  className="group overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  className="group overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
                   <div className="h-1.5 bg-red-700" />
 

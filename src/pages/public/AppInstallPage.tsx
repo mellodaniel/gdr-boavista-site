@@ -52,7 +52,7 @@ export function AppInstallPage() {
   }
 
   return (
-    <div className="bg-[#f6f2ec]">
+    <div className="gdrb-public-page bg-[#f6f2ec]">
       <section className="relative overflow-hidden bg-[#24180f] text-white">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute -right-24 top-10 h-96 w-96 rounded-full bg-red-700 blur-3xl" />

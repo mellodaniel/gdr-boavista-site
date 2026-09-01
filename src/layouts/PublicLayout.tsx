@@ -65,6 +65,45 @@ export function PublicLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isDesktopVisualMode = window.matchMedia('(min-width: 768px)').matches;
+
+    if (prefersReducedMotion || !isDesktopVisualMode) {
+      return undefined;
+    }
+
+    const sections = Array.from(
+      document.querySelectorAll<HTMLElement>('.gdrb-public-page > section'),
+    );
+
+    sections.forEach((section) => section.classList.add('gdrb-reveal'));
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('gdrb-visible');
+          observer.unobserve(entry.target);
+        });
+      },
+      {
+        threshold: 0.08,
+        rootMargin: '0px 0px -8% 0px',
+      },
+    );
+
+    sections.forEach((section, index) => {
+      if (index === 0) {
+        section.classList.add('gdrb-visible');
+        return;
+      }
+      observer.observe(section);
+    });
+
+    return () => observer.disconnect();
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (!isMenuOpen) return;
 
     const previousOverflow = document.body.style.overflow;
@@ -93,7 +132,7 @@ export function PublicLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f2ec] text-zinc-950">
+    <div className="min-h-screen bg-[#f6f2ec] text-zinc-950 md:bg-transparent">
       <AnalyticsTracker />
       <ScrollToTop />
 
@@ -104,7 +143,7 @@ export function PublicLayout() {
         Saltar para o conteúdo
       </a>
 
-      <header className="sticky top-0 z-50 border-b border-[#eadfd2] bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-[#eadfd2] bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl lg:border-white/60 lg:bg-[#fbf8f4]/82 lg:shadow-[0_12px_42px_-30px_rgba(55,34,21,0.45)]">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 md:h-20 md:px-4">
           <Link
             to="/"
@@ -331,7 +370,7 @@ export function PublicLayout() {
         <Outlet />
       </main>
 
-      <footer className="bg-[#24180f] pb-20 text-white lg:pb-0">
+      <footer className="bg-[#24180f] pb-20 text-white lg:pb-0 lg:bg-[radial-gradient(circle_at_15%_0%,rgba(185,28,28,0.20),transparent_28rem),linear-gradient(135deg,#2b1b12_0%,#24180f_50%,#351818_100%)]">
         <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 md:gap-10 md:px-4 md:py-14 lg:grid-cols-[1.2fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-4">

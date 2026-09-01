@@ -115,7 +115,7 @@ export function GalleryPage() {
   }
 
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#24180f] py-14 text-white md:py-24">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
@@ -152,7 +152,7 @@ export function GalleryPage() {
             </div>
 
             {hasRealGallery ? (
-              <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-3 shadow-sm md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+              <div className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-3 shadow-sm md:border-0 md:bg-transparent md:p-0 md:shadow-none">
                 <button
                   type="button"
                   onClick={() => setIsCategoriesOpen((current) => !current)}
@@ -193,7 +193,7 @@ export function GalleryPage() {
           </div>
 
           {isLoadingGallery ? (
-            <div className="mt-8 rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 text-center text-sm font-semibold text-zinc-500 md:mt-10 md:p-10">
+            <div className="mt-8 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-6 text-center text-sm font-semibold text-zinc-500 md:mt-10 md:p-10">
               A carregar galeria...
             </div>
           ) : (
@@ -207,7 +207,7 @@ export function GalleryPage() {
                 return (
                   <article
                     key={itemId}
-                    className="group overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition md:hover:-translate-y-1 md:hover:shadow-xl"
+                    className="group overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white shadow-sm transition md:hover:-translate-y-1 md:hover:shadow-xl"
                   >
                     {imageUrl ? (
                       <div className="h-52 overflow-hidden bg-[#f6f2ec] md:h-72">
@@ -259,7 +259,7 @@ export function GalleryPage() {
           )}
 
           {!isLoadingGallery && !hasRealGallery ? (
-            <div className="mt-8 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-white p-6 text-center md:mt-12 md:p-10">
+            <div className="mt-8 rounded-2xl md:rounded-[1.35rem] border border-dashed border-zinc-300 bg-white p-6 text-center md:mt-12 md:p-10">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-700 md:h-16 md:w-16">
                 <Camera size={24} />
               </div>

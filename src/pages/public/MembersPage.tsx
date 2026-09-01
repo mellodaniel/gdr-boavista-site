@@ -87,7 +87,7 @@ export function MembersPage() {
   }
 
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
+    <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">
       <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
@@ -135,7 +135,7 @@ export function MembersPage() {
                 return (
                   <article
                     key={item.title}
-                    className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6"
+                    className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-6"
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-700">
@@ -157,7 +157,7 @@ export function MembersPage() {
               })}
             </div>
 
-            <div className="mt-8 rounded-2xl md:rounded-sm bg-[#24180f] p-5 md:p-7 text-white">
+            <div className="mt-8 rounded-2xl md:rounded-[1.35rem] bg-[#24180f] p-5 md:p-7 text-white">
               <h3 className="font-serif text-3xl font-light">
                 Contactos de sócios
               </h3>
@@ -184,7 +184,7 @@ export function MembersPage() {
 
           <form
             onSubmit={handleSubmit}
-            className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-5 md:p-7 shadow-lg md:shadow-2xl shadow-zinc-950/10"
+            className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white p-5 md:p-7 shadow-lg md:shadow-2xl shadow-zinc-950/10"
           >
             <div>
               <h2 className="font-serif text-4xl font-light text-[#24180f]">
@@ -198,14 +198,14 @@ export function MembersPage() {
             </div>
 
             {successMessage && (
-              <div className="mt-6 flex items-start gap-3 rounded-2xl md:rounded-sm border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
+              <div className="mt-6 flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
                 <CheckCircle2 size={20} />
                 {successMessage}
               </div>
             )}
 
             {errorMessage && (
-              <div className="mt-6 rounded-2xl md:rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+              <div className="mt-6 rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
                 {errorMessage}
               </div>
             )}

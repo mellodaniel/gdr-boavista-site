@@ -56,3 +56,279 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   GDR Boavista — Premium visual evolution (desktop-first)
+   The mobile experience was already validated, so these rules intentionally
+   start at tablet/desktop breakpoints unless they are harmless base tokens.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --gdrb-ink: #24180f;
+  --gdrb-red: #b91c1c;
+  --gdrb-cream: #f6f2ec;
+  --gdrb-sand: #efe3d6;
+  --gdrb-rose: #f4e7e3;
+  --gdrb-turf: #1d4d38;
+  --gdrb-line: rgba(73, 52, 36, 0.12);
+}
+
+.gdrb-public-page {
+  position: relative;
+  overflow: clip;
+}
+
+@media (min-width: 768px) {
+  html,
+  body {
+    background:
+      radial-gradient(circle at 15% 10%, rgba(185, 28, 28, 0.05), transparent 28rem),
+      linear-gradient(180deg, #fbf8f4 0%, #f6f2ec 42%, #f2e9df 100%);
+  }
+
+  .gdrb-public-page {
+    background:
+      radial-gradient(circle at 4% 18%, rgba(185, 28, 28, 0.055), transparent 24rem),
+      radial-gradient(circle at 96% 48%, rgba(117, 73, 42, 0.055), transparent 28rem),
+      linear-gradient(180deg, #fbf8f4 0%, #f6f2ec 45%, #f4ece3 100%);
+  }
+
+  .gdrb-public-page > section {
+    isolation: isolate;
+  }
+
+  .gdrb-public-page > section:not(:first-of-type)::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 8% 20%, rgba(185, 28, 28, 0.035), transparent 22rem),
+      radial-gradient(circle at 90% 75%, rgba(90, 57, 35, 0.035), transparent 24rem);
+  }
+
+  .gdrb-public-page > section:nth-of-type(3n + 2) {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 242, 235, 0.92));
+  }
+
+  .gdrb-public-page > section:nth-of-type(3n) {
+    background-image: linear-gradient(145deg, rgba(249, 245, 240, 0.96), rgba(240, 229, 217, 0.72));
+  }
+
+  .gdrb-reveal {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+    transition:
+      opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+
+  .gdrb-reveal.gdrb-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .gdrb-public-page article {
+    transition:
+      transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 320ms ease,
+      border-color 320ms ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .gdrb-public-page article:hover {
+      transform: translateY(-4px);
+    }
+  }
+
+  .gdrb-home-hero::before,
+  .gdrb-home-hero::after {
+    content: '';
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+    filter: blur(1px);
+    opacity: 0.72;
+  }
+
+  .gdrb-home-hero::before {
+    width: 34rem;
+    height: 34rem;
+    right: -10rem;
+    top: -14rem;
+    background: radial-gradient(circle, rgba(220, 38, 38, 0.26), transparent 66%);
+    animation: gdrbAmbientDrift 12s ease-in-out infinite alternate;
+  }
+
+  .gdrb-home-hero::after {
+    width: 28rem;
+    height: 28rem;
+    left: 24%;
+    bottom: -18rem;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 68%);
+    animation: gdrbAmbientDrift 15s ease-in-out 1.5s infinite alternate-reverse;
+  }
+
+  .gdrb-home-hero-image {
+    transform: scale(1.025);
+    animation: gdrbHeroBreath 18s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+
+  .gdrb-premium-dark {
+    background:
+      radial-gradient(circle at 10% 10%, rgba(220, 38, 38, 0.24), transparent 28rem),
+      radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.07), transparent 22rem),
+      linear-gradient(135deg, #2d1d13 0%, #24180f 48%, #3d1717 100%) !important;
+  }
+
+  .gdrb-premium-red {
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.18), transparent 20rem),
+      radial-gradient(circle at 90% 80%, rgba(51, 20, 13, 0.24), transparent 24rem),
+      linear-gradient(120deg, #991b1b 0%, #b91c1c 45%, #7f1d1d 100%) !important;
+  }
+
+  .gdrb-glass-panel {
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.055)) !important;
+    box-shadow: 0 28px 70px -42px rgba(28, 16, 10, 0.75);
+    backdrop-filter: blur(18px);
+  }
+
+  .gdrb-soft-panel {
+    border-color: rgba(104, 75, 54, 0.13) !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(251, 246, 240, 0.86)) !important;
+    box-shadow: 0 28px 70px -52px rgba(63, 38, 24, 0.55) !important;
+  }
+
+  .gdrb-pitch-panel {
+    background-color: #163d2d !important;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.07) 2px, transparent 2px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.07) 2px, transparent 2px),
+      radial-gradient(circle at 50% 50%, transparent 0 78px, rgba(255, 255, 255, 0.12) 79px 81px, transparent 82px),
+      radial-gradient(circle at 25% 20%, rgba(251, 191, 36, 0.20), transparent 26rem),
+      linear-gradient(135deg, #123729 0%, #1d4d38 46%, #173f31 100%) !important;
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    box-shadow: 0 34px 90px -48px rgba(8, 35, 25, 0.82) !important;
+  }
+
+  .gdrb-pitch-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent 49.8%, rgba(255, 255, 255, 0.12) 50%, transparent 50.2%),
+      radial-gradient(circle at 50% 50%, transparent 0 13%, rgba(255, 255, 255, 0.11) 13.2% 13.7%, transparent 13.9%);
+    opacity: 0.65;
+  }
+
+  .gdrb-section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .gdrb-section-kicker::before {
+    content: '';
+    width: 2.75rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.45;
+  }
+
+  .gdrb-public-page a,
+  .gdrb-public-page button {
+    transition-duration: 260ms;
+  }
+
+  .gdrb-public-page img {
+    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1), filter 500ms ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .gdrb-public-page a.group:hover img,
+    .gdrb-public-page article:hover img {
+      transform: scale(1.035);
+    }
+  }
+}
+
+@keyframes gdrbAmbientDrift {
+  from { transform: translate3d(-1.5rem, -0.5rem, 0) scale(0.98); }
+  to { transform: translate3d(1.5rem, 1rem, 0) scale(1.04); }
+}
+
+@keyframes gdrbHeroBreath {
+  from { transform: scale(1.025) translate3d(0, 0, 0); }
+  to { transform: scale(1.055) translate3d(-0.6%, -0.4%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gdrb-home-hero::before,
+  .gdrb-home-hero::after,
+  .gdrb-home-hero-image {
+    animation: none !important;
+  }
+
+  .gdrb-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .gdrb-public-page > section:first-of-type:not(.gdrb-home-hero) {
+    background-image:
+      radial-gradient(circle at 78% 22%, rgba(220, 38, 38, 0.28), transparent 25rem),
+      radial-gradient(circle at 12% 78%, rgba(255, 255, 255, 0.055), transparent 22rem),
+      linear-gradient(135deg, #2c1c13 0%, #24180f 55%, #381a18 100%) !important;
+  }
+
+  .gdrb-home > section:not(:first-of-type) {
+    position: relative;
+  }
+
+  .gdrb-home > section:not(:first-of-type)::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: min(72rem, 86vw);
+    height: 1px;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, transparent, rgba(112, 78, 56, 0.16), transparent);
+    pointer-events: none;
+  }
+
+  .gdrb-public-page input,
+  .gdrb-public-page select,
+  .gdrb-public-page textarea {
+    transition:
+      border-color 220ms ease,
+      box-shadow 220ms ease,
+      background-color 220ms ease;
+  }
+
+  .gdrb-public-page input:focus,
+  .gdrb-public-page select:focus,
+  .gdrb-public-page textarea:focus {
+    box-shadow: 0 0 0 5px rgba(185, 28, 28, 0.075);
+  }
+}
+
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .gdrb-public-page > section:first-of-type:not(.gdrb-home-hero) {
+    background-size: 125% 125% !important;
+    animation: gdrbGradientFlow 16s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes gdrbGradientFlow {
+  from { background-position: 0% 35%; }
+  to { background-position: 100% 65%; }
+}

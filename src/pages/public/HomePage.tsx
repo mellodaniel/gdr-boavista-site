@@ -23,7 +23,6 @@ import type { GdrbMatch, GdrbNews, GdrbSponsor, GdrbTournament } from '../../typ
 const googleMapsUrl =
   'https://www.google.com/maps/place/Campo+do+Grupo+Desportivo+e+Recreativo+da+Boavista/@39.780229,-8.7487878,17z/data=!3m1!4b1!4m6!3m5!1s0xd2271873a862cd7:0x575890ac1492b6a2!8m2!3d39.780229!4d-8.7462129!16s%2Fg%2F11bytx3sxs?entry=ttu&g_ep=EgoyMDI2MDYxMC4wIKXMDSoASAFQAw%3D%3D';
 
-const heroHighlights = ['Formação', 'Comunidade', 'Orgulho', 'Futebol'];
 
 const valueItems = [
   {
@@ -281,7 +280,7 @@ function NewsletterSignupSection() {
   return (
     <section className="bg-[#f6f2ec] py-10 md:py-14">
       <div className="mx-auto max-w-7xl px-5 md:px-4">
-        <div className="rounded-2xl md:rounded-sm border border-[#eadfce] bg-white px-5 py-5 shadow-lg shadow-zinc-950/5 md:px-7 md:py-6">
+        <div className="gdrb-soft-panel rounded-2xl md:rounded-[1.35rem] border border-[#eadfce] bg-white px-5 py-5 shadow-lg shadow-zinc-950/5 md:px-7 md:py-6">
           <div className="grid gap-5 lg:grid-cols-[0.95fr_1.55fr] lg:items-center">
             <div className="flex items-start gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#2a1a12] text-red-100 shadow-sm">
@@ -305,14 +304,14 @@ function NewsletterSignupSection() {
 
             <form onSubmit={handleSubmit} className="space-y-3">
               {successMessage && (
-                <div className="flex items-start gap-3 rounded-2xl md:rounded-sm border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">
+                <div className="flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">
                   <CheckCircle2 size={18} />
                   <span>{successMessage}</span>
                 </div>
               )}
 
               {errorMessage && (
-                <div className="rounded-2xl md:rounded-sm border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
+                <div className="rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
                   {errorMessage}
                 </div>
               )}
@@ -356,7 +355,7 @@ function NewsletterSignupSection() {
                 </button>
               </div>
 
-              <label className="flex cursor-pointer items-start gap-3 rounded-2xl md:rounded-sm border border-zinc-200 bg-[#faf7f2] px-3 py-2.5 text-xs leading-5 text-zinc-600">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#faf7f2] px-3 py-2.5 text-xs leading-5 text-zinc-600">
                 <input
                   type="checkbox"
                   checked={acceptsNewsletter}
@@ -508,16 +507,23 @@ export function HomePage() {
   const marqueeSponsors = sponsors.length > 0 ? [...sponsors, ...sponsors] : [];
 
   return (
-    <div className="bg-[#f6f2ec] text-zinc-950">
-      <section className="relative min-h-[640px] overflow-hidden bg-[#24180f] text-white md:min-h-[760px]">
+    <div className="gdrb-public-page gdrb-home bg-[#f6f2ec] text-zinc-950">
+      <section className="gdrb-home-hero relative min-h-[640px] overflow-hidden bg-[#24180f] text-white md:min-h-[760px]">
         <img
           src="/hero-boavista.webp"
           alt="GDR Boavista"
-          className="absolute inset-0 h-full w-full object-cover opacity-45"
+          className="absolute inset-0 h-full w-full object-cover opacity-45 md:hidden"
+        />
+        <img
+          src="/hero-boavista-premium.webp"
+          alt=""
+          aria-hidden="true"
+          className="gdrb-home-hero-image absolute inset-0 hidden h-full w-full object-cover object-center opacity-90 md:block"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#24180f]/80 to-black/30" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_35%)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#24180f]/80 to-black/30 md:via-[#24180f]/74 md:to-black/20" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_35%)] md:bg-[radial-gradient(circle_at_78%_32%,rgba(220,38,38,0.30),transparent_31%)]" />
+        <div className="absolute inset-x-0 bottom-0 hidden h-36 bg-gradient-to-t from-[#f6f2ec] via-[#f6f2ec]/12 to-transparent md:block" />
 
         <div className="relative mx-auto flex min-h-[640px] max-w-7xl flex-col justify-center md:min-h-[760px] px-6 py-14 md:py-24 sm:px-8 lg:px-16 xl:px-28">
           <div className="max-w-3xl lg:ml-8 xl:ml-10">
@@ -538,29 +544,24 @@ export function HomePage() {
                 <p className="mt-3 max-w-xl font-serif text-2xl font-light leading-tight text-white md:text-3xl">
                   Grupo Desportivo e Recreativo Boavista
                 </p>
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm font-bold uppercase tracking-[0.22em] text-zinc-200">
-                  <span>Leiria</span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                  <span>Formação</span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                  <span>Comunidade</span>
-                </div>
               </div>
             </div>
 
-            <h1 className="max-w-3xl font-serif text-4xl font-light leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
+            <div className="mt-2 h-px w-20 bg-gradient-to-r from-red-500/90 to-transparent md:mt-0 md:w-24" />
+
+            <h1 className="mt-8 max-w-3xl font-serif text-4xl font-light leading-[0.98] tracking-tight sm:text-6xl md:mt-10 md:text-7xl">
               Formar atletas,
               <br />
               unir famílias.
             </h1>
 
-            <p className="mt-8 max-w-xl text-base leading-8 text-zinc-300 md:text-lg">
+            <p className="mt-7 max-w-2xl text-base leading-8 text-zinc-300 md:mt-8 md:text-lg">
               O GDR Boavista é uma casa de futebol, formação e comunidade. Um
               clube onde atletas, famílias, sócios e amigos vivem o futebol com
               compromisso, união e orgulho.
             </p>
 
-            <div className="mt-9 flex flex-wrap gap-4">
+            <div className="mt-8 flex flex-wrap gap-4 md:mt-9">
               <Link
                 to="/socios"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
@@ -578,16 +579,6 @@ export function HomePage() {
               </Link>
             </div>
 
-            <div className="mt-10 flex flex-wrap gap-3">
-              {heroHighlights.map((item) => (
-                <span
-                  key={item}
-                  className="rounded-full border border-white/15 bg-white/10 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -659,7 +650,7 @@ export function HomePage() {
             </div>
           </div>
 
-          <div className="mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-sm bg-[#24180f] text-white md:grid-cols-3">
+          <div className="gdrb-premium-dark mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-[1.35rem] bg-[#24180f] text-white md:grid-cols-3 md:shadow-[0_32px_90px_-56px_rgba(36,24,15,0.85)]">
             {valueItems.map((item, index) => {
               const Icon = item.icon;
 
@@ -710,11 +701,11 @@ export function HomePage() {
           </div>
 
           {isLoadingAgenda ? (
-            <div className="mt-10 rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-zinc-600">
+            <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-zinc-600">
               A carregar agenda da semana...
             </div>
           ) : agendaItems.length === 0 ? (
-            <div className="mt-10 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-6 md:p-10 text-center">
+            <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-dashed border-zinc-300 bg-[#f6f2ec] p-6 md:p-10 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
                 <CalendarDays size={28} />
               </div>
@@ -725,7 +716,7 @@ export function HomePage() {
 
             </div>
           ) : (
-            <div className="mt-7 overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-10">
+            <div className="mt-7 overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white shadow-sm md:mt-10">
               {agendaItems.map((item, index) => {
                 const itemKey = `${item.type}-${item.id}`;
                 const isExpanded = expandedAgendaItemId === itemKey;
@@ -909,7 +900,7 @@ export function HomePage() {
           </div>
 
           {news.length === 0 ? (
-            <div className="mt-10 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-white p-6 md:p-10 text-center">
+            <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-dashed border-zinc-300 bg-white p-6 md:p-10 text-center">
               <Newspaper className="mx-auto text-red-700" size={32} />
 
               <h3 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
@@ -921,14 +912,14 @@ export function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="mt-7 overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-10 md:grid md:gap-6 md:border-0 md:bg-transparent md:shadow-none lg:grid-cols-3">
+            <div className="mt-7 overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white shadow-sm md:mt-10 md:grid md:gap-6 md:border-0 md:bg-transparent md:shadow-none lg:grid-cols-3">
               {news.map((item, index) => {
                 const isExpanded = expandedHomeNewsId === item.id;
 
                 return (
                   <article
                     key={item.id}
-                    className={`${index === 0 ? '' : 'border-t border-zinc-100 md:border-t-0'} overflow-hidden bg-white md:rounded-sm md:border md:border-zinc-200 md:shadow-sm md:transition md:hover:-translate-y-1 md:hover:shadow-xl`}
+                    className={`${index === 0 ? '' : 'border-t border-zinc-100 md:border-t-0'} overflow-hidden bg-white md:rounded-[1.35rem] md:border md:border-zinc-200 md:shadow-sm md:transition md:hover:-translate-y-1 md:hover:shadow-xl`}
                   >
                     <div className="hidden h-1.5 bg-red-700 md:block" />
 
@@ -941,10 +932,10 @@ export function HomePage() {
                         <img
                           src={item.image_url}
                           alt={item.title}
-                          className="h-[4.5rem] w-24 shrink-0 rounded-2xl md:rounded-sm object-cover"
+                          className="h-[4.5rem] w-24 shrink-0 rounded-2xl md:rounded-[1.35rem] object-cover"
                         />
                       ) : (
-                        <div className="flex h-[4.5rem] w-24 shrink-0 items-center justify-center rounded-2xl md:rounded-sm bg-[#24180f]">
+                        <div className="flex h-[4.5rem] w-24 shrink-0 items-center justify-center rounded-2xl md:rounded-[1.35rem] bg-[#24180f]">
                           <Newspaper size={22} className="text-red-500" />
                         </div>
                       )}
@@ -1060,7 +1051,7 @@ export function HomePage() {
         `}</style>
 
         <div className="mx-auto max-w-7xl px-5 md:px-4">
-          <div className="relative overflow-hidden rounded-2xl md:rounded-sm bg-[#24180f] text-white shadow-lg md:shadow-2xl">
+          <div className="gdrb-premium-dark relative overflow-hidden rounded-2xl md:rounded-[1.35rem] bg-[#24180f] text-white shadow-lg md:shadow-2xl">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.32),transparent_34%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_28%)]" />
 
@@ -1098,9 +1089,9 @@ export function HomePage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-2xl md:rounded-sm border border-white/10 bg-white/10 p-4">
+              <div className="relative overflow-hidden py-2 md:py-5">
                 {sponsors.length === 0 ? (
-                  <div className="rounded-2xl md:rounded-sm border border-dashed border-white/20 bg-white/10 p-6 md:p-10 text-center">
+                  <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.06] p-6 text-center backdrop-blur-sm md:p-10">
                     <h3 className="font-serif text-3xl font-light">
                       Espaço reservado aos parceiros
                     </h3>
@@ -1111,42 +1102,43 @@ export function HomePage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[#24180f] to-transparent" />
-                    <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[#24180f] to-transparent" />
+                  <div className="relative overflow-hidden">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-[#24180f] via-[#24180f]/85 to-transparent md:w-20" />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-[#24180f] via-[#24180f]/85 to-transparent md:w-20" />
 
-                    <div className="gdrb-sponsor-marquee flex w-max gap-4 py-2">
+                    <div className="gdrb-sponsor-marquee flex w-max gap-3 py-3 md:gap-5 md:py-5">
                       {marqueeSponsors.map((sponsor, index) => {
                         const content = (
-                          <div className="flex h-full min-h-[150px] w-[205px] md:min-h-[170px] md:w-[230px] flex-col justify-between rounded-2xl md:rounded-sm border border-white/10 bg-white p-5 text-[#24180f] shadow-md md:shadow-xl transition hover:-translate-y-1 hover:shadow-2xl">
-                            <div>
-                              <div className="flex h-20 items-center justify-center rounded-2xl md:rounded-sm bg-[#f6f2ec] p-4">
-                                {sponsor.logo_url ? (
-                                  <img
-                                    src={sponsor.logo_url}
-                                    alt={sponsor.name}
-                                    className="max-h-full max-w-full object-contain"
-                                  />
-                                ) : (
-                                  <span className="font-serif text-3xl font-light text-red-700">
-                                    {getSponsorInitials(sponsor.name)}
-                                  </span>
-                                )}
-                              </div>
+                          <div className="group relative flex h-full min-h-[132px] w-[185px] flex-col rounded-2xl border border-[#eadfd3] bg-[#fbf8f4]/95 p-4 text-[#24180f] shadow-[0_12px_30px_rgba(20,12,8,0.10)] backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-white hover:bg-white hover:shadow-[0_18px_42px_rgba(20,12,8,0.18)] md:min-h-[150px] md:w-[205px] md:p-5">
+                            {sponsor.website_url && (
+                              <span className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#eadfd3] bg-white/80 text-[#6f5a4b] transition duration-300 group-hover:border-red-200 group-hover:text-red-700">
+                                <ExternalLink size={13} />
+                              </span>
+                            )}
 
-                              <h3 className="mt-4 line-clamp-2 font-serif text-2xl font-light leading-tight">
+                            <div className="flex h-16 items-center justify-center pr-8 md:h-20">
+                              {sponsor.logo_url ? (
+                                <img
+                                  src={sponsor.logo_url}
+                                  alt={sponsor.name}
+                                  className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-[1.03]"
+                                />
+                              ) : (
+                                <span className="font-serif text-3xl font-light text-red-700">
+                                  {getSponsorInitials(sponsor.name)}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-auto pt-4">
+                              <h3 className="line-clamp-2 font-serif text-lg font-medium leading-snug md:text-xl">
                                 {sponsor.name}
                               </h3>
 
-                              <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                              <span className="mt-2 inline-flex rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-red-700">
                                 {formatSponsorLevel(sponsor.sponsor_level)}
-                              </p>
+                              </span>
                             </div>
-
-                            <span className="mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide text-[#24180f]">
-                              {sponsor.website_url ? 'Visitar parceiro' : 'Parceiro do clube'}
-                              {sponsor.website_url && <ExternalLink size={13} />}
-                            </span>
                           </div>
                         );
 
@@ -1180,19 +1172,19 @@ export function HomePage() {
 
       <NewsletterSignupSection />
 
-      <section className="bg-[#24180f] py-14 md:py-24 text-white">
+      <section className="bg-[#24180f] py-14 md:py-24 text-white md:bg-[linear-gradient(135deg,#f4ebe2_0%,#fff_48%,#efe0d5_100%)] md:text-[#24180f]">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="grid gap-6 md:grid-cols-3">
             {missionItems.map((item) => (
               <article
                 key={item.title}
-                className="rounded-2xl md:rounded-sm border border-white/10 bg-white/5 p-6 md:p-8"
+                className="rounded-2xl md:rounded-[1.35rem] border border-white/10 bg-white/5 p-6 md:border-[#eadfd2] md:bg-white/80 md:p-8 md:shadow-[0_24px_70px_-52px_rgba(59,37,24,0.55)] md:backdrop-blur"
               >
                 <h3 className="font-serif text-3xl font-light">
                   {item.title}
                 </h3>
 
-                <p className="mt-4 text-sm leading-7 text-zinc-400">
+                <p className="mt-4 text-sm leading-7 text-zinc-400 md:text-zinc-600">
                   {item.description}
                 </p>
               </article>
@@ -1207,10 +1199,10 @@ export function HomePage() {
             href={googleMapsUrl}
             target="_blank"
             rel="noreferrer"
-            className="group relative block min-h-[320px] overflow-hidden md:min-h-[420px] rounded-2xl md:rounded-sm bg-[#24180f] shadow-md md:shadow-xl"
+            className="gdrb-pitch-panel group relative block min-h-[320px] overflow-hidden md:min-h-[420px] rounded-2xl md:rounded-[1.35rem] bg-[#24180f] shadow-md md:shadow-xl"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.35),transparent_38%)]" />
-            <div className="absolute inset-0 bg-gradient-to-br from-[#24180f] via-[#24180f]/90 to-red-950" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.35),transparent_38%)] md:bg-[radial-gradient(circle_at_28%_18%,rgba(251,191,36,0.18),transparent_34%)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#24180f] via-[#24180f]/90 to-red-950 md:bg-gradient-to-br md:from-[#102f24]/35 md:via-[#123729]/20 md:to-[#0b241b]/45" />
 
             <div className="relative flex min-h-[320px] flex-col items-center justify-center md:min-h-[420px] p-6 md:p-10 text-center text-white">
               <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white p-3 shadow-lg md:shadow-2xl">
@@ -1242,7 +1234,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-red-700 py-14 md:py-20 text-white">
+      <section className="gdrb-premium-red bg-red-700 py-14 md:py-20 text-white">
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-5 md:px-4 md:flex-row md:items-center">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-200">
