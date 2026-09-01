@@ -402,6 +402,7 @@ export function HomePage() {
           .from('gdrb_tournaments')
           .select('*')
           .eq('is_visible', true)
+          .eq('is_archived', false)
           .order('start_date', { ascending: true })
           .order('sort_order', { ascending: true }),
 

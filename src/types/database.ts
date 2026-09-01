@@ -86,7 +86,9 @@ export type GdrbMatch = {
   home_score: number | null;
   away_score: number | null;
   notes: string | null;
+  tournament_type?: 'organized' | 'external' | null;
   is_visible: boolean;
+  is_archived?: boolean | null;
   sort_order: number;
   created_at: string;
   updated_at: string | null;
@@ -102,7 +104,9 @@ export type GdrbTournament = {
   location: string | null;
   website_url: string | null;
   notes: string | null;
+  tournament_type?: 'organized' | 'external' | null;
   is_visible: boolean;
+  is_archived?: boolean | null;
   sort_order: number;
   created_at: string;
   updated_at: string | null;
