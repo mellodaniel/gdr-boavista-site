@@ -27,8 +27,7 @@ const footballTypeOptions = [
 const statusFilterOptions = [
   { value: 'Todos', label: 'Todos' },
   { value: 'agenda', label: 'Agenda' },
-  { value: 'resultados', label: 'Resultados e histórico' },
-  { value: 'arquivados', label: 'Arquivados' },
+  { value: 'resultados', label: 'Resultados' },
 ];
 
 const venueFilterOptions = [
@@ -156,6 +155,7 @@ export function ResultsPage() {
           .from('gdrb_matches')
           .select('*')
           .eq('is_visible', true)
+          .neq('status', 'arquivado')
           .order('match_date', { ascending: true })
           .order('match_time', { ascending: true }),
 
@@ -208,8 +208,7 @@ export function ResultsPage() {
         statusFilter === 'Todos' ||
         (statusFilter === 'agenda' &&
           ['agendado', 'adiado', 'cancelado'].includes(match.status)) ||
-        (statusFilter === 'resultados' && match.status === 'terminado') ||
-        (statusFilter === 'arquivados' && match.status === 'arquivado');
+        (statusFilter === 'resultados' && match.status === 'terminado');
 
       return (
         matchesTeam &&
@@ -260,7 +259,7 @@ export function ResultsPage() {
 
   const resultMatches = useMemo(() => {
     return filteredMatches
-      .filter((match) => ['terminado', 'arquivado'].includes(match.status))
+      .filter((match) => match.status === 'terminado')
       .sort((a, b) =>
         `${b.match_date} ${b.match_time ?? '00:00'}`.localeCompare(
           `${a.match_date} ${a.match_time ?? '00:00'}`,
@@ -449,7 +448,7 @@ export function ResultsPage() {
           <div className="mt-6 flex flex-col justify-between gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:items-center">
             <p className="text-sm font-semibold text-zinc-500">
               {agendaMatches.length} jogo(s) na agenda · {filteredTournaments.length}{' '}
-              torneio(s) · {resultMatches.length} resultado(s)/arquivo
+              torneio(s) · {resultMatches.length} resultado(s)
             </p>
 
             <button
@@ -478,9 +477,6 @@ export function ResultsPage() {
                     Agenda
                   </h2>
                 </div>
-                <p className="max-w-xl text-sm leading-6 text-zinc-500">
-                  Jogos futuros ou ainda visíveis para consulta pública.
-                </p>
               </div>
 
               {agendaMatches.length === 0 ? (
@@ -587,9 +583,6 @@ export function ResultsPage() {
                     Torneios
                   </h2>
                 </div>
-                <p className="max-w-xl text-sm leading-6 text-zinc-500">
-                  Torneios visíveis dos escalões do GDR Boavista.
-                </p>
               </div>
 
               {filteredTournaments.length === 0 ? (
@@ -625,17 +618,9 @@ export function ResultsPage() {
                           </span>
                         </div>
 
-                        <p className="mt-6 text-sm font-black uppercase tracking-[0.24em] text-amber-200">
-                          Dia de competição
-                        </p>
-
-                        <h3 className="mt-2 font-serif text-4xl font-light leading-tight">
+                        <h3 className="mt-6 font-serif text-4xl font-light leading-tight">
                           {tournament.name}
                         </h3>
-
-                        <p className="mt-4 text-sm font-semibold leading-6 text-zinc-300">
-                          Vários jogos, uma só camisola.
-                        </p>
 
                         <div className="mt-6 grid gap-3 text-sm text-zinc-100">
                           <span className="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-3 font-semibold">
@@ -664,12 +649,9 @@ export function ResultsPage() {
                     Consulta
                   </p>
                   <h2 className="mt-3 font-serif text-5xl font-light text-[#24180f]">
-                    Resultados e histórico
+                    Resultados
                   </h2>
                 </div>
-                <p className="max-w-xl text-sm leading-6 text-zinc-500">
-                  Resultados inseridos e jogos arquivados ficam aqui para consulta por filtros.
-                </p>
               </div>
 
               {resultMatches.length === 0 ? (

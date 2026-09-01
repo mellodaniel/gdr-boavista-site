@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   ExternalLink,
   HeartHandshake,
@@ -384,6 +385,7 @@ export function HomePage() {
   const [news, setNews] = useState<GdrbNews[]>([]);
   const [sponsors, setSponsors] = useState<GdrbSponsor[]>([]);
   const [isLoadingAgenda, setIsLoadingAgenda] = useState(true);
+  const [expandedAgendaItemId, setExpandedAgendaItemId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadHomeData() {
@@ -720,133 +722,162 @@ export function HomePage() {
                 Sem jogos ou torneios nesta semana
               </h3>
 
-              <p className="mt-3 text-zinc-500">
-                Quando forem criados no admin, os jogos e torneios visíveis
-                aparecem automaticamente aqui.
-              </p>
             </div>
           ) : (
-            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {agendaItems.map((item) => {
+            <div className="mt-10 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+              {agendaItems.map((item, index) => {
+                const itemKey = `${item.type}-${item.id}`;
+                const isExpanded = expandedAgendaItemId === itemKey;
+
                 if (item.type === 'tournament') {
                   const tournament = item.data;
 
                   return (
                     <article
-                      key={`tournament-${item.id}`}
-                      className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                      key={itemKey}
+                      className={index === 0 ? '' : 'border-t border-zinc-100'}
                     >
-                      <div className="h-1.5 bg-red-700" />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedAgendaItemId(isExpanded ? null : itemKey)
+                        }
+                        className="flex w-full flex-col gap-4 p-5 text-left transition hover:bg-[#f6f2ec] lg:flex-row lg:items-center lg:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                              {tournament.team_name}
+                            </span>
 
-                      <div className="p-7">
-                        <div className="flex flex-wrap gap-2">
-                          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                            {tournament.team_name}
-                          </span>
+                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
+                              {tournament.football_type}
+                            </span>
 
-                          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                            {tournament.football_type}
-                          </span>
+                            <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">
+                              Torneio
+                            </span>
+                          </div>
 
-                          <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">
-                            Torneio
-                          </span>
+                          <h3 className="mt-3 font-serif text-2xl font-light leading-tight text-[#24180f] md:text-3xl">
+                            {tournament.name}
+                          </h3>
                         </div>
 
-                        <h3 className="mt-6 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                          {tournament.name}
-                        </h3>
-
-                        <div className="mt-5 grid gap-3 text-sm text-zinc-600">
-                          <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
+                        <div className="flex shrink-0 items-center gap-4 text-sm font-semibold text-zinc-600">
+                          <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3">
                             <CalendarDays size={16} className="text-red-700" />
                             {formatTournamentDate(tournament)}
                           </span>
 
-                          {tournament.location && (
-                            <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
-                              <MapPin size={16} className="text-red-700" />
-                              {tournament.location}
-                            </span>
-                          )}
+                          <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
+                            Detalhes
+                            <ChevronDown
+                              size={16}
+                              className={`transition ${isExpanded ? 'rotate-180' : ''}`}
+                            />
+                          </span>
                         </div>
-                      </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="border-t border-zinc-100 bg-[#fdfbf8] px-5 py-5">
+                          <div className="grid gap-3 text-sm text-zinc-600 md:grid-cols-2">
+                            <span className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-3 font-semibold shadow-sm">
+                              <CalendarDays size={16} className="text-red-700" />
+                              {formatTournamentDate(tournament)}
+                            </span>
+
+                            {tournament.location && (
+                              <span className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-3 font-semibold shadow-sm">
+                                <MapPin size={16} className="text-red-700" />
+                                {tournament.location}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </article>
                   );
                 }
 
                 const match = item.data;
+                const mainTitle = match.venue_type === 'fora' ? match.opponent : 'GDR Boavista';
+                const subTitle = match.venue_type === 'fora' ? 'vs GDR Boavista' : `vs ${match.opponent}`;
 
                 return (
                   <article
-                    key={`match-${item.id}`}
-                    className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                    key={itemKey}
+                    className={index === 0 ? '' : 'border-t border-zinc-100'}
                   >
-                    <div className="h-1.5 bg-red-700" />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedAgendaItemId(isExpanded ? null : itemKey)
+                      }
+                      className="flex w-full flex-col gap-4 p-5 text-left transition hover:bg-[#f6f2ec] lg:flex-row lg:items-center lg:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                            {match.team_name}
+                          </span>
 
-                    <div className="p-7">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                          {match.team_name}
-                        </span>
+                          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
+                            {match.football_type}
+                          </span>
 
-                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                          {match.football_type}
-                        </span>
+                          <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">
+                            {formatMatchStatus(match.status)}
+                          </span>
+                        </div>
 
-                        <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">
-                          {formatMatchStatus(match.status)}
-                        </span>
+                        <h3 className="mt-3 font-serif text-2xl font-light leading-tight text-[#24180f] md:text-3xl">
+                          {mainTitle}
+                        </h3>
+
+                        <p className="mt-1 text-sm font-black uppercase tracking-[0.18em] text-zinc-500">
+                          {subTitle}
+                        </p>
                       </div>
 
-                      {match.venue_type === 'fora' ? (
-                        <>
-                          <p className="mt-6 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
-                            {match.opponent}
-                          </p>
-
-                          <h3 className="mt-2 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                            vs GDR Boavista
-                          </h3>
-                        </>
-                      ) : (
-                        <>
-                          <h3 className="mt-6 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                            GDR Boavista
-                          </h3>
-
-                          <p className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-zinc-500">
-                            vs {match.opponent}
-                          </p>
-                        </>
-                      )}
-
-                      <p className="mt-4 text-sm font-semibold text-zinc-600">
-                        {match.competition}
-                      </p>
-
-                      <div className="mt-5 grid gap-3 text-sm text-zinc-600">
-                        <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
+                      <div className="flex shrink-0 items-center gap-4 text-sm font-semibold text-zinc-600">
+                        <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3">
                           <CalendarDays size={16} className="text-red-700" />
                           {formatDateShort(match.match_date)}
-                          {match.match_time
-                            ? ` | ${match.match_time.slice(0, 5)}`
-                            : ''}
+                          {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ''}
                         </span>
 
-                        <div className="flex flex-wrap gap-3">
-                          <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
+                        <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
+                          Detalhes
+                          <ChevronDown
+                            size={16}
+                            className={`transition ${isExpanded ? 'rotate-180' : ''}`}
+                          />
+                        </span>
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="border-t border-zinc-100 bg-[#fdfbf8] px-5 py-5">
+                        <p className="text-sm font-semibold text-zinc-600">
+                          {match.competition}
+                        </p>
+
+                        <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
+                          <span className="rounded-md bg-white px-4 py-3 font-semibold shadow-sm">
                             {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
                           </span>
 
                           {match.location && (
-                            <span className="rounded-md bg-[#f6f2ec] px-4 py-3 font-semibold">
+                            <span className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-3 font-semibold shadow-sm">
+                              <MapPin size={16} className="text-red-700" />
                               {match.location}
                             </span>
                           )}
                         </div>
                       </div>
-                    </div>
+                    )}
                   </article>
                 );
               })}
