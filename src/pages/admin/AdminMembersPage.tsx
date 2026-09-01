@@ -6,6 +6,7 @@ import {
   ChevronUp,
   Download,
   FileSpreadsheet,
+  Filter,
   Mail,
   Phone,
   RefreshCcw,
@@ -183,6 +184,7 @@ export function AdminMembersPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   async function loadRequests() {
     setIsLoading(true);
@@ -462,26 +464,26 @@ export function AdminMembersPage() {
         </div>
       </section>
 
-      <section className="mt-8 grid gap-4 md:grid-cols-5">
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="mt-6 grid grid-cols-2 gap-3 md:mt-8 md:grid-cols-5 md:gap-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-400">Todos</p>
-          <p className="mt-2 text-3xl font-black text-zinc-900">{requestCounts.total}</p>
+          <p className="mt-2 text-2xl font-black md:text-3xl text-zinc-900">{requestCounts.total}</p>
         </div>
-        <div className="rounded-sm border border-blue-200 bg-blue-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">Novos</p>
-          <p className="mt-2 text-3xl font-black text-blue-700">{requestCounts.novo}</p>
+          <p className="mt-2 text-2xl font-black md:text-3xl text-blue-700">{requestCounts.novo}</p>
         </div>
-        <div className="rounded-sm border border-amber-200 bg-amber-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">Em contacto</p>
-          <p className="mt-2 text-3xl font-black text-amber-700">{requestCounts.emContacto}</p>
+          <p className="mt-2 text-2xl font-black md:text-3xl text-amber-700">{requestCounts.emContacto}</p>
         </div>
-        <div className="rounded-sm border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Convertidos</p>
-          <p className="mt-2 text-3xl font-black text-emerald-700">{requestCounts.convertido}</p>
+          <p className="mt-2 text-2xl font-black md:text-3xl text-emerald-700">{requestCounts.convertido}</p>
         </div>
-        <div className="rounded-sm border border-zinc-200 bg-zinc-50 p-5 shadow-sm">
+        <div className="col-span-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm md:col-span-1 md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Arquivados</p>
-          <p className="mt-2 text-3xl font-black text-zinc-700">{requestCounts.arquivado}</p>
+          <p className="mt-2 text-2xl font-black md:text-3xl text-zinc-700">{requestCounts.arquivado}</p>
         </div>
       </section>
 
@@ -589,15 +591,27 @@ export function AdminMembersPage() {
         </div>
       )}
 
-      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:mt-8 md:rounded-sm md:p-5">
+        <button
+          type="button"
+          onClick={() => setShowMobileFilters((value) => !value)}
+          className="flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-800 md:hidden"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Filter size={16} />
+            Filtros e pesquisa
+          </span>
+          <ChevronDown size={16} className={`transition ${showMobileFilters ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className={`${showMobileFilters ? 'mt-4 flex' : 'hidden'} flex-col gap-4 md:flex xl:flex-row xl:items-center xl:justify-between`}>
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Pesquisar por nome, email, telefone, NIF ou observações..."
-              className="w-full rounded-md border border-zinc-200 py-3 pl-12 pr-4 text-sm font-semibold outline-none transition focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              className="w-full rounded-xl border border-zinc-200 py-3 pl-12 pr-4 text-sm font-semibold outline-none transition focus:border-red-700 focus:ring-4 focus:ring-red-100 md:rounded-md"
             />
           </div>
 
@@ -655,8 +669,85 @@ export function AdminMembersPage() {
           </p>
         </div>
       ) : (
-        <section className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+        <section className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm md:mt-8 md:rounded-sm">
+          <div className="divide-y divide-zinc-100 md:hidden">
+            {visibleRequests.map((request) => {
+              const isExpanded = expandedRequestId === request.id;
+
+              return (
+                <article key={request.id} className="bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-black text-zinc-900">{request.full_name}</p>
+                      <p className="mt-1 text-xs font-semibold text-zinc-400">{formatDate(request.created_at)}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${getStatusBadgeClass(request.status)}`}>
+                      {formatStatus(request.status)}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 space-y-2 text-sm">
+                    {request.email && (
+                      <a href={`mailto:${request.email}`} className="flex min-w-0 items-center gap-2 font-semibold text-red-700">
+                        <Mail size={15} className="shrink-0" />
+                        <span className="truncate">{request.email}</span>
+                      </a>
+                    )}
+                    {request.phone && (
+                      <a href={`tel:${request.phone}`} className="flex items-center gap-2 font-semibold text-zinc-700">
+                        <Phone size={15} className="shrink-0" />
+                        {request.phone}
+                      </a>
+                    )}
+                    {request.nif && <p className="text-xs font-semibold text-zinc-500">NIF: {request.nif}</p>}
+                  </div>
+
+                  {isExpanded && request.notes && (
+                    <div className="mt-4 rounded-xl bg-[#f6f2ec] p-4 text-sm leading-6 text-zinc-600">
+                      {request.notes}
+                    </div>
+                  )}
+
+                  <label className="mt-4 grid gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-zinc-500">
+                    Estado
+                    <select
+                      value={request.status}
+                      onChange={(event) => handleStatusChange(request.id, event.target.value)}
+                      className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-zinc-700 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                    >
+                      {statusOptions.map((status) => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {(request.notes || request.nif) ? (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedRequestId(isExpanded ? null : request.id)}
+                        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-3 text-xs font-black text-zinc-700"
+                      >
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        Detalhes
+                      </button>
+                    ) : <span />}
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(request.id, request.status === 'arquivado' ? 'novo' : 'arquivado')}
+                      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-3 py-3 text-xs font-black text-white ${request.status === 'arquivado' ? 'bg-red-700' : 'bg-zinc-900'}`}
+                    >
+                      {request.status === 'arquivado' ? 'Reativar' : 'Arquivar'}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-zinc-200">
               <thead className="bg-zinc-50">
                 <tr>

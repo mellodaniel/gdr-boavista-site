@@ -4,6 +4,7 @@ import {
   CheckCircle,
   ChevronDown,
   FileDown,
+  Filter,
   ImagePlus,
   Pencil,
   Plus,
@@ -370,6 +371,7 @@ export function AdminShopPage() {
   const [orderPageSize, setOrderPageSize] = useState<PageSize>(10);
   const [expandedOrderIds, setExpandedOrderIds] = useState<string[]>([]);
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -845,11 +847,11 @@ export function AdminShopPage() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-sm bg-[#24180f] p-8 text-white shadow-xl">
+      <div className="rounded-2xl bg-[#24180f] p-5 text-white shadow-xl md:rounded-sm md:p-8">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-300">Loja oficial</p>
-            <h1 className="mt-4 font-serif text-5xl font-light">Produtos e pedidos</h1>
+            <h1 className="mt-3 font-serif text-4xl font-light md:mt-4 md:text-5xl">Produtos e pedidos</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-300">
               Gere os produtos da loja do GDR Boavista, carrega fotografias, define preços e acompanha os pedidos recebidos pelo site.
             </p>
@@ -866,22 +868,22 @@ export function AdminShopPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-500">Produtos</p>
-          <p className="mt-3 text-3xl font-black text-[#24180f]">{products.length}</p>
+          <p className="mt-2 text-2xl font-black text-[#24180f] md:mt-3 md:text-3xl">{products.length}</p>
         </div>
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-500">Ativos</p>
-          <p className="mt-3 text-3xl font-black text-[#24180f]">{products.filter((product) => product.is_active).length}</p>
+          <p className="mt-2 text-2xl font-black text-[#24180f] md:mt-3 md:text-3xl">{products.filter((product) => product.is_active).length}</p>
         </div>
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-500">Pedidos ativos</p>
-          <p className="mt-3 text-3xl font-black text-[#24180f]">{orderSummary.active}</p>
+          <p className="mt-2 text-2xl font-black text-[#24180f] md:mt-3 md:text-3xl">{orderSummary.active}</p>
         </div>
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:rounded-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-500">Entregues</p>
-          <p className="mt-3 text-3xl font-black text-[#24180f]">{orderSummary.delivered}</p>
+          <p className="mt-2 text-2xl font-black text-[#24180f] md:mt-3 md:text-3xl">{orderSummary.delivered}</p>
         </div>
       </div>
 
@@ -1188,7 +1190,7 @@ export function AdminShopPage() {
         </form>
 
         <div className="space-y-5">
-          <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:rounded-sm md:p-5">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex rounded-md bg-zinc-100 p-1">
@@ -1208,8 +1210,20 @@ export function AdminShopPage() {
                   </button>
                 </div>
 
+                <button
+                  type="button"
+                  onClick={() => setShowMobileFilters((value) => !value)}
+                  className="flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-800 md:hidden"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Filter size={16} />
+                    Filtros e pesquisa
+                  </span>
+                  <ChevronDown size={16} className={`transition ${showMobileFilters ? 'rotate-180' : ''}`} />
+                </button>
+
                 {activeTab === 'products' && (
-                  <div className="grid min-w-0 flex-1 gap-3 lg:max-w-3xl lg:grid-cols-[minmax(260px,1fr)_220px_170px]">
+                  <div className={`${showMobileFilters ? 'grid' : 'hidden'} min-w-0 flex-1 gap-3 md:grid lg:max-w-3xl lg:grid-cols-[minmax(260px,1fr)_220px_170px]`}>
                     <div className="relative min-w-0">
                       <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                       <input
@@ -1249,7 +1263,7 @@ export function AdminShopPage() {
               </div>
 
               {activeTab === 'orders' && (
-                <div className="border-t border-zinc-100 pt-4">
+                <div className={`${showMobileFilters ? 'block' : 'hidden'} border-t border-zinc-100 pt-4 md:block`}>
                   <div className="grid gap-4">
                     <label className="grid gap-2 text-sm font-bold text-zinc-700">
                       Pesquisar pedidos
@@ -1334,9 +1348,9 @@ export function AdminShopPage() {
           ) : activeTab === 'products' ? (
             <div className="grid gap-4 xl:grid-cols-2">
               {paginatedProducts.map((product) => (
-                <article key={product.id} className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-                  <div className="flex flex-col gap-5 md:flex-row">
-                    <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-[#24180f] p-3">
+                <article key={product.id} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:rounded-sm md:p-5">
+                  <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-3 md:flex md:gap-5">
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#24180f] p-2 md:h-28 md:w-28 md:rounded-sm md:p-3">
                       {(product.image_urls?.[0] ?? product.image_url) ? (
                         <img src={product.image_urls?.[0] ?? product.image_url ?? ''} alt={product.name} className="h-full w-full object-contain" />
                       ) : (
@@ -1357,18 +1371,18 @@ export function AdminShopPage() {
                         </span>
                       </div>
 
-                      <h3 className="mt-3 text-xl font-black text-[#24180f]">{product.name}</h3>
-                      <p className="mt-2 text-sm leading-6 text-zinc-600">{product.description}</p>
-                      <p className="mt-3 text-sm font-black text-red-700">{formatCurrency(product.price, product.price_label)}</p>
+                      <h3 className="mt-2 text-base font-black leading-tight text-[#24180f] md:mt-3 md:text-xl">{product.name}</h3>
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-600 md:line-clamp-none md:text-sm md:leading-6">{product.description}</p>
+                      <p className="mt-2 text-sm font-black text-red-700 md:mt-3">{formatCurrency(product.price, product.price_label)}</p>
                       <p className="mt-2 text-xs font-bold text-zinc-500">Tamanhos: {product.sizes?.join(', ') || 'Único'}</p>
                       <p className="mt-1 text-xs font-bold text-zinc-500">Media: {(product.image_urls?.length ?? (product.image_url ? 1 : 0))} imagem(ns) · {(product.video_urls?.length ?? 0)} vídeo(s)</p>
                     </div>
 
-                    <div className="flex flex-row gap-2 md:flex-col">
+                    <div className="col-span-2 grid grid-cols-3 gap-2 md:flex md:flex-col">
                       <button
                         type="button"
                         onClick={() => editProduct(product)}
-                        className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-black uppercase tracking-wide text-zinc-700 hover:border-red-700 hover:text-red-700"
+                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-zinc-200 px-2 py-2 text-[10px] font-black uppercase tracking-wide text-zinc-700 hover:border-red-700 hover:text-red-700 md:min-h-0 md:gap-2 md:rounded-md md:px-3 md:text-xs"
                       >
                         <Pencil size={15} />
                         Editar
@@ -1376,7 +1390,7 @@ export function AdminShopPage() {
                       <button
                         type="button"
                         onClick={() => toggleProductActive(product)}
-                        className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-black uppercase tracking-wide text-zinc-700 hover:border-red-700 hover:text-red-700"
+                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-zinc-200 px-2 py-2 text-[10px] font-black uppercase tracking-wide text-zinc-700 hover:border-red-700 hover:text-red-700 md:min-h-0 md:gap-2 md:rounded-md md:px-3 md:text-xs"
                       >
                         <CheckCircle size={15} />
                         {product.is_active ? 'Desativar' : 'Ativar'}
@@ -1384,7 +1398,7 @@ export function AdminShopPage() {
                       <button
                         type="button"
                         onClick={() => deleteProduct(product)}
-                        className="inline-flex items-center justify-center gap-2 rounded-md border border-red-200 px-3 py-2 text-xs font-black uppercase tracking-wide text-red-700 hover:bg-red-700 hover:text-white"
+                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-red-200 px-2 py-2 text-[10px] font-black uppercase tracking-wide text-red-700 hover:bg-red-700 hover:text-white md:min-h-0 md:gap-2 md:rounded-md md:px-3 md:text-xs"
                       >
                         <Trash2 size={15} />
                         Eliminar
@@ -1422,8 +1436,8 @@ export function AdminShopPage() {
                 const isExpanded = expandedOrderIds.includes(order.id);
 
                 return (
-                  <article key={order.id} className={`overflow-hidden rounded-sm border bg-white shadow-sm ${isReadOnly ? 'border-zinc-200 opacity-90' : 'border-zinc-200'}`}>
-                    <div className="border-b border-zinc-100 bg-zinc-50 px-5 py-4">
+                  <article key={order.id} className={`overflow-hidden rounded-2xl border bg-white shadow-sm md:rounded-sm ${isReadOnly ? 'border-zinc-200 opacity-90' : 'border-zinc-200'}`}>
+                    <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-4 md:px-5">
                       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -1444,7 +1458,7 @@ export function AdminShopPage() {
                           </div>
 
                           <div className="mt-3 flex flex-col gap-1 md:flex-row md:items-center md:gap-3">
-                            <h3 className="text-xl font-black text-[#24180f]">
+                            <h3 className="text-base font-black text-[#24180f] md:text-xl">
                               {orderItems.length} produto{orderItems.length === 1 ? '' : 's'} no pedido
                             </h3>
                             <span className="hidden text-zinc-300 md:inline">•</span>
@@ -1458,7 +1472,7 @@ export function AdminShopPage() {
                           <button
                             type="button"
                             onClick={() => toggleOrderDetails(order.id)}
-                            className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700 transition hover:border-red-700 hover:text-red-700"
+                            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700 transition hover:border-red-700 hover:text-red-700 md:rounded-md"
                           >
                             {isExpanded ? 'Recolher detalhes' : 'Ver detalhes'}
                             <ChevronDown size={16} className={`transition ${isExpanded ? 'rotate-180' : ''}`} />
@@ -1492,7 +1506,7 @@ export function AdminShopPage() {
                     </div>
 
                     {!isExpanded && (
-                      <div className="grid gap-4 p-5 xl:grid-cols-[1fr_220px]">
+                      <div className="grid gap-3 p-4 md:gap-4 md:p-5 xl:grid-cols-[1fr_220px]">
                         <div className="grid gap-3 md:grid-cols-3">
                           <div className="rounded-sm border border-zinc-100 bg-white p-4">
                             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Cliente</p>
@@ -1526,7 +1540,7 @@ export function AdminShopPage() {
                     )}
 
                     {isExpanded && (
-                      <div className="grid gap-5 p-5 xl:grid-cols-[1fr_220px]">
+                      <div className="grid gap-4 p-4 md:gap-5 md:p-5 xl:grid-cols-[1fr_220px]">
                         <div className="min-w-0">
                           <div className="grid gap-3 rounded-sm border border-zinc-100 bg-white p-4 sm:grid-cols-2">
                             <div>
