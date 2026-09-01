@@ -31,6 +31,7 @@ import { AdminFacebookPostsPage } from '../pages/admin/AdminFacebookPostsPage';
 import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
 import { AdminSeniorRosterPage } from '../pages/admin/AdminSeniorRosterPage';
 import { AdminSponsorsPage } from '../pages/admin/AdminSponsorsPage';
+import { AdminGalleryPage } from '../pages/admin/AdminGalleryPage';
 import { AdminContentsPage } from '../pages/admin/AdminContentsPage';
 import { AdminMatchesPage } from '../pages/admin/AdminMatchesPage';
 import { AdminTournamentsPage } from '../pages/admin/AdminTournamentsPage';
@@ -49,20 +50,6 @@ import TournamentManagerRulesPage from '../pages/admin/TournamentManagerRulesPag
 import TournamentManagerMatchesPage from '../pages/admin/TournamentManagerMatchesPage';
 import TournamentManagerSponsorsPage from '../pages/admin/TournamentManagerSponsorsPage';
 import PublicTournamentPage from '../pages/PublicTournamentPage';
-
-function AdminPlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
-      <h1 className="font-serif text-4xl font-light text-[#24180f]">
-        {title}
-      </h1>
-
-      <p className="mt-3 text-sm leading-7 text-zinc-500">
-        Esta área ainda está em preparação.
-      </p>
-    </div>
-  );
-}
 
 export function AppRoutes() {
   return (
@@ -116,10 +103,7 @@ export function AppRoutes() {
           <Route path="contactos" element={<AdminContactsPage />} />
           <Route path="subscritores" element={<AdminSubscribersPage />} />
           <Route path="comunicacoes" element={<AdminCommunicationsPage />} />
-          <Route
-            path="galeria"
-            element={<AdminPlaceholderPage title="Galeria" />}
-          />
+          <Route path="galeria" element={<AdminGalleryPage />} />
           <Route path="loja" element={<AdminShopPage />} />
         </Route>
       </Route>
