@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   CalendarDays,
-  ClipboardList,
   LineChart,
   FileText,
   Image,
@@ -32,7 +31,6 @@ const fullAdminNavigation: AdminNavigationItem[] = [
   { label: 'Facebook', path: '/admin/facebook', icon: MessageCircle },
   { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
   { label: 'Plantel Sénior', path: '/admin/equipas/seniores/plantel', icon: Users },
-  { label: 'Jogo Sénior', path: '/app/jogo', icon: ClipboardList },
   { label: 'Jogos / Agenda', path: '/admin/jogos', icon: CalendarDays },
   { label: 'Torneios', path: '/admin/torneios', icon: Trophy },
   { label: 'Gestão de Torneios Boavista', path: '/admin/gestor-torneios', icon: CalendarDays },
