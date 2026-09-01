@@ -4,7 +4,6 @@ import {
   BarChart3,
   CalendarDays,
   LineChart,
-  FileText,
   Image,
   LogOut,
   Mail,
@@ -26,7 +25,6 @@ type AdminNavigationItem = {
 const fullAdminNavigation: AdminNavigationItem[] = [
   { label: 'Dashboard', path: '/admin', icon: BarChart3 },
   { label: 'Analytics', path: '/admin/analytics', icon: LineChart },
-  { label: 'Conteúdos', path: '/admin/conteudos', icon: FileText },
   { label: 'Notícias', path: '/admin/noticias', icon: Newspaper },
   { label: 'Facebook', path: '/admin/facebook', icon: MessageCircle },
   { label: 'Equipas', path: '/admin/equipas', icon: Trophy },

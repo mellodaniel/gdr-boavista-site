@@ -32,7 +32,6 @@ import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
 import { AdminSeniorRosterPage } from '../pages/admin/AdminSeniorRosterPage';
 import { AdminSponsorsPage } from '../pages/admin/AdminSponsorsPage';
 import { AdminGalleryPage } from '../pages/admin/AdminGalleryPage';
-import { AdminContentsPage } from '../pages/admin/AdminContentsPage';
 import { AdminMatchesPage } from '../pages/admin/AdminMatchesPage';
 import { AdminTournamentsPage } from '../pages/admin/AdminTournamentsPage';
 import { AdminAnalyticsPage } from '../pages/admin/AdminAnalyticsPage';
@@ -79,7 +78,6 @@ export function AppRoutes() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
           <Route path="analytics" element={<AdminAnalyticsPage />} />
-          <Route path="conteudos" element={<AdminContentsPage />} />
           <Route path="noticias" element={<AdminNewsPage />} />
           <Route path="facebook" element={<AdminFacebookPostsPage />} />
           <Route path="equipas" element={<AdminTeamsPage />} />
