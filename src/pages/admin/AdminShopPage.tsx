@@ -164,7 +164,16 @@ const deliveryMethodLabels: Record<ShopOrder['delivery_method'], string> = {
 };
 
 
+type ProductFilter = 'active' | 'all' | 'inactive' | 'featured';
 type OrderFilter = 'active' | 'all' | OrderStatus;
+type PageSize = 10 | 25 | 50;
+
+const productFilterLabels: Record<ProductFilter, string> = {
+  active: 'Produtos ativos',
+  all: 'Todos os produtos',
+  inactive: 'Inativos / consulta',
+  featured: 'Destaques',
+};
 
 const orderFilterLabels: Record<OrderFilter, string> = {
   active: 'Pedidos ativos',
@@ -277,6 +286,70 @@ function downloadBlob(content: string, filename: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
+function PaginationControls({
+  page,
+  pageSize,
+  totalItems,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  page: number;
+  pageSize: PageSize;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: PageSize) => void;
+}) {
+  if (totalItems === 0) return null;
+
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(page, 1), pageCount);
+  const start = (safePage - 1) * pageSize + 1;
+  const end = Math.min(safePage * pageSize, totalItems);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-sm border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+      <span>
+        A mostrar <strong className="text-[#24180f]">{start}-{end}</strong> de{' '}
+        <strong className="text-[#24180f]">{totalItems}</strong>
+      </span>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={pageSize}
+          onChange={(event) => onPageSizeChange(Number(event.target.value) as PageSize)}
+          className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-xs font-black uppercase tracking-wide text-zinc-700 outline-none focus:border-red-700"
+        >
+          <option value={10}>10 por página</option>
+          <option value={25}>25 por página</option>
+          <option value={50}>50 por página</option>
+        </select>
+
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, safePage - 1))}
+          disabled={safePage === 1}
+          className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-xs font-black uppercase tracking-wide text-zinc-700 transition hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Anterior
+        </button>
+
+        <span className="px-2 text-xs font-black uppercase tracking-wide text-zinc-500">
+          {safePage}/{pageCount}
+        </span>
+
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(pageCount, safePage + 1))}
+          disabled={safePage === pageCount}
+          className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-xs font-black uppercase tracking-wide text-zinc-700 transition hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Seguinte
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function getPublicImageUrl(path: string) {
   const { data } = supabase.storage.from('gdrb-shop-products').getPublicUrl(path);
   return data.publicUrl;
@@ -289,7 +362,12 @@ export function AdminShopPage() {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
   const [searchTerm, setSearchTerm] = useState('');
+  const [productStatusFilter, setProductStatusFilter] = useState<ProductFilter>('active');
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderFilter>('active');
+  const [productPage, setProductPage] = useState(1);
+  const [orderPage, setOrderPage] = useState(1);
+  const [productPageSize, setProductPageSize] = useState<PageSize>(10);
+  const [orderPageSize, setOrderPageSize] = useState<PageSize>(10);
   const [expandedOrderIds, setExpandedOrderIds] = useState<string[]>([]);
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -301,6 +379,19 @@ export function AdminShopPage() {
   useEffect(() => {
     loadShopData();
   }, []);
+
+  useEffect(() => {
+    setProductPage(1);
+    setOrderPage(1);
+  }, [searchTerm, productStatusFilter, orderStatusFilter, activeTab]);
+
+  useEffect(() => {
+    setProductPage(1);
+  }, [productPageSize]);
+
+  useEffect(() => {
+    setOrderPage(1);
+  }, [orderPageSize]);
 
   async function loadShopData() {
     setIsLoading(true);
@@ -336,15 +427,26 @@ export function AdminShopPage() {
 
   const filteredProducts = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
-    if (!normalized) return products;
 
     return products.filter((product) => {
-      return [product.name, product.category, product.description ?? '', product.badge ?? '']
+      const matchesStatus =
+        productStatusFilter === 'all'
+          ? true
+          : productStatusFilter === 'active'
+            ? product.is_active
+            : productStatusFilter === 'inactive'
+              ? !product.is_active
+              : product.is_featured;
+
+      if (!matchesStatus) return false;
+      if (!normalized) return true;
+
+      return [product.name, product.category, product.description ?? '', product.badge ?? '', stockStatusLabels[product.stock_status]]
         .join(' ')
         .toLowerCase()
         .includes(normalized);
     });
-  }, [products, searchTerm]);
+  }, [products, searchTerm, productStatusFilter]);
 
   const filteredOrders = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -389,6 +491,16 @@ export function AdminShopPage() {
       waitingPayment: orders.filter((order) => order.status === 'aguardar_pagamento').length,
     };
   }, [orders]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (productPage - 1) * productPageSize;
+    return filteredProducts.slice(start, start + productPageSize);
+  }, [filteredProducts, productPage, productPageSize]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (orderPage - 1) * orderPageSize;
+    return filteredOrders.slice(start, start + orderPageSize);
+  }, [filteredOrders, orderPage, orderPageSize]);
 
   function buildOrderExportRows(sourceOrders: ShopOrder[]) {
     return sourceOrders.map((order) => {
@@ -1097,14 +1209,41 @@ export function AdminShopPage() {
                 </div>
 
                 {activeTab === 'products' && (
-                  <div className="relative min-w-0 flex-1 lg:max-w-sm">
-                    <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <input
-                      value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      className="w-full rounded-md border border-zinc-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-red-700"
-                      placeholder="Pesquisar produtos..."
-                    />
+                  <div className="grid min-w-0 flex-1 gap-3 lg:max-w-3xl lg:grid-cols-[minmax(260px,1fr)_220px_170px]">
+                    <div className="relative min-w-0">
+                      <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        className="h-[46px] w-full rounded-md border border-zinc-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-red-700"
+                        placeholder="Pesquisar produtos..."
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <select
+                        value={productStatusFilter}
+                        onChange={(event) => setProductStatusFilter(event.target.value as ProductFilter)}
+                        className="h-[46px] w-full appearance-none rounded-md border border-zinc-200 bg-white px-4 pr-10 text-sm font-bold outline-none transition focus:border-red-700"
+                      >
+                        {(Object.keys(productFilterLabels) as ProductFilter[]).map((filter) => (
+                          <option key={filter} value={filter}>
+                            {productFilterLabels[filter]}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    </div>
+
+                    <select
+                      value={productPageSize}
+                      onChange={(event) => setProductPageSize(Number(event.target.value) as PageSize)}
+                      className="h-[46px] rounded-md border border-zinc-200 bg-white px-4 text-sm font-bold outline-none transition focus:border-red-700"
+                    >
+                      <option value={10}>10 por página</option>
+                      <option value={25}>25 por página</option>
+                      <option value={50}>50 por página</option>
+                    </select>
                   </div>
                 )}
               </div>
@@ -1125,7 +1264,7 @@ export function AdminShopPage() {
                       </div>
                     </label>
 
-                    <div className="grid gap-3 lg:grid-cols-[260px_1fr] lg:items-end">
+                    <div className="grid gap-3 lg:grid-cols-[260px_180px_1fr] lg:items-end">
                       <label className="grid gap-2 text-sm font-bold text-zinc-700">
                         Estado do pedido
                         <div className="relative">
@@ -1142,6 +1281,19 @@ export function AdminShopPage() {
                           </select>
                           <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                         </div>
+                      </label>
+
+                      <label className="grid gap-2 text-sm font-bold text-zinc-700">
+                        Página
+                        <select
+                          value={orderPageSize}
+                          onChange={(event) => setOrderPageSize(Number(event.target.value) as PageSize)}
+                          className="h-[46px] rounded-md border border-zinc-200 bg-white px-4 text-sm font-bold outline-none transition focus:border-red-700"
+                        >
+                          <option value={10}>10 por página</option>
+                          <option value={25}>25 por página</option>
+                          <option value={50}>50 por página</option>
+                        </select>
                       </label>
 
                       <div className="flex flex-wrap gap-2 lg:justify-end">
@@ -1181,7 +1333,7 @@ export function AdminShopPage() {
             </div>
           ) : activeTab === 'products' ? (
             <div className="grid gap-4 xl:grid-cols-2">
-              {filteredProducts.map((product) => (
+              {paginatedProducts.map((product) => (
                 <article key={product.id} className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
                   <div className="flex flex-col gap-5 md:flex-row">
                     <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-[#24180f] p-3">
@@ -1247,14 +1399,22 @@ export function AdminShopPage() {
                   Nenhum produto encontrado.
                 </div>
               )}
+
+              <PaginationControls
+                page={productPage}
+                pageSize={productPageSize}
+                totalItems={filteredProducts.length}
+                onPageChange={setProductPage}
+                onPageSizeChange={setProductPageSize}
+              />
             </div>
           ) : (
             <div className="grid gap-4">
               <div className="rounded-sm border border-zinc-200 bg-white p-4 text-sm font-semibold text-zinc-600 shadow-sm">
-                A mostrar <span className="font-black text-[#24180f]">{filteredOrders.length}</span> pedido(s). Os pedidos entregues saem da lista ativa e ficam disponíveis apenas em <strong>Entregues / consulta</strong> ou <strong>Todos os pedidos</strong>.
+                A mostrar <span className="font-black text-[#24180f]">{filteredOrders.length}</span> pedido(s) filtrado(s). Os pedidos entregues saem da lista ativa e ficam disponíveis apenas em <strong>Entregues / consulta</strong> ou <strong>Todos os pedidos</strong>.
               </div>
 
-              {filteredOrders.map((order) => {
+              {paginatedOrders.map((order) => {
                 const orderItems = getOrderItems(order);
                 const memberNumber = getOrderMemberNumber(order);
                 const isReadOnly = order.status === 'entregue';
@@ -1446,6 +1606,14 @@ export function AdminShopPage() {
                   Nenhum pedido encontrado.
                 </div>
               )}
+
+              <PaginationControls
+                page={orderPage}
+                pageSize={orderPageSize}
+                totalItems={filteredOrders.length}
+                onPageChange={setOrderPage}
+                onPageSizeChange={setOrderPageSize}
+              />
             </div>
           )}
         </div>
