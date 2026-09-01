@@ -819,7 +819,7 @@ export function ShopPage() {
         <button
           type="button"
           onClick={() => setIsCartOpen(true)}
-          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-3 rounded-full bg-[#b83336] px-5 py-4 text-sm font-black uppercase tracking-wide text-white shadow-lg md:shadow-2xl shadow-red-950/30 transition hover:bg-[#2f261e]"
+          className="fixed bottom-24 right-5 z-40 inline-flex items-center gap-3 rounded-full md:bottom-5 bg-[#b83336] px-5 py-4 text-sm font-black uppercase tracking-wide text-white shadow-lg md:shadow-2xl shadow-red-950/30 transition hover:bg-[#2f261e]"
         >
           <ShoppingCart size={20} />
           Carrinho · {cartItemsCount}
