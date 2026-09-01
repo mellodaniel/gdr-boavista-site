@@ -385,70 +385,8 @@ export function AdminLayout() {
         </div>
       </aside>
 
-      <div className="lg:pl-80">
-        <header className="sticky top-0 z-30 border-b border-zinc-200 bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:h-20 lg:px-8">
-            <div className="flex items-center gap-3 lg:hidden">
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#24180f] text-white shadow-sm transition active:scale-95"
-                aria-label="Abrir menu de administração"
-              >
-                <Menu size={21} />
-              </button>
-
-              <Link to={homePath} className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
-                  <img
-                    src="/logo-gdr-boavista-header-256.png"
-                    alt="GDR Boavista"
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-
-                <div>
-                  <p className="text-sm font-black uppercase leading-none text-[#24180f]">
-                    GDR Boavista
-                  </p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-700">
-                    Admin
-                  </p>
-                </div>
-              </Link>
-            </div>
-
-            <div className="hidden lg:block">
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-700">
-                Administração
-              </p>
-
-              <p className="mt-1 font-serif text-3xl font-light text-[#24180f]">
-                {isResultsUser ? 'Lançamento de Resultados' : isTournamentManager ? 'Gestão de Torneios' : 'Gestão do site'}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                to="/"
-                className="hidden rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 transition hover:border-red-700 hover:text-red-700 md:inline-flex"
-              >
-                Site público
-              </Link>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-red-700 px-3 text-sm font-bold text-white transition hover:bg-[#24180f] lg:px-4"
-              >
-                <LogOut size={16} />
-                <span className="hidden sm:inline">Sair</span>
-              </button>
-            </div>
-          </div>
-
-          {isMobileMenuOpen && (
-            <div className="fixed inset-0 z-50 lg:hidden">
+      {isMobileMenuOpen && (
+            <div className="fixed inset-0 z-[100] lg:hidden">
               <button
                 type="button"
                 aria-label="Fechar menu"
@@ -456,7 +394,7 @@ export function AdminLayout() {
                 onClick={() => setIsMobileMenuOpen(false)}
               />
 
-              <div className="absolute inset-y-0 left-0 flex w-[88vw] max-w-sm flex-col bg-[#24180f] text-white shadow-2xl">
+              <div className="absolute inset-y-0 left-0 flex h-dvh w-[88vw] max-w-sm flex-col bg-[#24180f] text-white shadow-2xl">
                 <div className="flex items-center justify-between border-b border-white/10 p-5">
                   <Link to={homePath} className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-2">
@@ -620,7 +558,71 @@ export function AdminLayout() {
                 </div>
               </div>
             </div>
-          )}       </header>
+          )}
+
+      <div className="lg:pl-80">
+        <header className="sticky top-0 z-30 border-b border-zinc-200 bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:h-20 lg:px-8">
+            <div className="flex items-center gap-3 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#24180f] text-white shadow-sm transition active:scale-95"
+                aria-label="Abrir menu de administração"
+              >
+                <Menu size={21} />
+              </button>
+
+              <Link to={homePath} className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
+                  <img
+                    src="/logo-gdr-boavista-header-256.png"
+                    alt="GDR Boavista"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-black uppercase leading-none text-[#24180f]">
+                    GDR Boavista
+                  </p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-700">
+                    Admin
+                  </p>
+                </div>
+              </Link>
+            </div>
+
+            <div className="hidden lg:block">
+              <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-700">
+                Administração
+              </p>
+
+              <p className="mt-1 font-serif text-3xl font-light text-[#24180f]">
+                {isResultsUser ? 'Lançamento de Resultados' : isTournamentManager ? 'Gestão de Torneios' : 'Gestão do site'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link
+                to="/"
+                className="hidden rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 transition hover:border-red-700 hover:text-red-700 md:inline-flex"
+              >
+                Site público
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-red-700 px-3 text-sm font-bold text-white transition hover:bg-[#24180f] lg:px-4"
+              >
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Sair</span>
+              </button>
+            </div>
+          </div>
+
+        </header>
 
         <main className="mx-auto max-w-7xl px-3 py-5 sm:px-4 lg:px-8 lg:py-10">
           <Outlet />
