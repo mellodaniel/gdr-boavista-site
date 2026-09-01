@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import {
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   Eye,
   EyeOff,
@@ -9,6 +11,7 @@ import {
   Plus,
   RefreshCcw,
   Save,
+  Search,
   ThumbsUp,
   Trash2,
   Upload,
@@ -40,6 +43,10 @@ const initialForm = {
 
 const FACEBOOK_STORAGE_BUCKET = 'gdrb-facebook-posts';
 
+type VisibilityFilter = 'active' | 'archived';
+
+type PageSize = 10 | 25 | 50;
+
 function formatDate(date: string | null) {
   if (!date) {
     return 'Sem data';
@@ -67,9 +74,24 @@ function normalizeDatetimeForInput(value: string | null) {
   return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
 }
 
+function getStatusLabel(post: GdrbFacebookPost) {
+  return post.is_active ? 'Ativa' : 'Arquivada';
+}
+
+function getStatusClass(post: GdrbFacebookPost) {
+  return post.is_active
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : 'border-zinc-200 bg-zinc-100 text-zinc-700';
+}
+
 export function AdminFacebookPostsPage() {
   const [posts, setPosts] = useState<GdrbFacebookPost[]>([]);
-  const [activeVisibilityFilter, setActiveVisibilityFilter] = useState<'active' | 'archived'>('active');
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>('active');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -118,6 +140,10 @@ export function AdminFacebookPostsPage() {
     };
   }, [imagePreview]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+    setExpandedPostId(null);
+  }, [searchTerm, visibilityFilter, pageSize]);
 
   function setPreviewUrl(nextPreview: string) {
     setImagePreview((currentPreview) => {
@@ -319,12 +345,16 @@ export function AdminFacebookPostsPage() {
       return;
     }
 
+    if (post.is_active && visibilityFilter === 'active') {
+      setExpandedPostId(null);
+    }
+
     await loadPosts();
   }
 
   async function handleDelete(post: GdrbFacebookPost) {
     const confirmDelete = window.confirm(
-      `Tens a certeza que queres apagar a publicação "${post.title}"?`,
+      `Tens a certeza que queres apagar definitivamente a publicação "${post.title}"? Esta ação não pode ser desfeita.`,
     );
 
     if (!confirmDelete) {
@@ -347,23 +377,36 @@ export function AdminFacebookPostsPage() {
 
   const activePosts = posts.filter((post) => post.is_active);
   const archivedPosts = posts.filter((post) => !post.is_active);
-  const filteredPosts =
-    activeVisibilityFilter === 'active' ? activePosts : archivedPosts;
 
-  const visibilityTabs = [
-    {
-      value: 'active' as const,
-      label: 'Ativas',
-      count: activePosts.length,
-      description: 'Aparecem na homepage na secção Boavista no Facebook.',
-    },
-    {
-      value: 'archived' as const,
-      label: 'Arquivadas',
-      count: archivedPosts.length,
-      description: 'Ficam guardadas apenas no admin para consulta.',
-    },
-  ];
+  const filteredPosts = useMemo(() => {
+    const basePosts = visibilityFilter === 'active' ? activePosts : archivedPosts;
+    const term = searchTerm.trim().toLowerCase();
+
+    if (!term) {
+      return basePosts;
+    }
+
+    return basePosts.filter((post) => {
+      return (
+        post.title.toLowerCase().includes(term) ||
+        post.description?.toLowerCase().includes(term) ||
+        post.facebook_url.toLowerCase().includes(term) ||
+        formatDate(post.published_at).toLowerCase().includes(term)
+      );
+    });
+  }, [activePosts, archivedPosts, searchTerm, visibilityFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / pageSize));
+  const normalizedPage = Math.min(currentPage, totalPages);
+  const startIndex = (normalizedPage - 1) * pageSize;
+  const paginatedPosts = filteredPosts.slice(startIndex, startIndex + pageSize);
+
+  const resultStart = filteredPosts.length === 0 ? 0 : startIndex + 1;
+  const resultEnd = Math.min(startIndex + pageSize, filteredPosts.length);
+
+  function changePage(nextPage: number) {
+    setCurrentPage(Math.min(Math.max(1, nextPage), totalPages));
+  }
 
   return (
     <div>
@@ -381,9 +424,7 @@ export function AdminFacebookPostsPage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
-              Adiciona publicações do Facebook ao site sem depender de API ou
-              iframe. Cola o link da publicação, faz upload da imagem e controla o
-              que aparece na página principal.
+              Gere as publicações do Facebook que aparecem no site. Publicações arquivadas ficam guardadas apenas para consulta no admin.
             </p>
           </div>
 
@@ -423,10 +464,7 @@ export function AdminFacebookPostsPage() {
             </h2>
 
             <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">
-              O Facebook continua a ser a fonte de verdade. No admin apenas
-              selecionas as publicações que devem aparecer no site. A homepage
-              mostra no máximo as 6 publicações ativas, respeitando a ordem
-              definida aqui.
+              A homepage mostra no máximo as 6 publicações ativas, respeitando a ordem definida aqui. Publicações arquivadas deixam de aparecer no site e ficam disponíveis apenas no filtro “Arquivadas”.
             </p>
           </div>
 
@@ -439,33 +477,6 @@ export function AdminFacebookPostsPage() {
             Página oficial
             <ExternalLink size={16} />
           </a>
-        </div>
-      </section>
-
-      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-4 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-2">
-          {visibilityTabs.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setActiveVisibilityFilter(tab.value)}
-              className={`rounded-md border px-4 py-4 text-left transition ${
-                activeVisibilityFilter === tab.value
-                  ? 'border-red-700 bg-red-50 ring-4 ring-red-100'
-                  : 'border-zinc-200 bg-white hover:border-red-200 hover:bg-red-50'
-              }`}
-            >
-              <span className="block text-xs font-black uppercase tracking-[0.22em] text-red-700">
-                {tab.label}
-              </span>
-              <span className="mt-2 block text-3xl font-black text-zinc-950">
-                {tab.count}
-              </span>
-              <span className="mt-2 block text-xs leading-5 text-zinc-500">
-                {tab.description}
-              </span>
-            </button>
-          ))}
         </div>
       </section>
 
@@ -707,11 +718,58 @@ export function AdminFacebookPostsPage() {
         </form>
       )}
 
+      <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-red-700">
+              Lista
+            </p>
+            <h2 className="mt-2 font-serif text-3xl font-bold text-[#24180f]">
+              Publicações do Facebook
+            </h2>
+            <p className="mt-2 text-sm text-zinc-500">
+              “Ativas” aparecem no site. “Arquivadas” ficam disponíveis apenas para consulta.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-[1fr_180px_130px] xl:min-w-[760px]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Pesquisar por título, descrição, data ou link..."
+                className="w-full rounded-xl border border-zinc-200 bg-white py-3 pl-12 pr-4 text-sm outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+              />
+            </div>
+
+            <select
+              value={visibilityFilter}
+              onChange={(event) => setVisibilityFilter(event.target.value as VisibilityFilter)}
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+            >
+              <option value="active">Ativas</option>
+              <option value="archived">Arquivadas</option>
+            </select>
+
+            <select
+              value={pageSize}
+              onChange={(event) => setPageSize(Number(event.target.value) as PageSize)}
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+            >
+              <option value={10}>10 por página</option>
+              <option value={25}>25 por página</option>
+              <option value={50}>50 por página</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
       {isLoading ? (
         <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
           A carregar publicações...
         </div>
-      ) : filteredPosts.length === 0 ? (
+      ) : paginatedPosts.length === 0 ? (
         <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
             <ThumbsUp size={28} />
@@ -722,115 +780,185 @@ export function AdminFacebookPostsPage() {
           </h2>
 
           <p className="mt-3 text-zinc-500">
-            {activeVisibilityFilter === 'active' ? 'Não existem publicações ativas.' : 'Não existem publicações arquivadas.'}
+            {visibilityFilter === 'active' ? 'Não existem publicações ativas.' : 'Não existem publicações arquivadas.'}
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid gap-5">
-          {filteredPosts.map((post) => (
-            <article
-              key={post.id}
-              className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm"
-            >
-              <div className={post.is_active ? 'h-1.5 bg-red-700' : 'h-1.5 bg-zinc-300'} />
+        <section className="mt-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-zinc-200">
+              <thead className="bg-zinc-50">
+                <tr>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Publicação
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Estado
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Data
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Ordem
+                  </th>
+                  <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
 
-              <div className="grid gap-6 p-7 lg:grid-cols-[180px_1fr_auto] lg:items-start">
-                <div className="overflow-hidden rounded-sm bg-[#24180f]">
-                  {post.image_url ? (
-                    <img
-                      src={post.image_url}
-                      alt={post.title}
-                      className="h-36 w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-36 items-center justify-center p-5">
-                      <img
-                        src="/logo-gdr-boavista-header-256.png"
-                        alt="GDR Boavista"
-                        className="h-20 w-20 object-contain"
-                      />
-                    </div>
-                  )}
-                </div>
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {paginatedPosts.map((post) => (
+                  <tr key={post.id} className="transition hover:bg-zinc-50/80">
+                    <td className="px-5 py-5 align-top">
+                      <div className="flex gap-4">
+                        <div className="hidden h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-[#24180f] sm:block">
+                          {post.image_url ? (
+                            <img
+                              src={post.image_url}
+                              alt={post.title}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center p-3">
+                              <img
+                                src="/logo-gdr-boavista-header-256.png"
+                                alt="GDR Boavista"
+                                className="h-10 w-10 object-contain"
+                              />
+                            </div>
+                          )}
+                        </div>
 
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                      Facebook
-                    </span>
+                        <div className="min-w-0">
+                          <div className="font-black text-zinc-900">{post.title}</div>
+                          {post.description && (
+                            <p className="mt-1 line-clamp-2 max-w-xl text-sm leading-6 text-zinc-500">
+                              {post.description}
+                            </p>
+                          )}
+                          <a
+                            href={post.facebook_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide text-red-700 hover:text-[#24180f]"
+                          >
+                            <LinkIcon size={14} />
+                            Abrir original
+                            <ExternalLink size={13} />
+                          </a>
 
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        post.is_active
-                          ? 'bg-green-50 text-green-700'
-                          : 'bg-zinc-100 text-zinc-700'
-                      }`}
-                    >
-                      {post.is_active ? 'Ativa' : 'Arquivada'}
-                    </span>
+                          {expandedPostId === post.id && (
+                            <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-7 text-zinc-600">
+                              <p className="font-black text-zinc-800">Descrição completa</p>
+                              <p className="mt-2 whitespace-pre-wrap">
+                                {post.description || 'Sem descrição.'}
+                              </p>
+                              <p className="mt-3 break-all text-xs text-zinc-400">
+                                {post.facebook_url}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
 
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                      Posição {post.sort_order ?? 0}
-                    </span>
+                    <td className="px-5 py-5 align-top">
+                      <span
+                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${getStatusClass(post)}`}
+                      >
+                        {getStatusLabel(post)}
+                      </span>
+                    </td>
 
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
+                    <td className="px-5 py-5 align-top text-sm font-semibold text-zinc-700">
                       {formatDate(post.published_at)}
-                    </span>
-                  </div>
+                    </td>
 
-                  <h3 className="mt-5 font-serif text-4xl font-light leading-tight text-[#24180f]">
-                    {post.title}
-                  </h3>
+                    <td className="px-5 py-5 align-top text-sm font-semibold text-zinc-700">
+                      {post.sort_order ?? 0}
+                    </td>
 
-                  {post.description && (
-                    <p className="mt-4 text-sm leading-7 text-zinc-600">
-                      {post.description}
-                    </p>
-                  )}
+                    <td className="px-5 py-5 align-top">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(post)}
+                          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                        >
+                          Editar
+                        </button>
 
-                  <a
-                    href={post.facebook_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-5 inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700 hover:text-[#24180f]"
-                  >
-                    <LinkIcon size={16} />
-                    Abrir publicação original
-                    <ExternalLink size={15} />
-                  </a>
-                </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedPostId((currentId) =>
+                              currentId === post.id ? null : post.id,
+                            )
+                          }
+                          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                        >
+                          {expandedPostId === post.id ? 'Ocultar' : 'Detalhes'}
+                        </button>
 
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(post)}
-                    className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
-                  >
-                    Editar
-                  </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(post)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                        >
+                          {post.is_active ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {post.is_active ? 'Arquivar' : 'Reativar'}
+                        </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleToggleActive(post)}
-                    className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
-                  >
-                    {post.is_active ? <EyeOff size={16} /> : <Eye size={16} />}
-                    {post.is_active ? 'Arquivar' : 'Reativar'}
-                  </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(post)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 transition hover:bg-red-50"
+                        >
+                          <Trash2 size={14} />
+                          Apagar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(post)}
-                    className="inline-flex items-center gap-2 rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 size={16} />
-                    Apagar definitivo
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+          <div className="flex flex-col gap-3 border-t border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
+            <div>
+              A mostrar <strong>{resultStart}</strong> a <strong>{resultEnd}</strong> de{' '}
+              <strong>{filteredPosts.length}</strong> publicações.
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => changePage(normalizedPage - 1)}
+                disabled={normalizedPage <= 1}
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft size={15} />
+                Anterior
+              </button>
+
+              <span className="rounded-lg bg-white px-3 py-2 text-xs font-black text-zinc-700">
+                Página {normalizedPage} / {totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => changePage(normalizedPage + 1)}
+                disabled={normalizedPage >= totalPages}
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Seguinte
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );
