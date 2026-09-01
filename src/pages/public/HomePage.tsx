@@ -9,9 +9,7 @@ import {
   MapPin,
   Mail,
   Newspaper,
-  QrCode,
   ShieldCheck,
-  Smartphone,
   Send,
   Users,
 } from 'lucide-react';
@@ -280,50 +278,47 @@ function NewsletterSignupSection() {
   }
 
   return (
-    <section className="bg-[#f6f2ec] py-24">
+    <section className="bg-[#f6f2ec] py-10 md:py-14">
       <div className="mx-auto max-w-7xl px-4">
-        <div className="overflow-hidden rounded-sm border border-[#eadfce] bg-white shadow-xl shadow-zinc-950/5">
-          <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="relative overflow-hidden bg-[#24180f] p-8 text-white md:p-12">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.36),transparent_38%)]" />
-              <div className="absolute inset-0 bg-gradient-to-br from-[#24180f] via-[#24180f]/95 to-red-950" />
+        <div className="rounded-sm border border-[#eadfce] bg-white px-5 py-5 shadow-lg shadow-zinc-950/5 md:px-7 md:py-6">
+          <div className="grid gap-5 lg:grid-cols-[0.95fr_1.55fr] lg:items-center">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#2a1a12] text-red-100 shadow-sm">
+                <Mail size={19} />
+              </div>
 
-              <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-red-200 ring-1 ring-white/15">
-                  <Mail size={24} />
-                </div>
-
-                <p className="mt-8 text-sm font-bold uppercase tracking-[0.4em] text-red-300">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.34em] text-red-700">
                   Newsletter
                 </p>
 
-                <h2 className="mt-5 font-serif text-5xl font-light leading-tight md:text-6xl">
+                <h2 className="mt-2 font-serif text-2xl font-light leading-tight text-[#24180f] md:text-3xl">
                   Recebe novidades do clube.
                 </h2>
 
-                <p className="mt-6 max-w-xl text-base leading-8 text-zinc-300">
-                  Subscreve para receber notícias, jogos, eventos, torneios e comunicados oficiais do GDR Boavista.
+                <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-600">
+                  Notícias, jogos e comunicados oficiais do GDR Boavista no teu email.
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 md:p-12">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {successMessage && (
-                <div className="mb-6 flex items-start gap-3 rounded-sm border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
-                  <CheckCircle2 size={20} />
+                <div className="flex items-start gap-3 rounded-sm border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">
+                  <CheckCircle2 size={18} />
                   <span>{successMessage}</span>
                 </div>
               )}
 
               {errorMessage && (
-                <div className="mb-6 rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+                <div className="rounded-sm border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
                   {errorMessage}
                 </div>
               )}
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-[0.9fr_1.1fr_auto] md:items-end">
                 <div>
-                  <label className="text-sm font-black text-zinc-800">
+                  <label className="text-xs font-black uppercase tracking-wide text-zinc-600">
                     Nome
                   </label>
 
@@ -332,12 +327,12 @@ function NewsletterSignupSection() {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="O teu nome"
-                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                    className="mt-1.5 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-black text-zinc-800">
+                  <label className="text-xs font-black uppercase tracking-wide text-zinc-600">
                     Email *
                   </label>
 
@@ -346,34 +341,34 @@ function NewsletterSignupSection() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="email@exemplo.pt"
-                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                    className="mt-1.5 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                   />
                 </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex h-[46px] items-center justify-center gap-2 rounded-md bg-red-700 px-5 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSubmitting ? 'A subscrever...' : 'Subscrever'}
+                  <Send size={15} />
+                </button>
               </div>
 
-              <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-sm border border-zinc-200 bg-[#f8f3ec] p-4 text-sm leading-6 text-zinc-600">
+              <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-zinc-200 bg-[#faf7f2] px-3 py-2.5 text-xs leading-5 text-zinc-600">
                 <input
                   type="checkbox"
                   checked={acceptsNewsletter}
                   onChange={(event) => setAcceptsNewsletter(event.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-zinc-300 text-red-700 focus:ring-red-700"
+                  className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-red-700 focus:ring-red-700"
                 />
                 <span>
-                  Aceito receber comunicações do GDR Boavista por email e sei que posso cancelar a subscrição a qualquer momento.
+                  Aceito receber comunicações por email e sei que posso cancelar a subscrição a qualquer momento.
                 </span>
               </label>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
-              >
-                {isSubmitting ? 'A subscrever...' : 'Subscrever newsletter'}
-                <Send size={16} />
-              </button>
-
-              <p className="mt-4 text-xs leading-6 text-zinc-500">
-                Usaremos o teu email apenas para comunicações do clube. Todos os emails enviados terão opção de cancelamento da subscrição.
+              <p className="text-[11px] leading-5 text-zinc-500">
+                Usaremos o teu email apenas para comunicações do clube.
               </p>
             </form>
           </div>
@@ -454,6 +449,15 @@ export function HomePage() {
 
     loadHomeData();
   }, []);
+
+  const featuredTournament = useMemo(() => {
+    return tournaments.find((tournament) =>
+      tournament.name.toLowerCase().includes('torneio fut 7') ||
+      tournament.football_type.toLowerCase() === 'futebol 7',
+    );
+  }, [tournaments]);
+
+  const featuredTournamentLink = featuredTournament?.website_url?.trim() || '/torneios/fut7-boavista-2026';
 
   const agendaItems = useMemo<AgendaItem[]>(() => {
     const weeklyMatches: AgendaItem[] = matches
@@ -584,38 +588,48 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-[#111827] py-14 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.45),transparent_34%)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#4a1515] to-[#7f1d1d]" />
+      {featuredTournament && (
+        <section className="relative overflow-hidden bg-[#111827] py-14 text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.45),transparent_34%)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#4a1515] to-[#7f1d1d]" />
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 md:grid-cols-[1fr_auto]">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.42em] text-red-200">Torneio em destaque</p>
-            <h2 className="mt-4 font-serif text-4xl font-light leading-tight md:text-6xl">
-              1.º Torneio Fut 7 GDR Boavista
-            </h2>
-            <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-red-50 md:text-lg">
-              Calendário, grupos, jogos e resultados online. Acompanha tudo em tempo real no site oficial do clube.
-            </p>
+          <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 md:grid-cols-[1fr_auto]">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.42em] text-red-200">Torneio em destaque</p>
+              <h2 className="mt-4 font-serif text-4xl font-light leading-tight md:text-6xl">
+                {featuredTournament.name}
+              </h2>
+              <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-red-50 md:text-lg">
+                Calendário, grupos, jogos e resultados online. Acompanha tudo em tempo real no site oficial do clube.
+              </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">Futebol 7</span>
-              <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">Campo do GDR Boavista</span>
-              <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">Edição 2026</span>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
+                  {featuredTournament.football_type}
+                </span>
+                {featuredTournament.location && (
+                  <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
+                    {featuredTournament.location}
+                  </span>
+                )}
+                <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
+                  {formatTournamentDate(featuredTournament)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
+              <Link
+                to={featuredTournamentLink}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-red-800 shadow-xl transition hover:bg-red-50"
+              >
+                Ver torneio online
+                <ChevronRight size={18} />
+              </Link>
             </div>
           </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-            <Link
-              to="/torneios/fut7-boavista-2026"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-red-800 shadow-xl transition hover:bg-red-50"
-            >
-              Ver torneio online
-              <ChevronRight size={18} />
-            </Link>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-4">
@@ -1067,71 +1081,6 @@ export function HomePage() {
         </div>
       </section>
 
-
-      <section className="bg-[#f6f2ec] py-20">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="relative overflow-hidden rounded-sm border border-[#e5d8c7] bg-white shadow-xl">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.10),transparent_34%)]" />
-            <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#f4e9dc]" />
-
-            <div className="relative grid gap-10 p-8 md:p-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#f6f2ec] px-4 py-2 text-xs font-black uppercase tracking-[0.26em] text-red-700">
-                  <Smartphone size={15} />
-                  App instalável
-                </div>
-
-                <h2 className="mt-6 max-w-2xl font-serif text-4xl font-light leading-tight text-[#24180f] md:text-5xl">
-                  Leve o GDR Boavista no telemóvel.
-                </h2>
-
-                <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-600">
-                  Instale a app do clube e acompanhe notícias, jogos, loja oficial,
-                  sócios e contactos diretamente no ecrã principal do telemóvel.
-                </p>
-
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link
-                    to="/app"
-                    className="inline-flex items-center justify-center gap-2 rounded-md bg-[#24180f] px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700"
-                  >
-                    Instalar app
-                    <ChevronRight size={16} />
-                  </Link>
-
-                  <a
-                    href="/app-qr-code.png"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-2 rounded-md border border-[#e5d8c7] bg-[#f6f2ec] px-6 py-3 text-sm font-black uppercase tracking-wide text-[#24180f] transition hover:border-[#24180f] hover:bg-white"
-                  >
-                    Ver QR Code
-                    <QrCode size={16} />
-                  </a>
-                </div>
-              </div>
-
-              <div className="rounded-sm border border-[#eadfce] bg-[#f8f3ec] p-5 shadow-inner">
-                <div className="rounded-sm bg-white p-5 text-center shadow-md">
-                  <img
-                    src="/app-qr-code.png"
-                    alt="QR Code para instalar a app GDR Boavista"
-                    className="mx-auto h-48 w-48 rounded-sm object-contain md:h-56 md:w-56"
-                  />
-                </div>
-
-                <p className="mt-5 text-center text-xs font-black uppercase tracking-[0.22em] text-red-700">
-                  Aponte a câmara e instale
-                </p>
-
-                <p className="mt-3 text-center text-sm leading-6 text-zinc-600">
-                  No iPhone, abra no Safari e escolha “Adicionar ao ecrã principal”.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <NewsletterSignupSection />
 
