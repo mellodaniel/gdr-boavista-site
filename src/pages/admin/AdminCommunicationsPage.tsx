@@ -459,7 +459,27 @@ export function AdminCommunicationsPage() {
     return groups.filter((group) => groupMatchesCommunicationType(group, form.communication_type));
   }, [groups, form.communication_type]);
 
+  const hasCommunicationContent = form.subject.trim().length > 0 || form.body.trim().length > 0;
+
+  const hasAudienceSelection =
+    form.communication_type === 'individual'
+      ? Boolean(form.manualRecipientId)
+      : form.communication_type === 'newsletter' || form.communication_type === 'geral'
+        ? hasCommunicationContent
+        : form.groupIds.length > 0;
+
   const audienceSummary = useMemo(() => {
+    if (!hasCommunicationContent || !hasAudienceSelection) {
+      return {
+        recipients: 0,
+        excludedNoConsent: 0,
+        excludedInactive: 0,
+        excludedNoEmail: 0,
+        needsGroups: false,
+        isManual: form.communication_type === 'individual',
+      };
+    }
+
     return calculateAudienceSummary({
       subscribers,
       subscriberGroups,
@@ -467,7 +487,15 @@ export function AdminCommunicationsPage() {
       groupIds: form.groupIds,
       manualRecipientId: form.manualRecipientId,
     });
-  }, [subscribers, subscriberGroups, form.communication_type, form.groupIds, form.manualRecipientId]);
+  }, [
+    subscribers,
+    subscriberGroups,
+    form.communication_type,
+    form.groupIds,
+    form.manualRecipientId,
+    hasCommunicationContent,
+    hasAudienceSelection,
+  ]);
 
   const stats = useMemo(() => {
     const visibleCommunications = communications.filter((item) => item.status !== 'archived');
