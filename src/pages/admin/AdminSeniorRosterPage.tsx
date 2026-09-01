@@ -90,6 +90,7 @@ export function AdminSeniorRosterPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -420,7 +421,7 @@ export function AdminSeniorRosterPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
+      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-5 text-white shadow-2xl shadow-zinc-950/10 sm:p-6 md:p-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
         <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -429,17 +430,17 @@ export function AdminSeniorRosterPage() {
               Administração
             </p>
 
-            <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
+            <h1 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl md:mt-6 md:text-7xl">
               Plantel Sénior.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base sm:leading-8 md:mt-6">
               Gere os jogadores e equipa técnica da página privada do plantel sénior.
               A página pública continua a mostrar apenas elementos ativos.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="grid w-full grid-cols-2 gap-3 md:flex md:w-auto md:flex-wrap">
             <Link
               to={PRIVATE_ROSTER_PATH}
               target="_blank"
@@ -692,28 +693,41 @@ export function AdminSeniorRosterPage() {
       )}
 
       <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <div className="rounded-md bg-zinc-50 p-4 ring-1 ring-zinc-100">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Total</p>
-            <p className="mt-2 text-3xl font-black text-[#24180f]">{playerCounts.total}</p>
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-6">
+          <div className="rounded-md bg-zinc-50 p-3 ring-1 ring-zinc-100 md:p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-zinc-400 sm:text-xs sm:tracking-[0.22em]">Total</p>
+            <p className="mt-1 text-2xl font-black text-[#24180f] md:mt-2 md:text-3xl">{playerCounts.total}</p>
           </div>
-          <div className="rounded-md bg-green-50 p-4 ring-1 ring-green-100">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-green-700">Ativos</p>
-            <p className="mt-2 text-3xl font-black text-green-900">{playerCounts.active}</p>
+          <div className="rounded-md bg-green-50 p-3 ring-1 ring-green-100 md:p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-green-700 sm:text-xs sm:tracking-[0.22em]">Ativos</p>
+            <p className="mt-1 text-2xl font-black text-green-900 md:mt-2 md:text-3xl">{playerCounts.active}</p>
           </div>
-          <div className="rounded-md bg-zinc-50 p-4 ring-1 ring-zinc-100">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Ocultos</p>
-            <p className="mt-2 text-3xl font-black text-zinc-900">{playerCounts.hidden}</p>
+          <div className="rounded-md bg-zinc-50 p-3 ring-1 ring-zinc-100 md:p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-zinc-400 sm:text-xs sm:tracking-[0.22em]">Ocultos</p>
+            <p className="mt-1 text-2xl font-black text-zinc-900 md:mt-2 md:text-3xl">{playerCounts.hidden}</p>
           </div>
           {rosterGroups.slice(0, 3).map((group) => (
-            <div key={group} className="rounded-md bg-zinc-50 p-4 ring-1 ring-zinc-100">
-              <p className="truncate text-xs font-black uppercase tracking-[0.22em] text-zinc-400">{group}</p>
-              <p className="mt-2 text-3xl font-black text-zinc-900">{playerCounts.groups[group]}</p>
+            <div key={group} className="rounded-md bg-zinc-50 p-3 ring-1 ring-zinc-100 md:p-4">
+              <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-zinc-400 sm:text-xs sm:tracking-[0.22em]">{group}</p>
+              <p className="mt-1 text-2xl font-black text-zinc-900 md:mt-2 md:text-3xl">{playerCounts.groups[group]}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.8fr_auto]">
+        <button
+          type="button"
+          onClick={() => setShowMobileFilters((current) => !current)}
+          className="mt-4 flex w-full items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-800 md:hidden"
+          aria-expanded={showMobileFilters}
+        >
+          <span>Filtros e pesquisa</span>
+          <ChevronDown
+            size={18}
+            className={`transition ${showMobileFilters ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        <div className={`${showMobileFilters ? 'grid' : 'hidden'} mt-3 gap-3 md:mt-5 md:grid lg:grid-cols-[1.5fr_0.8fr_0.8fr_auto]`}>
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={17} />
             <input
@@ -781,7 +795,108 @@ export function AdminSeniorRosterPage() {
         </div>
       ) : (
         <section className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-zinc-100 md:hidden">
+            {paginatedPlayers.map((player) => {
+              const isExpanded = expandedPlayerId === player.id;
+
+              return (
+                <article key={player.id} className="p-4">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
+                    className="flex w-full items-start gap-3 text-left"
+                  >
+                    {player.photo_url ? (
+                      <img
+                        src={player.photo_url}
+                        alt=""
+                        className="h-14 w-14 shrink-0 rounded-md object-cover object-top ring-1 ring-zinc-200"
+                      />
+                    ) : (
+                      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-xs font-black text-zinc-500 ring-1 ring-zinc-200">
+                        {getPlayerInitials(player.name)}
+                      </span>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-black text-zinc-900">{player.name}</p>
+                          <p className="mt-1 text-xs font-bold text-zinc-500">
+                            {formatPlayerNumber(player.shirt_number)}
+                            {player.position ? ` · ${player.position}` : ''}
+                          </p>
+                        </div>
+                        <ChevronDown
+                          size={18}
+                          className={`mt-1 shrink-0 text-zinc-400 transition ${isExpanded ? 'rotate-180' : ''}`}
+                        />
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <span className="rounded-full bg-zinc-100 px-2.5 py-1 font-bold text-zinc-600">
+                          {player.roster_group}
+                        </span>
+                        <span className={`rounded-full px-2.5 py-1 font-black ${player.is_active ? 'bg-green-50 text-green-700' : 'bg-zinc-100 text-zinc-600'}`}>
+                          {player.is_active ? 'Ativo' : 'Oculto'}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-3 rounded-md bg-zinc-50 p-3 text-xs leading-5 text-zinc-600">
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                        <p><strong>Nacionalidade:</strong> {player.nationality || '—'}</p>
+                        <p><strong>Ordem:</strong> {player.sort_order ?? 0}</p>
+                        <p><strong>Altura:</strong> {player.height || '—'}</p>
+                        <p><strong>Ano:</strong> {player.birth_year || '—'}</p>
+                      </div>
+                      <p className="mt-2"><strong>Notas:</strong> {player.notes || 'Sem notas internas.'}</p>
+                    </div>
+                  )}
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
+                      className="min-h-11 rounded-md border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                    >
+                      {isExpanded ? 'Fechar detalhes' : 'Detalhes'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(player)}
+                      className="min-h-11 rounded-md border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(player)}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                    >
+                      {player.is_active ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {player.is_active ? 'Ocultar' : 'Mostrar'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(player)}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-red-200 px-3 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 size={16} />
+                      Apagar
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-zinc-200 text-sm">
               <thead className="bg-zinc-50 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
                 <tr>

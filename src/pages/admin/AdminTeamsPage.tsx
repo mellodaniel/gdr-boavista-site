@@ -66,6 +66,7 @@ export function AdminTeamsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -262,7 +263,7 @@ export function AdminTeamsPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
+      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-5 text-white shadow-2xl shadow-zinc-950/10 sm:p-6 md:p-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
         <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -271,16 +272,16 @@ export function AdminTeamsPage() {
               Administração
             </p>
 
-            <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
+            <h1 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl md:mt-6 md:text-7xl">
               Equipas.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base sm:leading-8 md:mt-6">
               Gere os escalões e equipas que aparecem na página pública de equipas.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="grid w-full grid-cols-2 gap-3 md:flex md:w-auto md:flex-wrap">
             <button
               type="button"
               onClick={loadTeams}
@@ -448,22 +449,35 @@ export function AdminTeamsPage() {
       )}
 
       <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-md bg-zinc-50 p-4 ring-1 ring-zinc-100">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Total</p>
-            <p className="mt-2 text-3xl font-black text-[#24180f]">{teamCounts.total}</p>
+        <div className="grid grid-cols-3 gap-2 md:gap-3">
+          <div className="rounded-md bg-zinc-50 p-3 ring-1 ring-zinc-100 md:p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-400 sm:text-xs sm:tracking-[0.22em]">Total</p>
+            <p className="mt-1 text-2xl font-black text-[#24180f] md:mt-2 md:text-3xl">{teamCounts.total}</p>
           </div>
-          <div className="rounded-md bg-green-50 p-4 ring-1 ring-green-100">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-green-700">Visíveis</p>
-            <p className="mt-2 text-3xl font-black text-green-900">{teamCounts.active}</p>
+          <div className="rounded-md bg-green-50 p-3 ring-1 ring-green-100 md:p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-green-700 sm:text-xs sm:tracking-[0.22em]">Visíveis</p>
+            <p className="mt-1 text-2xl font-black text-green-900 md:mt-2 md:text-3xl">{teamCounts.active}</p>
           </div>
-          <div className="rounded-md bg-zinc-50 p-4 ring-1 ring-zinc-100">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Ocultas</p>
-            <p className="mt-2 text-3xl font-black text-zinc-900">{teamCounts.hidden}</p>
+          <div className="rounded-md bg-zinc-50 p-3 ring-1 ring-zinc-100 md:p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-400 sm:text-xs sm:tracking-[0.22em]">Ocultas</p>
+            <p className="mt-1 text-2xl font-black text-zinc-900 md:mt-2 md:text-3xl">{teamCounts.hidden}</p>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_auto]">
+        <button
+          type="button"
+          onClick={() => setShowMobileFilters((current) => !current)}
+          className="mt-4 flex w-full items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-800 md:hidden"
+          aria-expanded={showMobileFilters}
+        >
+          <span>Filtros e pesquisa</span>
+          <ChevronDown
+            size={18}
+            className={`transition ${showMobileFilters ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        <div className={`${showMobileFilters ? 'grid' : 'hidden'} mt-3 gap-3 md:mt-5 md:grid lg:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_auto]`}>
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={17} />
             <input
@@ -544,7 +558,97 @@ export function AdminTeamsPage() {
         </div>
       ) : (
         <section className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-zinc-100 md:hidden">
+            {paginatedTeams.map((team) => {
+              const isExpanded = expandedTeamId === team.id;
+
+              return (
+                <article key={team.id} className="p-4">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
+                    className="flex w-full items-start justify-between gap-3 text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-black text-zinc-900">{team.name}</p>
+                      <p className="mt-1 text-xs font-bold text-zinc-500">
+                        {team.category} · {team.football_type}
+                      </p>
+                    </div>
+                    <ChevronDown
+                      size={18}
+                      className={`mt-1 shrink-0 text-zinc-400 transition ${isExpanded ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span className={`rounded-full px-3 py-1 font-black ${team.is_active ? 'bg-green-50 text-green-700' : 'bg-zinc-100 text-zinc-600'}`}>
+                      {team.is_active ? 'Visível' : 'Oculta'}
+                    </span>
+                    <span className="rounded-full bg-zinc-100 px-3 py-1 font-bold text-zinc-600">
+                      Ordem {team.sort_order ?? 0}
+                    </span>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-3 rounded-md bg-zinc-50 p-3 text-xs leading-5 text-zinc-600">
+                      <p>{team.description || 'Sem descrição.'}</p>
+                      {team.image_url && (
+                        <p className="mt-2 break-all text-zinc-400">Imagem: {team.image_url}</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(team)}
+                      className="min-h-11 rounded-md border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                    >
+                      Editar
+                    </button>
+
+                    {hasSeniorRoster(team) ? (
+                      <Link
+                        to="/admin/equipas/seniores/plantel"
+                        className="flex min-h-11 items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-black text-red-700 hover:bg-red-100"
+                      >
+                        Plantel
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
+                        className="min-h-11 rounded-md border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-700"
+                      >
+                        {isExpanded ? 'Fechar detalhes' : 'Detalhes'}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(team)}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2.5 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                    >
+                      {team.is_active ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {team.is_active ? 'Ocultar' : 'Mostrar'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(team)}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-red-200 px-3 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 size={16} />
+                      Apagar
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-zinc-200 text-sm">
               <thead className="bg-zinc-50 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
                 <tr>
