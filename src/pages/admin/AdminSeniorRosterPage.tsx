@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { Camera, Eye, EyeOff, Plus, RefreshCcw, Save, Shirt, Trash2, Upload, X } from 'lucide-react';
+import {
+  Camera,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Plus,
+  RefreshCcw,
+  Save,
+  Search,
+  Shirt,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { supabase } from '../../lib/supabase';
@@ -32,6 +45,9 @@ const initialForm = {
   sort_order: 0,
 };
 
+const pageSizeOptions = [10, 25, 50];
+type PlayerStatusFilter = 'active' | 'all' | 'hidden';
+
 function getPlayerInitials(name: string) {
   return name
     .split(' ')
@@ -49,6 +65,13 @@ function formatPlayerNumber(value: number | null) {
   return `#${value}`;
 }
 
+function normalizeText(value: string | null | undefined) {
+  return (value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 export function AdminSeniorRosterPage() {
   const [players, setPlayers] = useState<GdrbRosterPlayer[]>([]);
   const [form, setForm] = useState(initialForm);
@@ -57,10 +80,16 @@ export function AdminSeniorRosterPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [showInactive, setShowInactive] = useState(false);
 
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PlayerStatusFilter>('active');
+  const [groupFilter, setGroupFilter] = useState<GdrbRosterGroup | 'all'>('all');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
 
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -75,14 +104,56 @@ export function AdminSeniorRosterPage() {
     [players],
   );
 
-  const displayedPlayers = showInactive ? players : activePlayers;
+  const playerCounts = useMemo(() => {
+    return {
+      total: players.length,
+      active: activePlayers.length,
+      hidden: inactivePlayers.length,
+      groups: rosterGroups.reduce<Record<GdrbRosterGroup, number>>((acc, group) => {
+        acc[group] = players.filter((player) => player.roster_group === group && player.is_active).length;
+        return acc;
+      }, {
+        'Guarda-redes': 0,
+        Defesas: 0,
+        Médios: 0,
+        Avançados: 0,
+        'Equipa técnica': 0,
+      }),
+    };
+  }, [players, activePlayers.length, inactivePlayers.length]);
 
-  const groupedPlayers = useMemo(() => {
-    return rosterGroups.map((group) => ({
-      group,
-      players: displayedPlayers.filter((player) => player.roster_group === group),
-    }));
-  }, [displayedPlayers]);
+  const filteredPlayers = useMemo(() => {
+    const normalizedSearch = normalizeText(searchTerm.trim());
+
+    return players.filter((player) => {
+      if (statusFilter === 'active' && !player.is_active) return false;
+      if (statusFilter === 'hidden' && player.is_active) return false;
+      if (groupFilter !== 'all' && player.roster_group !== groupFilter) return false;
+
+      if (!normalizedSearch) return true;
+
+      const searchableText = normalizeText([
+        player.name,
+        player.position,
+        player.roster_group,
+        player.height,
+        player.nationality,
+        player.notes,
+        String(player.shirt_number ?? ''),
+        String(player.birth_year ?? ''),
+        String(player.sort_order ?? ''),
+      ].join(' '));
+
+      return searchableText.includes(normalizedSearch);
+    });
+  }, [players, searchTerm, statusFilter, groupFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPlayers.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedPlayers = filteredPlayers.slice(startIndex, startIndex + pageSize);
+  const firstVisible = filteredPlayers.length === 0 ? 0 : startIndex + 1;
+  const lastVisible = Math.min(startIndex + pageSize, filteredPlayers.length);
 
   useEffect(() => {
     return () => {
@@ -91,6 +162,10 @@ export function AdminSeniorRosterPage() {
       }
     };
   }, [photoPreview]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, groupFilter, pageSize]);
 
   function setPreviewUrl(nextPreview: string) {
     setPhotoPreview((currentPreview) => {
@@ -259,30 +334,31 @@ export function AdminSeniorRosterPage() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Não foi possível fazer upload da foto.',
+          : 'Não foi possível carregar a fotografia.',
       );
       return;
     }
 
-    const shirtNumber = form.shirt_number.trim()
+    const shirtNumber = String(form.shirt_number).trim()
       ? Number(form.shirt_number)
       : null;
-    const birthYear = form.birth_year.trim() ? Number(form.birth_year) : null;
+    const birthYear = String(form.birth_year).trim()
+      ? Number(form.birth_year)
+      : null;
 
     const payload = {
       team_key: SENIOR_TEAM_KEY,
       name: form.name.trim(),
-      shirt_number: Number.isFinite(shirtNumber) ? shirtNumber : null,
+      shirt_number: Number.isNaN(shirtNumber) ? null : shirtNumber,
       position: form.position.trim() || null,
       roster_group: form.roster_group,
       photo_url: uploadedPhotoUrl,
       height: form.height.trim() || null,
-      birth_year: Number.isFinite(birthYear) ? birthYear : null,
+      birth_year: Number.isNaN(birthYear) ? null : birthYear,
       nationality: form.nationality.trim() || null,
       notes: form.notes.trim() || null,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
-      updated_at: new Date().toISOString(),
     };
 
     const result = editingId
@@ -298,9 +374,8 @@ export function AdminSeniorRosterPage() {
     }
 
     setSuccessMessage(
-      editingId ? 'Jogador atualizado com sucesso.' : 'Jogador adicionado ao plantel.',
+      editingId ? 'Jogador atualizado com sucesso.' : 'Jogador criado com sucesso.',
     );
-
     resetForm();
     await loadPlayers();
   }
@@ -308,14 +383,11 @@ export function AdminSeniorRosterPage() {
   async function handleToggleActive(player: GdrbRosterPlayer) {
     const { error } = await supabase
       .from('gdrb_roster_players')
-      .update({
-        is_active: !player.is_active,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ is_active: !player.is_active })
       .eq('id', player.id);
 
     if (error) {
-      console.error('Erro ao alterar estado do jogador:', error);
+      console.error('Erro ao alterar jogador:', error);
       setErrorMessage('Não foi possível alterar o estado do jogador.');
       return;
     }
@@ -325,7 +397,7 @@ export function AdminSeniorRosterPage() {
 
   async function handleDelete(player: GdrbRosterPlayer) {
     const confirmDelete = window.confirm(
-      `Tens a certeza que queres apagar definitivamente "${player.name}"? Esta ação não deve ser usada se quiseres apenas ocultar o jogador.`,
+      `Tens a certeza que queres apagar "${player.name}" do plantel?`,
     );
 
     if (!confirmDelete) {
@@ -354,16 +426,16 @@ export function AdminSeniorRosterPage() {
         <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
-              Plantel Sénior
+              Administração
             </p>
 
             <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
-              Roster da equipa.
+              Plantel Sénior.
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
-              Gere os jogadores da equipa Sénior, fotos, números, posições e ordem
-              de apresentação da página privada do plantel.
+              Gere os jogadores e equipa técnica da página privada do plantel sénior.
+              A página pública continua a mostrar apenas elementos ativos.
             </p>
           </div>
 
@@ -371,11 +443,10 @@ export function AdminSeniorRosterPage() {
             <Link
               to={PRIVATE_ROSTER_PATH}
               target="_blank"
-              rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
             >
               <Eye size={17} />
-              Ver página privada
+              Ver página
             </Link>
 
             <button
@@ -399,44 +470,11 @@ export function AdminSeniorRosterPage() {
               className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-800"
             >
               <Plus size={18} />
-              Novo jogador
+              Novo elemento
             </button>
           </div>
         </div>
       </section>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
-            Ativos
-          </p>
-          <p className="mt-2 text-3xl font-black text-zinc-950">
-            {activePlayers.length}
-          </p>
-        </div>
-
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
-            Ocultos
-          </p>
-          <p className="mt-2 text-3xl font-black text-zinc-950">
-            {inactivePlayers.length}
-          </p>
-        </div>
-
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm md:col-span-2">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
-            Link privado
-          </p>
-          <p className="mt-2 break-all text-sm font-bold text-zinc-800">
-            {PRIVATE_ROSTER_PATH}
-          </p>
-          <p className="mt-2 text-xs leading-5 text-zinc-500">
-            A página não aparece nos menus públicos, mas qualquer pessoa com este
-            link consegue aceder.
-          </p>
-        </div>
-      </div>
 
       {successMessage && (
         <div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
@@ -458,11 +496,10 @@ export function AdminSeniorRosterPage() {
           <div className="flex flex-col justify-between gap-4 border-b border-zinc-200 pb-5 md:flex-row md:items-start">
             <div>
               <h2 className="font-serif text-4xl font-light text-[#24180f]">
-                {editingId ? 'Editar jogador' : 'Novo jogador'}
+                {editingId ? 'Editar elemento' : 'Novo elemento'}
               </h2>
-
               <p className="mt-2 text-sm text-zinc-500">
-                Preenche os dados públicos do atleta ou elemento técnico.
+                Jogadores inativos ficam fora da página pública do plantel.
               </p>
             </div>
 
@@ -475,100 +512,80 @@ export function AdminSeniorRosterPage() {
             </button>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-[320px_1fr]">
-            <div>
-              <label className="text-sm font-black text-zinc-800">
-                Foto do jogador
-              </label>
+          <div className="mt-6 grid gap-6 xl:grid-cols-[260px_1fr]">
+            <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-sm font-black text-zinc-800">Fotografia</p>
 
-              <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
+              <div className="mt-4 overflow-hidden rounded-md border border-zinc-200 bg-white">
                 {photoPreview ? (
                   <img
                     src={photoPreview}
                     alt="Pré-visualização"
-                    className="aspect-[4/5] w-full object-cover"
+                    className="h-64 w-full object-cover object-top"
                   />
                 ) : (
-                  <div className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 text-zinc-400">
-                    <Camera size={42} />
-                    <p className="text-sm font-bold">Sem foto</p>
+                  <div className="flex h-64 w-full items-center justify-center bg-zinc-100 text-4xl font-black text-zinc-400">
+                    {form.name ? getPlayerInitials(form.name) : <Camera size={38} />}
                   </div>
                 )}
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[#24180f] px-4 py-2 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700">
-                  <Upload size={16} />
-                  Upload
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
-                </label>
+              <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-3 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700">
+                <Upload size={17} />
+                Carregar foto
+                <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              </label>
 
-                {(photoPreview || form.photo_url) && (
-                  <button
-                    type="button"
-                    onClick={handleRemovePhoto}
-                    className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-600 hover:border-red-700 hover:text-red-700"
-                  >
-                    <X size={16} />
-                    Remover
-                  </button>
-                )}
-              </div>
+              {(photoPreview || form.photo_url) && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-red-200 px-4 py-3 text-sm font-bold text-red-700 hover:bg-red-50"
+                >
+                  <X size={16} />
+                  Remover foto
+                </button>
+              )}
 
-              <p className="mt-3 text-xs leading-5 text-zinc-500">
-                Ideal: foto vertical com o atleta em meio-corpo ou corpo inteiro,
-                fundo limpo e boa luz.
-              </p>
+              <input
+                type="url"
+                value={form.photo_url}
+                onChange={(event) => {
+                  handleChange('photo_url', event.target.value);
+                  setPreviewUrl(event.target.value);
+                  setSelectedPhotoFile(null);
+                }}
+                placeholder="Ou colar URL da foto"
+                className="mt-3 w-full rounded-md border border-zinc-200 px-4 py-3 text-xs outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              />
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
               <div>
-                <label className="text-sm font-black text-zinc-800">
-                  Nome *
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Nome *</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(event) => handleChange('name', event.target.value)}
-                  placeholder="Ex: João Silva"
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-black text-zinc-800">
-                  Número
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Número</label>
                 <input
                   type="number"
                   value={form.shirt_number}
-                  onChange={(event) =>
-                    handleChange('shirt_number', event.target.value)
-                  }
-                  placeholder="Ex: 10"
-                  min={0}
-                  max={999}
+                  onChange={(event) => handleChange('shirt_number', event.target.value)}
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-black text-zinc-800">
-                  Grupo
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Grupo</label>
                 <select
                   value={form.roster_group}
-                  onChange={(event) =>
-                    handleChange('roster_group', event.target.value as GdrbRosterGroup)
-                  }
+                  onChange={(event) => handleChange('roster_group', event.target.value as GdrbRosterGroup)}
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 >
                   {rosterGroups.map((group) => (
@@ -580,26 +597,18 @@ export function AdminSeniorRosterPage() {
               </div>
 
               <div>
-                <label className="text-sm font-black text-zinc-800">
-                  Posição
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Posição</label>
                 <input
                   type="text"
                   value={form.position}
-                  onChange={(event) =>
-                    handleChange('position', event.target.value)
-                  }
+                  onChange={(event) => handleChange('position', event.target.value)}
                   placeholder="Ex: Avançado"
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-black text-zinc-800">
-                  Altura
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Altura</label>
                 <input
                   type="text"
                   value={form.height}
@@ -610,63 +619,41 @@ export function AdminSeniorRosterPage() {
               </div>
 
               <div>
-                <label className="text-sm font-black text-zinc-800">
-                  Ano de nascimento
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Ano de nascimento</label>
                 <input
                   type="number"
                   value={form.birth_year}
-                  onChange={(event) =>
-                    handleChange('birth_year', event.target.value)
-                  }
-                  placeholder="Ex: 1998"
-                  min={1900}
-                  max={2100}
+                  onChange={(event) => handleChange('birth_year', event.target.value)}
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-black text-zinc-800">
-                  Nacionalidade/localidade
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Nacionalidade</label>
                 <input
                   type="text"
                   value={form.nationality}
-                  onChange={(event) =>
-                    handleChange('nationality', event.target.value)
-                  }
-                  placeholder="Ex: Portugal"
+                  onChange={(event) => handleChange('nationality', event.target.value)}
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-black text-zinc-800">
-                  Ordem
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Ordem</label>
                 <input
                   type="number"
                   value={form.sort_order}
-                  onChange={(event) =>
-                    handleChange('sort_order', Number(event.target.value))
-                  }
+                  onChange={(event) => handleChange('sort_order', Number(event.target.value))}
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-sm font-black text-zinc-800">
-                  Observações internas
-                </label>
-
+                <label className="text-sm font-black text-zinc-800">Notas internas</label>
                 <textarea
                   value={form.notes}
                   onChange={(event) => handleChange('notes', event.target.value)}
-                  rows={3}
+                  rows={4}
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm leading-7 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
@@ -675,12 +662,10 @@ export function AdminSeniorRosterPage() {
                 <input
                   type="checkbox"
                   checked={form.is_active}
-                  onChange={(event) =>
-                    handleChange('is_active', event.target.checked)
-                  }
+                  onChange={(event) => handleChange('is_active', event.target.checked)}
                   className="h-4 w-4 accent-red-700"
                 />
-                Mostrar na página privada
+                Visível na página pública
               </label>
             </div>
           </div>
@@ -700,148 +685,242 @@ export function AdminSeniorRosterPage() {
               className="inline-flex items-center gap-2 rounded-md bg-red-700 px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#24180f] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save size={18} />
-              {isSaving ? 'A guardar...' : 'Guardar jogador'}
+              {isSaving ? 'A guardar...' : 'Guardar elemento'}
             </button>
           </div>
         </form>
       )}
 
-      <section className="mt-8 rounded-sm border border-zinc-200 bg-white shadow-sm">
-        <div className="flex flex-col justify-between gap-4 border-b border-zinc-200 p-6 md:flex-row md:items-center">
-          <div>
-            <h2 className="text-2xl font-black text-zinc-950">Plantel configurado</h2>
-            <p className="mt-1 text-sm text-zinc-500">
-              {activePlayers.length} jogador(es) visível(is)
-              {inactivePlayers.length > 0 ? ` · ${inactivePlayers.length} oculto(s)` : ''}
-            </p>
+      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div className="rounded-md bg-zinc-50 p-4 ring-1 ring-zinc-100">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Total</p>
+            <p className="mt-2 text-3xl font-black text-[#24180f]">{playerCounts.total}</p>
           </div>
-
-          {inactivePlayers.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowInactive((current) => !current)}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
-            >
-              {showInactive ? <EyeOff size={16} /> : <Eye size={16} />}
-              {showInactive ? 'Ocultar inativos' : 'Mostrar inativos'}
-            </button>
-          )}
+          <div className="rounded-md bg-green-50 p-4 ring-1 ring-green-100">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-green-700">Ativos</p>
+            <p className="mt-2 text-3xl font-black text-green-900">{playerCounts.active}</p>
+          </div>
+          <div className="rounded-md bg-zinc-50 p-4 ring-1 ring-zinc-100">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Ocultos</p>
+            <p className="mt-2 text-3xl font-black text-zinc-900">{playerCounts.hidden}</p>
+          </div>
+          {rosterGroups.slice(0, 3).map((group) => (
+            <div key={group} className="rounded-md bg-zinc-50 p-4 ring-1 ring-zinc-100">
+              <p className="truncate text-xs font-black uppercase tracking-[0.22em] text-zinc-400">{group}</p>
+              <p className="mt-2 text-3xl font-black text-zinc-900">{playerCounts.groups[group]}</p>
+            </div>
+          ))}
         </div>
 
-        {isLoading ? (
-          <div className="p-8 text-sm font-semibold text-zinc-500">
-            A carregar plantel...
+        <div className="mt-5 grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.8fr_auto]">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={17} />
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Pesquisar por nome, posição, número, nacionalidade ou notas..."
+              className="w-full rounded-md border border-zinc-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+            />
+          </label>
+
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as PlayerStatusFilter)}
+            className="rounded-md border border-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+          >
+            <option value="active">Ativos</option>
+            <option value="all">Todos</option>
+            <option value="hidden">Ocultos</option>
+          </select>
+
+          <select
+            value={groupFilter}
+            onChange={(event) => setGroupFilter(event.target.value as GdrbRosterGroup | 'all')}
+            className="rounded-md border border-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+          >
+            <option value="all">Todos os grupos</option>
+            {rosterGroups.map((group) => (
+              <option key={group} value={group}>
+                {group}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={pageSize}
+            onChange={(event) => setPageSize(Number(event.target.value))}
+            className="rounded-md border border-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+          >
+            {pageSizeOptions.map((size) => (
+              <option key={size} value={size}>
+                {size}/página
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+
+      {isLoading ? (
+        <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
+          A carregar plantel...
+        </div>
+      ) : players.length === 0 ? (
+        <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
+            <Shirt size={28} />
           </div>
-        ) : displayedPlayers.length === 0 ? (
-          <div className="p-10 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
-              <Shirt size={28} />
-            </div>
+          <h2 className="mt-5 font-serif text-3xl font-light text-[#24180f]">Plantel vazio</h2>
+          <p className="mt-3 text-zinc-500">Ainda não existem jogadores criados.</p>
+        </div>
+      ) : filteredPlayers.length === 0 ? (
+        <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
+          <h2 className="font-serif text-3xl font-light text-[#24180f]">Sem resultados</h2>
+          <p className="mt-3 text-zinc-500">Ajusta a pesquisa ou os filtros.</p>
+        </div>
+      ) : (
+        <section className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-zinc-200 text-sm">
+              <thead className="bg-zinc-50 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                <tr>
+                  <th className="px-4 py-3">Elemento</th>
+                  <th className="px-4 py-3">Grupo</th>
+                  <th className="px-4 py-3">Posição</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Ordem</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {paginatedPlayers.map((player) => {
+                  const isExpanded = expandedPlayerId === player.id;
 
-            <h3 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
-              Sem jogadores
-            </h3>
-
-            <p className="mt-3 text-zinc-500">
-              Adiciona o primeiro jogador da equipa Sénior.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-8 p-6">
-            {groupedPlayers.map(({ group, players: groupPlayers }) => {
-              if (groupPlayers.length === 0) {
-                return null;
-              }
-
-              return (
-                <div key={group}>
-                  <div className="mb-4 flex items-center gap-3">
-                    <h3 className="text-sm font-black uppercase tracking-[0.25em] text-red-700">
-                      {group}
-                    </h3>
-                    <div className="h-px flex-1 bg-zinc-200" />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {groupPlayers.map((player) => (
-                      <article
-                        key={player.id}
-                        className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm"
-                      >
-                        <div className="grid grid-cols-[116px_1fr]">
+                  return (
+                    <tr key={player.id} className="align-top hover:bg-zinc-50/70">
+                      <td className="px-4 py-4">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
+                          className="flex max-w-[360px] items-start gap-3 text-left"
+                        >
                           {player.photo_url ? (
                             <img
                               src={player.photo_url}
-                              alt={player.name}
-                              className="h-full min-h-[160px] w-full object-cover"
+                              alt=""
+                              className="h-12 w-12 shrink-0 rounded-md object-cover object-top ring-1 ring-zinc-200"
                             />
                           ) : (
-                            <div className="flex min-h-[160px] items-center justify-center bg-[#24180f] text-3xl font-black text-white">
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-xs font-black text-zinc-500 ring-1 ring-zinc-200">
                               {getPlayerInitials(player.name)}
-                            </div>
+                            </span>
                           )}
 
-                          <div className="p-5">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-black text-white">
-                                {formatPlayerNumber(player.shirt_number)}
-                              </span>
-
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-bold ${
-                                  player.is_active
-                                    ? 'bg-green-50 text-green-700'
-                                    : 'bg-zinc-200 text-zinc-600'
-                                }`}
-                              >
-                                {player.is_active ? 'Visível' : 'Oculto'}
-                              </span>
-                            </div>
-
-                            <h4 className="mt-4 text-lg font-black leading-tight text-zinc-950">
+                          <span>
+                            <span className="flex items-center gap-2 font-black text-zinc-900">
+                              <ChevronDown
+                                size={15}
+                                className={`text-zinc-400 transition ${isExpanded ? 'rotate-180' : ''}`}
+                              />
                               {player.name}
-                            </h4>
+                            </span>
+                            <span className="mt-1 block text-xs font-bold text-zinc-500">
+                              {formatPlayerNumber(player.shirt_number)}
+                              {player.nationality ? ` · ${player.nationality}` : ''}
+                            </span>
+                            {isExpanded && (
+                              <span className="mt-2 block text-xs leading-5 text-zinc-500">
+                                {player.height ? `Altura: ${player.height}. ` : ''}
+                                {player.birth_year ? `Ano: ${player.birth_year}. ` : ''}
+                                {player.notes || 'Sem notas internas.'}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </td>
+                      <td className="px-4 py-4 text-zinc-700">{player.roster_group}</td>
+                      <td className="px-4 py-4 text-zinc-700">{player.position || '—'}</td>
+                      <td className="px-4 py-4">
+                        <span className={`rounded-full px-3 py-1 text-xs font-black ${player.is_active ? 'bg-green-50 text-green-700' : 'bg-zinc-100 text-zinc-600'}`}>
+                          {player.is_active ? 'Ativo' : 'Oculto'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 font-bold text-zinc-600">{player.sort_order ?? 0}</td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
+                            className="rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                          >
+                            Detalhes
+                          </button>
 
-                            <p className="mt-1 text-sm font-semibold text-zinc-500">
-                              {player.position || player.roster_group}
-                            </p>
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(player)}
+                            className="rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                          >
+                            Editar
+                          </button>
 
-                            <div className="mt-5 flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(player)}
-                                className="rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
-                              >
-                                Editar
-                              </button>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(player)}
+                            className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                          >
+                            {player.is_active ? <EyeOff size={14} /> : <Eye size={14} />}
+                            {player.is_active ? 'Ocultar' : 'Mostrar'}
+                          </button>
 
-                              <button
-                                type="button"
-                                onClick={() => handleToggleActive(player)}
-                                className="rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
-                              >
-                                {player.is_active ? 'Ocultar' : 'Mostrar'}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(player)}
-                                className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(player)}
+                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 size={14} />
+                            Apagar
+                          </button>
                         </div>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )}
-      </section>
+
+          <div className="flex flex-col gap-3 border-t border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
+            <span>
+              A mostrar <strong>{firstVisible}</strong>-<strong>{lastVisible}</strong> de{' '}
+              <strong>{filteredPlayers.length}</strong>
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={safeCurrentPage <= 1}
+                className="rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Anterior
+              </button>
+              <span className="px-2 text-sm font-bold text-zinc-700">
+                {safeCurrentPage}/{totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={safeCurrentPage >= totalPages}
+                className="rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Seguinte
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
