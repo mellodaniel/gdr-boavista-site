@@ -1,5 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Mail, MessageCircle, RefreshCcw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Archive,
+  ChevronDown,
+  Mail,
+  MessageCircle,
+  RefreshCcw,
+  RotateCcw,
+  Search,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbContactRequest } from '../../types/database';
 
@@ -10,10 +18,22 @@ const statusOptions = [
   { value: 'arquivado', label: 'Arquivado' },
 ];
 
+const statusFilterOptions = [
+  { value: 'all', label: 'Todos' },
+  { value: 'novo', label: 'Novo' },
+  { value: 'em_tratamento', label: 'Em tratamento' },
+  { value: 'respondido', label: 'Respondido' },
+  { value: 'arquivado', label: 'Arquivados' },
+];
+
+const pageSizeOptions = [10, 25, 50];
+
+type StatusFilter = 'all' | 'novo' | 'em_tratamento' | 'respondido' | 'arquivado';
+
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('pt-PT', {
     day: '2-digit',
-    month: 'short',
+    month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
@@ -25,11 +45,43 @@ function formatStatus(status: string) {
   return foundStatus?.label ?? status;
 }
 
+function getStatusClass(status: string) {
+  if (status === 'arquivado') {
+    return 'border-slate-200 bg-slate-100 text-slate-700';
+  }
+
+  if (status === 'respondido') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  }
+
+  if (status === 'em_tratamento') {
+    return 'border-amber-200 bg-amber-50 text-amber-700';
+  }
+
+  return 'border-red-200 bg-red-50 text-red-700';
+}
+
+function getVisibleRange(total: number, page: number, pageSize: number) {
+  if (total === 0) {
+    return { start: 0, end: 0 };
+  }
+
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+
+  return { start, end };
+}
+
 export function AdminContactsPage() {
   const [contacts, setContacts] = useState<GdrbContactRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedContactId, setExpandedContactId] = useState<string | null>(null);
 
   async function loadContacts() {
     setIsLoading(true);
@@ -55,6 +107,54 @@ export function AdminContactsPage() {
     loadContacts();
   }, []);
 
+  const filteredContacts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return contacts.filter((contact) => {
+      const matchesStatus =
+        statusFilter === 'all'
+          ? contact.status !== 'arquivado'
+          : contact.status === statusFilter;
+
+      if (!matchesStatus) return false;
+
+      if (!normalizedSearch) return true;
+
+      return [contact.name, contact.email, contact.subject, contact.message]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedSearch));
+    });
+  }, [contacts, searchTerm, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredContacts.length / pageSize));
+
+  const paginatedContacts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredContacts.slice(start, start + pageSize);
+  }, [currentPage, filteredContacts, pageSize]);
+
+  const stats = useMemo(() => {
+    return {
+      totalActive: contacts.filter((contact) => contact.status !== 'arquivado').length,
+      newContacts: contacts.filter((contact) => contact.status === 'novo').length,
+      inProgress: contacts.filter((contact) => contact.status === 'em_tratamento').length,
+      archived: contacts.filter((contact) => contact.status === 'arquivado').length,
+    };
+  }, [contacts]);
+
+  const { start, end } = getVisibleRange(filteredContacts.length, currentPage, pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setExpandedContactId(null);
+  }, [searchTerm, statusFilter, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   async function handleStatusChange(id: string, status: string) {
     setSuccessMessage('');
     setErrorMessage('');
@@ -72,6 +172,14 @@ export function AdminContactsPage() {
 
     setSuccessMessage('Estado do contacto atualizado com sucesso.');
     await loadContacts();
+  }
+
+  async function archiveContact(contact: GdrbContactRequest) {
+    await handleStatusChange(contact.id, 'arquivado');
+  }
+
+  async function reactivateContact(contact: GdrbContactRequest) {
+    await handleStatusChange(contact.id, 'novo');
   }
 
   return (
@@ -118,11 +226,88 @@ export function AdminContactsPage() {
         </div>
       )}
 
+      <section className="mt-8 grid gap-4 md:grid-cols-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">
+            Ativos
+          </p>
+          <p className="mt-3 text-3xl font-black text-zinc-900">{stats.totalActive}</p>
+        </div>
+
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-red-600">
+            Novos
+          </p>
+          <p className="mt-3 text-3xl font-black text-red-700">{stats.newContacts}</p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">
+            Em tratamento
+          </p>
+          <p className="mt-3 text-3xl font-black text-amber-700">{stats.inProgress}</p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+            Arquivados
+          </p>
+          <p className="mt-3 text-3xl font-black text-slate-700">{stats.archived}</p>
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[1fr_220px_160px_auto] lg:items-center">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Pesquisar por nome, email, assunto ou mensagem..."
+              className="w-full rounded-xl border border-zinc-200 bg-white py-3 pl-12 pr-4 text-sm outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+            />
+          </label>
+
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+          >
+            {statusFilterOptions.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={pageSize}
+            onChange={(event) => setPageSize(Number(event.target.value))}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+          >
+            {pageSizeOptions.map((size) => (
+              <option key={size} value={size}>
+                {size} por página
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={loadContacts}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-50"
+          >
+            <RefreshCcw size={16} />
+            Atualizar
+          </button>
+        </div>
+      </section>
+
       {isLoading ? (
         <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
           A carregar contactos...
         </div>
-      ) : contacts.length === 0 ? (
+      ) : filteredContacts.length === 0 ? (
         <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
             <MessageCircle size={28} />
@@ -133,78 +318,168 @@ export function AdminContactsPage() {
           </h2>
 
           <p className="mt-3 text-zinc-500">
-            Ainda não existem mensagens recebidas.
+            Não existem mensagens para os filtros selecionados.
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid gap-5">
-          {contacts.map((contact) => (
-            <article
-              key={contact.id}
-              className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm"
-            >
-              <div className="h-1.5 bg-red-700" />
+        <section className="mt-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-zinc-200">
+              <thead className="bg-zinc-50">
+                <tr>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Contacto
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Assunto
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Estado
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Data
+                  </th>
+                  <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
 
-              <div className="grid gap-6 p-7 lg:grid-cols-[1fr_auto] lg:items-start">
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                      {formatStatus(contact.status)}
-                    </span>
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {paginatedContacts.map((contact) => {
+                  const isExpanded = expandedContactId === contact.id;
 
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                      {formatDate(contact.created_at)}
-                    </span>
-                  </div>
+                  return (
+                    <tr key={contact.id} className="align-top transition hover:bg-zinc-50/80">
+                      <td className="px-5 py-5">
+                        <div className="font-black text-zinc-900">{contact.name}</div>
+                        {contact.email && (
+                          <a
+                            href={`mailto:${contact.email}`}
+                            className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-red-700 hover:text-red-900"
+                          >
+                            <Mail size={15} />
+                            {contact.email}
+                          </a>
+                        )}
+                      </td>
 
-                  <h3 className="mt-6 font-serif text-4xl font-light text-[#24180f]">
-                    {contact.name}
-                  </h3>
+                      <td className="px-5 py-5 text-sm text-zinc-700">
+                        <div className="max-w-xs font-semibold text-zinc-900">
+                          {contact.subject || 'Sem assunto'}
+                        </div>
 
-                  {contact.subject && (
-                    <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-red-700">
-                      {contact.subject}
-                    </p>
-                  )}
+                        {isExpanded && (
+                          <div className="mt-4 max-w-xl rounded-xl bg-[#f6f2ec] p-4 text-sm leading-7 text-zinc-600">
+                            {contact.message}
+                          </div>
+                        )}
+                      </td>
 
-                  {contact.email && (
-                    <a
-                      href={`mailto:${contact.email}`}
-                      className="mt-5 flex items-center gap-3 text-sm text-zinc-600 hover:text-red-700"
-                    >
-                      <Mail size={17} className="text-red-700" />
-                      {contact.email}
-                    </a>
-                  )}
+                      <td className="px-5 py-5">
+                        <span
+                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${getStatusClass(
+                            contact.status,
+                          )}`}
+                        >
+                          {formatStatus(contact.status)}
+                        </span>
 
-                  <p className="mt-5 rounded-sm bg-[#f6f2ec] px-4 py-3 text-sm leading-7 text-zinc-600">
-                    {contact.message}
-                  </p>
-                </div>
+                        <select
+                          value={contact.status}
+                          onChange={(event) =>
+                            handleStatusChange(contact.id, event.target.value)
+                          }
+                          className="mt-3 block w-full min-w-[180px] rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                        >
+                          {statusOptions.map((status) => (
+                            <option key={status.value} value={status.value}>
+                              {status.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
 
-                <div className="lg:min-w-[240px]">
-                  <label className="text-sm font-black text-zinc-800">
-                    Estado da mensagem
-                  </label>
+                      <td className="px-5 py-5 text-sm font-semibold text-zinc-600">
+                        {formatDate(contact.created_at)}
+                      </td>
 
-                  <select
-                    value={contact.status}
-                    onChange={(event) =>
-                      handleStatusChange(contact.id, event.target.value)
-                    }
-                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
-                  >
-                    {statusOptions.map((status) => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+                      <td className="px-5 py-5">
+                        <div className="flex flex-col items-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedContactId(isExpanded ? null : contact.id)
+                            }
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                          >
+                            Detalhes
+                            <ChevronDown
+                              size={14}
+                              className={`transition ${isExpanded ? 'rotate-180' : ''}`}
+                            />
+                          </button>
+
+                          {contact.status === 'arquivado' ? (
+                            <button
+                              type="button"
+                              onClick={() => reactivateContact(contact)}
+                              className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-black text-white transition hover:bg-red-700"
+                            >
+                              <RotateCcw size={14} />
+                              Reativar
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => archiveContact(contact)}
+                              className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-black text-white transition hover:bg-zinc-800"
+                            >
+                              <Archive size={14} />
+                              Arquivar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-zinc-200 bg-zinc-50 px-5 py-4 text-sm font-semibold text-zinc-600 md:flex-row md:items-center md:justify-between">
+            <span>
+              A mostrar {start}-{end} de {filteredContacts.length} contacto(s)
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Anterior
+              </button>
+
+              <span className="px-2 text-xs font-black uppercase tracking-[0.12em] text-zinc-400">
+                Página {currentPage} de {totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((page) => Math.min(totalPages, page + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Seguinte
+              </button>
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );
