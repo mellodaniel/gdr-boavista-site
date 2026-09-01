@@ -5,6 +5,7 @@ import {
   ChevronDown,
   CheckCircle2,
   Copy,
+  Filter,
   Mail,
   RefreshCw,
   Search,
@@ -351,6 +352,7 @@ export function AdminCommunicationsPage() {
   const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | CommunicationKind>('all');
   const [historyDateFrom, setHistoryDateFrom] = useState('');
   const [historyDateTo, setHistoryDateTo] = useState('');
+  const [showHistoryMobileFilters, setShowHistoryMobileFilters] = useState(false);
   const [expandedCommunicationId, setExpandedCommunicationId] = useState<string | null>(null);
   const [recipientSearchTerm, setRecipientSearchTerm] = useState('');
 
@@ -909,13 +911,13 @@ export function AdminCommunicationsPage() {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#21150f] via-[#3b120f] to-[#8b1d1d] p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#21150f] via-[#3b120f] to-[#8b1d1d] p-5 text-white shadow-xl md:p-8">
         <div className="max-w-3xl">
           <p className="mb-4 text-xs font-black uppercase tracking-[0.35em] text-red-200">
             Administração
           </p>
-          <h1 className="font-serif text-5xl font-bold">Comunicações.</h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-white/80">
+          <h1 className="font-serif text-4xl font-bold md:text-5xl">Comunicações.</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/80 md:mt-5 md:text-base">
             Cria newsletters, comunicações por escalão e mensagens oficiais para contactos segmentados do GDR Boavista.
           </p>
         </div>
@@ -933,22 +935,22 @@ export function AdminCommunicationsPage() {
         </div>
       )}
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Total</p>
-          <p className="mt-3 text-3xl font-black text-zinc-900">{stats.total}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-zinc-900">{stats.total}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Rascunhos</p>
-          <p className="mt-3 text-3xl font-black text-slate-700">{stats.drafts}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-slate-700">{stats.drafts}</p>
         </div>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">Prontas</p>
-          <p className="mt-3 text-3xl font-black text-amber-700">{stats.ready}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-amber-700">{stats.ready}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Enviadas</p>
-          <p className="mt-3 text-3xl font-black text-emerald-700">{stats.sent}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-emerald-700">{stats.sent}</p>
         </div>
       </section>
 
@@ -958,13 +960,22 @@ export function AdminCommunicationsPage() {
             <div>
               <p className="text-xs font-black uppercase tracking-[0.24em] text-red-600">Histórico</p>
               <h2 className="mt-1 font-serif text-3xl font-bold text-zinc-900">Comunicações</h2>
-              <p className="mt-2 text-sm text-zinc-500">
-                Lista compacta com pesquisa, filtros e detalhes recolhidos. Comunicações arquivadas ficam apenas no filtro “Arquivadas”.
-              </p>
             </div>
           </div>
 
-          <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_170px_190px_150px_150px]">
+          <button
+            type="button"
+            onClick={() => setShowHistoryMobileFilters((value) => !value)}
+            className="mb-4 flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-800 md:hidden"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Filtros e pesquisa
+            </span>
+            <ChevronDown className={`h-4 w-4 transition ${showHistoryMobileFilters ? 'rotate-180' : ''}`} />
+          </button>
+
+          <div className={`${showHistoryMobileFilters ? 'mb-4 grid' : 'hidden'} gap-3 md:mb-4 md:grid lg:grid-cols-[1fr_170px_190px_150px_150px]`}>
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <input
@@ -1051,7 +1062,7 @@ export function AdminCommunicationsPage() {
                       key={communication.id}
                       className={selectedCommunicationId === communication.id ? 'bg-red-50/40' : 'bg-white'}
                     >
-                      <div className="grid gap-4 px-5 py-4 xl:grid-cols-[1.4fr_1fr_0.65fr_0.8fr_1.15fr] xl:items-center">
+                      <div className="grid gap-3 px-4 py-4 xl:grid-cols-[1.4fr_1fr_0.65fr_0.8fr_1.15fr] xl:items-center xl:px-5">
                         <div>
                           <h3 className="font-black text-zinc-900">{communication.title}</h3>
                           <p className="mt-1 text-sm text-zinc-500">{communication.subject || 'Sem assunto'}</p>
@@ -1080,11 +1091,11 @@ export function AdminCommunicationsPage() {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-start xl:justify-end">
                           <button
                             type="button"
                             onClick={() => editCommunication(communication)}
-                            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                            className="rounded-lg border border-zinc-200 bg-white px-3 py-3 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 sm:py-2"
                           >
                             Editar
                           </button>
@@ -1092,7 +1103,7 @@ export function AdminCommunicationsPage() {
                           <button
                             type="button"
                             onClick={() => setExpandedCommunicationId(isExpanded ? null : communication.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-3 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 sm:py-2"
                           >
                             Detalhes
                             <ChevronDown className={`h-3.5 w-3.5 transition ${isExpanded ? 'rotate-180' : ''}`} />
@@ -1101,7 +1112,7 @@ export function AdminCommunicationsPage() {
                           <button
                             type="button"
                             onClick={() => duplicateCommunication(communication)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-3 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 sm:py-2"
                           >
                             <Copy className="h-3.5 w-3.5" />
                             Duplicar
@@ -1111,7 +1122,7 @@ export function AdminCommunicationsPage() {
                             <button
                               type="button"
                               onClick={() => archiveCommunication(communication)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-black text-white transition hover:bg-zinc-700"
+                              className="inline-flex items-center justify-center gap-1 rounded-lg bg-zinc-900 px-3 py-3 text-xs font-black text-white transition hover:bg-zinc-700 sm:py-2"
                             >
                               <Archive className="h-3.5 w-3.5" />
                               Arquivar

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Edit3,
+  Filter,
   Mail,
   RefreshCw,
   Search,
@@ -174,6 +176,7 @@ export function AdminSubscribersPage() {
   const [editingSubscriber, setEditingSubscriber] = useState<Subscriber | null>(null);
   const [editForm, setEditForm] = useState<EditForm>(emptyEditForm);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   async function loadSubscribers() {
     setLoading(true);
@@ -489,13 +492,13 @@ export function AdminSubscribersPage() {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#21150f] via-[#3b120f] to-[#8b1d1d] p-8 text-white shadow-xl">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#21150f] via-[#3b120f] to-[#8b1d1d] p-5 text-white shadow-xl md:p-8">
         <div className="max-w-3xl">
           <p className="mb-4 text-xs font-black uppercase tracking-[0.35em] text-red-200">
             Administração
           </p>
-          <h1 className="font-serif text-5xl font-bold">Subscritores.</h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-white/80">
+          <h1 className="font-serif text-4xl font-bold md:text-5xl">Subscritores.</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/80 md:mt-5 md:text-base">
             Gere contactos de newsletter, pais, encarregados, atletas, sócios, parceiros e comunicações do clube.
           </p>
         </div>
@@ -513,31 +516,43 @@ export function AdminSubscribersPage() {
         </div>
       )}
 
-      <section className="grid gap-4 md:grid-cols-5">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Total</p>
-          <p className="mt-3 text-3xl font-black text-zinc-900">{stats.total}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-zinc-900">{stats.total}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Elegíveis</p>
-          <p className="mt-3 text-3xl font-black text-emerald-700">{stats.active}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-emerald-700">{stats.active}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Cancelados</p>
-          <p className="mt-3 text-3xl font-black text-slate-700">{stats.cancelled}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-slate-700">{stats.cancelled}</p>
         </div>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">Sem consent.</p>
-          <p className="mt-3 text-3xl font-black text-amber-700">{stats.noConsent}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-amber-700">{stats.noConsent}</p>
         </div>
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Importados</p>
-          <p className="mt-3 text-3xl font-black text-blue-700">{stats.imported}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-blue-700">{stats.imported}</p>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 xl:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-5">
+        <button
+          type="button"
+          onClick={() => setShowMobileFilters((value) => !value)}
+          className="flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-800 md:hidden"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Filtros e pesquisa
+          </span>
+          <ChevronDown className={`h-4 w-4 transition ${showMobileFilters ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className={`${showMobileFilters ? 'mt-4 grid' : 'hidden'} gap-4 md:grid xl:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]`}>
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <input
@@ -644,7 +659,72 @@ export function AdminSubscribersPage() {
             <p className="mt-2 text-sm text-zinc-500">Altera os filtros ou aguarda novas subscrições pelo site.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-zinc-100 xl:hidden">
+            {paginatedSubscribers.map((subscriber) => (
+              <article key={subscriber.id} className="bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-black text-zinc-900">{subscriber.name || 'Sem nome'}</p>
+                    {subscriber.email && (
+                      <a href={`mailto:${subscriber.email}`} className="mt-1 flex max-w-full items-center gap-2 truncate text-sm font-semibold text-red-700">
+                        <Mail className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{subscriber.email}</span>
+                      </a>
+                    )}
+                    {subscriber.phone && <p className="mt-1 text-sm text-zinc-500">{subscriber.phone}</p>}
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${statusClass(subscriber)}`}>
+                    {statusLabel(subscriber)}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-600">
+                    {contactTypeLabels[subscriber.contact_type || ''] || subscriber.contact_type || '—'}
+                  </span>
+                  {subscriber.groups.slice(0, 3).map((group) => (
+                    <span key={group.slug} className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-600">
+                      {group.name}
+                    </span>
+                  ))}
+                  {subscriber.groups.length > 3 && (
+                    <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-600">+{subscriber.groups.length - 3}</span>
+                  )}
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-zinc-500">
+                  <div>Origem: {sourceLabels[subscriber.source] || subscriber.source || '—'}</div>
+                  <div>Criação: {formatDate(subscriber.created_at)}</div>
+                  {subscriber.athlete_name && <div className="col-span-2">Atleta: {subscriber.athlete_name}</div>}
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(subscriber)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-3 text-xs font-black text-zinc-700"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleActive(subscriber)}
+                    className={`rounded-lg px-3 py-3 text-xs font-black ${
+                      subscriber.is_active && !subscriber.unsubscribed_at
+                        ? 'bg-zinc-900 text-white'
+                        : 'bg-red-600 text-white'
+                    }`}
+                  >
+                    {subscriber.is_active && !subscriber.unsubscribed_at ? 'Inativar' : 'Reativar'}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto xl:block">
             <table className="min-w-full divide-y divide-zinc-200">
               <thead className="bg-zinc-50">
                 <tr>
@@ -746,6 +826,7 @@ export function AdminSubscribersPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {filteredSubscribers.length > 0 && (

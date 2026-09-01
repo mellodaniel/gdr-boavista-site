@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
+  Filter,
   ChevronDown,
   Mail,
   MessageCircle,
@@ -82,6 +83,7 @@ export function AdminContactsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedContactId, setExpandedContactId] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   async function loadContacts() {
     setIsLoading(true);
@@ -184,7 +186,7 @@ export function AdminContactsPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
+      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-5 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
         <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -193,11 +195,11 @@ export function AdminContactsPage() {
               Administração
             </p>
 
-            <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
+            <h1 className="mt-4 font-serif text-4xl font-light leading-tight md:mt-6 md:text-7xl">
               Contactos.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 md:mt-6 md:text-base md:leading-8">
               Gere as mensagens recebidas através do formulário público de
               contacto.
             </p>
@@ -226,38 +228,50 @@ export function AdminContactsPage() {
         </div>
       )}
 
-      <section className="mt-8 grid gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="mt-6 grid grid-cols-2 gap-3 md:mt-8 md:grid-cols-4 md:gap-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">
             Ativos
           </p>
-          <p className="mt-3 text-3xl font-black text-zinc-900">{stats.totalActive}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-zinc-900">{stats.totalActive}</p>
         </div>
 
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-red-600">
             Novos
           </p>
-          <p className="mt-3 text-3xl font-black text-red-700">{stats.newContacts}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-red-700">{stats.newContacts}</p>
         </div>
 
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">
             Em tratamento
           </p>
-          <p className="mt-3 text-3xl font-black text-amber-700">{stats.inProgress}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-amber-700">{stats.inProgress}</p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
             Arquivados
           </p>
-          <p className="mt-3 text-3xl font-black text-slate-700">{stats.archived}</p>
+          <p className="mt-2 text-2xl font-black md:mt-3 md:text-3xl text-slate-700">{stats.archived}</p>
         </div>
       </section>
 
-      <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_160px_auto] lg:items-center">
+      <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:mt-8 md:p-5">
+        <button
+          type="button"
+          onClick={() => setShowMobileFilters((value) => !value)}
+          className="flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-800 md:hidden"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Filter size={16} />
+            Filtros e pesquisa
+          </span>
+          <ChevronDown size={16} className={`transition ${showMobileFilters ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className={`${showMobileFilters ? 'mt-4 grid' : 'hidden'} gap-3 md:grid lg:grid-cols-[1fr_220px_160px_auto] lg:items-center`}>
           <label className="relative block">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <input
@@ -323,7 +337,65 @@ export function AdminContactsPage() {
         </div>
       ) : (
         <section className="mt-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-zinc-100 md:hidden">
+            {paginatedContacts.map((contact) => {
+              const isExpanded = expandedContactId === contact.id;
+
+              return (
+                <article key={contact.id} className="bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-black text-zinc-900">{contact.name}</p>
+                      <p className="mt-1 line-clamp-1 text-sm font-semibold text-zinc-700">
+                        {contact.subject || 'Sem assunto'}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-zinc-400">{formatDate(contact.created_at)}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${getStatusClass(contact.status)}`}>
+                      {formatStatus(contact.status)}
+                    </span>
+                  </div>
+
+                  {contact.email && (
+                    <a href={`mailto:${contact.email}`} className="mt-3 inline-flex max-w-full items-center gap-2 truncate text-sm font-semibold text-red-700">
+                      <Mail size={14} />
+                      {contact.email}
+                    </a>
+                  )}
+
+                  {isExpanded && (
+                    <div className="mt-4 rounded-xl bg-[#f6f2ec] p-4 text-sm leading-7 text-zinc-600">
+                      {contact.message}
+                    </div>
+                  )}
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedContactId(isExpanded ? null : contact.id)}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-3 text-xs font-black text-zinc-700"
+                    >
+                      Detalhes
+                      <ChevronDown size={14} className={`transition ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    {contact.status === 'arquivado' ? (
+                      <button type="button" onClick={() => reactivateContact(contact)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-3 text-xs font-black text-white">
+                        <RotateCcw size={14} />
+                        Reativar
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => archiveContact(contact)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3 py-3 text-xs font-black text-white">
+                        <Archive size={14} />
+                        Arquivar
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-zinc-200">
               <thead className="bg-zinc-50">
                 <tr>
