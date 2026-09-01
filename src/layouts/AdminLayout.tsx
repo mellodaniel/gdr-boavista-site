@@ -7,6 +7,7 @@ import {
   LineChart,
   Image,
   LogOut,
+  Menu,
   Mail,
   MessageCircle,
   Newspaper,
@@ -14,6 +15,7 @@ import {
   ShoppingBag,
   Trophy,
   Users,
+  X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -129,6 +131,7 @@ export function AdminLayout() {
   const [resultAccess, setResultAccess] = useState<ResultAccess | null>(null);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
   const [openAdminGroups, setOpenAdminGroups] = useState<string[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -190,6 +193,10 @@ export function AdminLayout() {
       return [...currentGroups, activeAdminGroupId];
     });
   }, [activeAdminGroupId]);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   function toggleAdminGroup(groupId: string) {
     setOpenAdminGroups((currentGroups) =>
@@ -380,20 +387,36 @@ export function AdminLayout() {
 
       <div className="lg:pl-80">
         <header className="sticky top-0 z-30 border-b border-zinc-200 bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl">
-          <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 lg:px-8">
-            <Link to={homePath} className="flex items-center gap-3 lg:hidden">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
-                <img
-                  src="/logo-gdr-boavista-header-256.png"
-                  alt="GDR Boavista"
-                  className="h-full w-full object-contain"
-                />
-              </div>
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:h-20 lg:px-8">
+            <div className="flex items-center gap-3 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#24180f] text-white shadow-sm transition active:scale-95"
+                aria-label="Abrir menu de administração"
+              >
+                <Menu size={21} />
+              </button>
 
-              <p className="text-lg font-black uppercase text-[#24180f]">
-                GDR Boavista
-              </p>
-            </Link>
+              <Link to={homePath} className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
+                  <img
+                    src="/logo-gdr-boavista-header-256.png"
+                    alt="GDR Boavista"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-black uppercase leading-none text-[#24180f]">
+                    GDR Boavista
+                  </p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-700">
+                    Admin
+                  </p>
+                </div>
+              </Link>
+            </div>
 
             <div className="hidden lg:block">
               <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-700">
@@ -416,48 +439,190 @@ export function AdminLayout() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-[#24180f]"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-red-700 px-3 text-sm font-bold text-white transition hover:bg-[#24180f] lg:px-4"
               >
                 <LogOut size={16} />
-                Sair
+                <span className="hidden sm:inline">Sair</span>
               </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto border-t border-zinc-200 px-4 py-3 lg:hidden">
-            <nav className="flex min-w-max gap-2">
-              {isLoadingPermissions && (
-                <div className="rounded-full bg-white px-4 py-2 text-sm font-bold text-zinc-500">
-                  A carregar permissões...
-                </div>
-              )}
+          {isMobileMenuOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <button
+                type="button"
+                aria-label="Fechar menu"
+                className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
 
-              {adminNavigation.map((item) => {
-                const Icon = item.icon;
+              <div className="absolute inset-y-0 left-0 flex w-[88vw] max-w-sm flex-col bg-[#24180f] text-white shadow-2xl">
+                <div className="flex items-center justify-between border-b border-white/10 p-5">
+                  <Link to={homePath} className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-2">
+                      <img
+                        src="/logo-gdr-boavista-header-256.png"
+                        alt="GDR Boavista"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
 
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === '/admin'}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ${
-                        isActive
-                          ? 'bg-[#24180f] text-white'
-                          : 'bg-white text-zinc-700'
-                      }`
-                    }
+                    <div>
+                      <p className="text-base font-black uppercase leading-none">GDR Boavista</p>
+                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-red-400">
+                        Administração
+                      </p>
+                    </div>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition active:scale-95"
+                    aria-label="Fechar menu de administração"
                   >
-                    <Icon size={16} />
-                    {item.label}
-                  </NavLink>
-                );
-              })}
-            </nav>
-          </div>
-        </header>
+                    <X size={20} />
+                  </button>
+                </div>
 
-        <main className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+                <nav className="flex-1 overflow-y-auto p-4">
+                  {isLoadingPermissions && (
+                    <div className="rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-zinc-400">
+                      A carregar permissões...
+                    </div>
+                  )}
+
+                  {!isLoadingPermissions && !isResultsUser && !isTournamentManager && (
+                    <div className="grid gap-3">
+                      <div className="grid gap-2">
+                        {topAdminNavigation.map((item) => {
+                          const Icon = item.icon;
+
+                          return (
+                            <NavLink
+                              key={item.path}
+                              to={item.path}
+                              end={item.path === '/admin'}
+                              className={({ isActive }) =>
+                                `flex min-h-12 items-center gap-3 rounded-2xl px-4 text-sm font-black transition ${
+                                  isActive
+                                    ? 'bg-red-700 text-white shadow-lg shadow-red-950/20'
+                                    : 'bg-white/5 text-zinc-200 active:bg-white/10'
+                                }`
+                              }
+                            >
+                              <Icon size={18} />
+                              {item.label}
+                            </NavLink>
+                          );
+                        })}
+                      </div>
+
+                      {adminNavigationGroups.map((group) => {
+                        const GroupIcon = group.icon;
+                        const isOpen = openAdminGroups.includes(group.id);
+                        const isActiveGroup = activeAdminGroupId === group.id;
+
+                        return (
+                          <section key={group.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleAdminGroup(group.id)}
+                              className={`flex min-h-12 w-full items-center justify-between rounded-xl px-3 text-sm font-black uppercase tracking-[0.14em] transition ${
+                                isActiveGroup ? 'bg-white/10 text-white' : 'text-zinc-300 active:bg-white/10'
+                              }`}
+                            >
+                              <span className="flex items-center gap-3">
+                                <GroupIcon size={17} />
+                                {group.label}
+                              </span>
+
+                              <ChevronDown
+                                size={17}
+                                className={`transition ${isOpen ? 'rotate-180' : ''}`}
+                              />
+                            </button>
+
+                            {isOpen && (
+                              <div className="mt-2 grid gap-1.5 border-l border-white/10 pl-2">
+                                {group.items.map((item) => {
+                                  const Icon = item.icon;
+
+                                  return (
+                                    <NavLink
+                                      key={item.path}
+                                      to={item.path}
+                                      end={item.path === '/admin' || item.path === '/admin/equipas'}
+                                      className={({ isActive }) =>
+                                        `flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${
+                                          isActive
+                                            ? 'bg-red-700 text-white shadow-lg shadow-red-950/20'
+                                            : 'text-zinc-300 active:bg-white/10'
+                                        }`
+                                      }
+                                    >
+                                      <Icon size={16} />
+                                      {item.label}
+                                    </NavLink>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </section>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {!isLoadingPermissions && (isResultsUser || isTournamentManager) && (
+                    <div className="grid gap-2">
+                      {adminNavigation.map((item) => {
+                        const Icon = item.icon;
+
+                        return (
+                          <NavLink
+                            key={item.path}
+                            to={item.path}
+                            end={item.path === '/admin'}
+                            className={({ isActive }) =>
+                              `flex min-h-12 items-center gap-3 rounded-2xl px-4 text-sm font-black transition ${
+                                isActive
+                                  ? 'bg-red-700 text-white shadow-lg shadow-red-950/20'
+                                  : 'bg-white/5 text-zinc-200 active:bg-white/10'
+                              }`
+                            }
+                          >
+                            <Icon size={18} />
+                            {item.label}
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </nav>
+
+                <div className="border-t border-white/10 p-4">
+                  <Link
+                    to="/"
+                    className="mb-3 flex min-h-11 items-center justify-center rounded-xl border border-white/10 px-4 text-sm font-bold text-zinc-300 transition active:bg-white/10"
+                  >
+                    Ver site público
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-black uppercase tracking-wide text-[#24180f] transition active:scale-[0.99]"
+                  >
+                    <LogOut size={17} />
+                    Sair
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}       </header>
+
+        <main className="mx-auto max-w-7xl px-3 py-5 sm:px-4 lg:px-8 lg:py-10">
           <Outlet />
         </main>
       </div>
