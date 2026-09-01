@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Edit3,
   Mail,
   RefreshCw,
@@ -10,14 +12,28 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
+type SubscriberGroup = {
+  id: string;
+  name: string;
+  slug: string;
+  group_type: string;
+  birth_years: string | null;
+};
+
 type Subscriber = {
   id: string;
   name: string | null;
   email: string | null;
   phone: string | null;
   source: string;
+  contact_type: string | null;
+  communication_scope: string | null;
+  relationship: string | null;
+  athlete_name: string | null;
   consent_email: boolean;
   consent_email_at: string | null;
+  consent_email_newsletter?: boolean | null;
+  consent_email_club?: boolean | null;
   consent_whatsapp: boolean;
   consent_whatsapp_at: string | null;
   is_active: boolean;
@@ -30,15 +46,20 @@ type Subscriber = {
   privacy_policy_accepted: boolean;
   privacy_policy_accepted_at: string | null;
   last_email_sent_at: string | null;
+  groups: SubscriberGroup[];
 };
 
-type StatusFilter = 'all' | 'active' | 'inactive' | 'cancelled' | 'no-consent';
+type StatusFilter = 'all' | 'active' | 'inactive' | 'cancelled' | 'no-consent' | 'eligible';
 
 type EditForm = {
   name: string;
   email: string;
   phone: string;
   source: string;
+  contact_type: string;
+  communication_scope: string;
+  relationship: string;
+  athlete_name: string;
   notes: string;
   is_active: boolean;
   consent_email: boolean;
@@ -51,6 +72,28 @@ const sourceLabels: Record<string, string> = {
   importacao: 'Importação',
   contacto: 'Contacto',
   socio: 'Sócio',
+  outro: 'Outro',
+};
+
+const contactTypeLabels: Record<string, string> = {
+  newsletter: 'Newsletter',
+  encarregado: 'Encarregado',
+  atleta: 'Atleta',
+  treinador: 'Treinador',
+  direcao: 'Direção',
+  socio: 'Sócio',
+  parceiro: 'Parceiro',
+  staff: 'Staff',
+  outro: 'Outro',
+};
+
+const scopeLabels: Record<string, string> = {
+  newsletter: 'Newsletter',
+  escalao: 'Escalão',
+  interno: 'Interno',
+  socios: 'Sócios',
+  parceiros: 'Parceiros',
+  geral: 'Geral',
   outro: 'Outro',
 };
 
@@ -93,23 +136,43 @@ function statusClass(subscriber: Subscriber) {
   return 'bg-emerald-50 text-emerald-700 border-emerald-200';
 }
 
+function isEligibleForEmail(subscriber: Subscriber) {
+  return Boolean(
+    subscriber.email &&
+      subscriber.is_active &&
+      subscriber.consent_email &&
+      !subscriber.unsubscribed_at,
+  );
+}
+
+const emptyEditForm: EditForm = {
+  name: '',
+  email: '',
+  phone: '',
+  source: 'admin',
+  contact_type: 'newsletter',
+  communication_scope: 'newsletter',
+  relationship: '',
+  athlete_name: '',
+  notes: '',
+  is_active: true,
+  consent_email: false,
+  consent_whatsapp: false,
+};
+
 export function AdminSubscribersPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [groupFilter, setGroupFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [editingSubscriber, setEditingSubscriber] = useState<Subscriber | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>({
-    name: '',
-    email: '',
-    phone: '',
-    source: 'admin',
-    notes: '',
-    is_active: true,
-    consent_email: false,
-    consent_whatsapp: false,
-  });
+  const [editForm, setEditForm] = useState<EditForm>(emptyEditForm);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   async function loadSubscribers() {
@@ -125,8 +188,14 @@ export function AdminSubscribersPage() {
         email,
         phone,
         source,
+        contact_type,
+        communication_scope,
+        relationship,
+        athlete_name,
         consent_email,
         consent_email_at,
+        consent_email_newsletter,
+        consent_email_club,
         consent_whatsapp,
         consent_whatsapp_at,
         is_active,
@@ -150,9 +219,53 @@ export function AdminSubscribersPage() {
         text: 'Não foi possível carregar os subscritores.',
       });
       setSubscribers([]);
-    } else {
-      setSubscribers((data || []) as Subscriber[]);
+      setLoading(false);
+      return;
     }
+
+    const subscriberRows = (data || []) as Omit<Subscriber, 'groups'>[];
+    const subscriberIds = subscriberRows.map((subscriber) => subscriber.id);
+    const groupsBySubscriber = new Map<string, SubscriberGroup[]>();
+
+    if (subscriberIds.length > 0) {
+      const { data: groupLinks, error: groupError } = await supabase
+        .from('gdrb_subscriber_groups')
+        .select(
+          `
+          subscriber_id,
+          group:gdrb_communication_groups (
+            id,
+            name,
+            slug,
+            group_type,
+            birth_years
+          )
+        `,
+        )
+        .in('subscriber_id', subscriberIds);
+
+      if (groupError) {
+        console.warn('Não foi possível carregar grupos dos subscritores.', groupError);
+      } else {
+        (groupLinks || []).forEach((link: any) => {
+          const group = Array.isArray(link.group) ? link.group[0] : link.group;
+          if (!group) return;
+
+          const currentGroups = groupsBySubscriber.get(link.subscriber_id) || [];
+          currentGroups.push(group as SubscriberGroup);
+          groupsBySubscriber.set(link.subscriber_id, currentGroups);
+        });
+      }
+    }
+
+    setSubscribers(
+      subscriberRows.map((subscriber) => ({
+        ...subscriber,
+        contact_type: subscriber.contact_type || 'newsletter',
+        communication_scope: subscriber.communication_scope || 'newsletter',
+        groups: groupsBySubscriber.get(subscriber.id) || [],
+      })),
+    );
 
     setLoading(false);
   }
@@ -161,51 +274,67 @@ export function AdminSubscribersPage() {
     loadSubscribers();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, typeFilter, groupFilter, sourceFilter, pageSize]);
+
+  const groups = useMemo(() => {
+    const map = new Map<string, SubscriberGroup>();
+    subscribers.forEach((subscriber) => {
+      subscriber.groups.forEach((group) => map.set(group.slug, group));
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-PT'));
+  }, [subscribers]);
+
   const stats = useMemo(() => {
     const total = subscribers.length;
-    const active = subscribers.filter(
-      (subscriber) =>
-        subscriber.is_active &&
-        subscriber.consent_email &&
-        !subscriber.unsubscribed_at,
-    ).length;
+    const active = subscribers.filter((subscriber) => isEligibleForEmail(subscriber)).length;
     const cancelled = subscribers.filter((subscriber) => subscriber.unsubscribed_at).length;
     const noConsent = subscribers.filter((subscriber) => !subscriber.consent_email).length;
+    const imported = subscribers.filter((subscriber) => subscriber.source === 'importacao').length;
 
-    return {
-      total,
-      active,
-      cancelled,
-      noConsent,
-    };
+    return { total, active, cancelled, noConsent, imported };
   }, [subscribers]);
 
   const filteredSubscribers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
 
     return subscribers.filter((subscriber) => {
+      const groupNames = subscriber.groups.map((group) => group.name.toLowerCase()).join(' ');
       const matchesSearch =
         !term ||
         subscriber.name?.toLowerCase().includes(term) ||
         subscriber.email?.toLowerCase().includes(term) ||
         subscriber.phone?.toLowerCase().includes(term) ||
-        subscriber.source?.toLowerCase().includes(term);
+        subscriber.source?.toLowerCase().includes(term) ||
+        subscriber.contact_type?.toLowerCase().includes(term) ||
+        subscriber.communication_scope?.toLowerCase().includes(term) ||
+        subscriber.relationship?.toLowerCase().includes(term) ||
+        subscriber.athlete_name?.toLowerCase().includes(term) ||
+        groupNames.includes(term);
 
       const matchesStatus =
         statusFilter === 'all' ||
-        (statusFilter === 'active' &&
-          subscriber.is_active &&
-          subscriber.consent_email &&
-          !subscriber.unsubscribed_at) ||
-        (statusFilter === 'inactive' &&
-          !subscriber.is_active &&
-          !subscriber.unsubscribed_at) ||
+        (statusFilter === 'eligible' && isEligibleForEmail(subscriber)) ||
+        (statusFilter === 'active' && subscriber.is_active && !subscriber.unsubscribed_at) ||
+        (statusFilter === 'inactive' && !subscriber.is_active && !subscriber.unsubscribed_at) ||
         (statusFilter === 'cancelled' && Boolean(subscriber.unsubscribed_at)) ||
         (statusFilter === 'no-consent' && !subscriber.consent_email);
 
-      return matchesSearch && matchesStatus;
+      const matchesType = typeFilter === 'all' || subscriber.contact_type === typeFilter;
+      const matchesSource = sourceFilter === 'all' || subscriber.source === sourceFilter;
+      const matchesGroup =
+        groupFilter === 'all' || subscriber.groups.some((group) => group.slug === groupFilter);
+
+      return matchesSearch && matchesStatus && matchesType && matchesSource && matchesGroup;
     });
-  }, [subscribers, searchTerm, statusFilter]);
+  }, [subscribers, searchTerm, statusFilter, typeFilter, sourceFilter, groupFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSubscribers.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * pageSize;
+  const paginatedSubscribers = filteredSubscribers.slice(pageStart, pageStart + pageSize);
 
   function openEdit(subscriber: Subscriber) {
     setEditingSubscriber(subscriber);
@@ -214,6 +343,10 @@ export function AdminSubscribersPage() {
       email: subscriber.email || '',
       phone: subscriber.phone || '',
       source: subscriber.source || 'admin',
+      contact_type: subscriber.contact_type || 'newsletter',
+      communication_scope: subscriber.communication_scope || 'newsletter',
+      relationship: subscriber.relationship || '',
+      athlete_name: subscriber.athlete_name || '',
       notes: subscriber.notes || '',
       is_active: subscriber.is_active,
       consent_email: subscriber.consent_email,
@@ -224,6 +357,7 @@ export function AdminSubscribersPage() {
 
   function closeEdit() {
     setEditingSubscriber(null);
+    setEditForm(emptyEditForm);
     setSaving(false);
   }
 
@@ -245,12 +379,15 @@ export function AdminSubscribersPage() {
     setMessage(null);
 
     const now = new Date().toISOString();
-
     const payload: Partial<Subscriber> = {
       name: editForm.name.trim() || null,
       email: email || null,
       phone: phone || null,
       source: editForm.source,
+      contact_type: editForm.contact_type,
+      communication_scope: editForm.communication_scope,
+      relationship: editForm.relationship.trim() || null,
+      athlete_name: editForm.athlete_name.trim() || null,
       notes: editForm.notes.trim() || null,
       is_active: editForm.is_active,
       consent_email: editForm.consent_email,
@@ -292,12 +429,7 @@ export function AdminSubscribersPage() {
       return;
     }
 
-    setMessage({
-      type: 'success',
-      text: 'Subscritor atualizado com sucesso.',
-    });
-
-    setSaving(false);
+    setMessage({ type: 'success', text: 'Subscritor atualizado com sucesso.' });
     closeEdit();
     await loadSubscribers();
   }
@@ -306,7 +438,7 @@ export function AdminSubscribersPage() {
     setMessage(null);
 
     const now = new Date().toISOString();
-    const nextActive = !subscriber.is_active;
+    const nextActive = !subscriber.is_active || Boolean(subscriber.unsubscribed_at);
 
     const payload: Partial<Subscriber> = {
       is_active: nextActive,
@@ -320,6 +452,10 @@ export function AdminSubscribersPage() {
     }
 
     if (nextActive) {
+      payload.consent_email = true;
+      payload.consent_email_at = now;
+      payload.privacy_policy_accepted = true;
+      payload.privacy_policy_accepted_at = now;
       payload.unsubscribed_at = null;
       payload.unsubscribe_reason = null;
     }
@@ -341,6 +477,16 @@ export function AdminSubscribersPage() {
     await loadSubscribers();
   }
 
+  function clearFilters() {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setGroupFilter('all');
+    setSourceFilter('all');
+    setPageSize(10);
+    setCurrentPage(1);
+  }
+
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#21150f] via-[#3b120f] to-[#8b1d1d] p-8 text-white shadow-xl">
@@ -350,7 +496,7 @@ export function AdminSubscribersPage() {
           </p>
           <h1 className="font-serif text-5xl font-bold">Subscritores.</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-white/80">
-            Gere os contactos que autorizaram receber newsletters e comunicações oficiais do GDR Boavista.
+            Gere contactos de newsletter, pais, encarregados, atletas, sócios, parceiros e comunicações do clube.
           </p>
         </div>
       </section>
@@ -367,53 +513,95 @@ export function AdminSubscribersPage() {
         </div>
       )}
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-5">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Total</p>
           <p className="mt-3 text-3xl font-black text-zinc-900">{stats.total}</p>
         </div>
-
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Ativos</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Elegíveis</p>
           <p className="mt-3 text-3xl font-black text-emerald-700">{stats.active}</p>
         </div>
-
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Cancelados</p>
           <p className="mt-3 text-3xl font-black text-slate-700">{stats.cancelled}</p>
         </div>
-
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">Sem consentimento</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">Sem consent.</p>
           <p className="mt-3 text-3xl font-black text-amber-700">{stats.noConsent}</p>
+        </div>
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Importados</p>
+          <p className="mt-3 text-3xl font-black text-blue-700">{stats.imported}</p>
         </div>
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative flex-1">
+        <div className="grid gap-4 xl:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]">
+          <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Pesquisar por nome, email, telefone ou origem..."
+              placeholder="Pesquisar nome, email, telefone, atleta, origem ou grupo..."
               className="w-full rounded-xl border border-zinc-200 bg-white py-3 pl-12 pr-4 text-sm outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
             />
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
-            >
-              <option value="all">Todos</option>
-              <option value="active">Ativos</option>
-              <option value="inactive">Inativos</option>
-              <option value="cancelled">Cancelados</option>
-              <option value="no-consent">Sem consentimento</option>
-            </select>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+          >
+            <option value="all">Todos</option>
+            <option value="eligible">Elegíveis para email</option>
+            <option value="active">Ativos</option>
+            <option value="inactive">Inativos</option>
+            <option value="cancelled">Cancelados</option>
+            <option value="no-consent">Sem consentimento</option>
+          </select>
 
+          <select
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+          >
+            <option value="all">Tipos</option>
+            {Object.entries(contactTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+
+          <select
+            value={groupFilter}
+            onChange={(event) => setGroupFilter(event.target.value)}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+          >
+            <option value="all">Grupos</option>
+            {groups.map((group) => (
+              <option key={group.slug} value={group.slug}>{group.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={sourceFilter}
+            onChange={(event) => setSourceFilter(event.target.value)}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+          >
+            <option value="all">Origens</option>
+            {Object.entries(sourceLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-50"
+            >
+              Limpar
+            </button>
             <button
               type="button"
               onClick={loadSubscribers}
@@ -427,6 +615,24 @@ export function AdminSubscribersPage() {
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-zinc-200 bg-zinc-50 px-5 py-4 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm font-bold text-zinc-700">
+            {filteredSubscribers.length} resultado(s) encontrados
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">Por página</span>
+            <select
+              value={pageSize}
+              onChange={(event) => setPageSize(Number(event.target.value))}
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-700 outline-none"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center p-12 text-sm font-semibold text-zinc-500">
             A carregar subscritores...
@@ -435,124 +641,84 @@ export function AdminSubscribersPage() {
           <div className="flex flex-col items-center justify-center p-12 text-center">
             <UserPlus className="mb-4 h-10 w-10 text-zinc-300" />
             <h2 className="text-xl font-black text-zinc-900">Nenhum subscritor encontrado</h2>
-            <p className="mt-2 text-sm text-zinc-500">
-              Altera os filtros ou aguarda novas subscrições pelo site.
-            </p>
+            <p className="mt-2 text-sm text-zinc-500">Altera os filtros ou aguarda novas subscrições pelo site.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-zinc-200">
               <thead className="bg-zinc-50">
                 <tr>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                    Subscritor
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                    Estado
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                    Origem
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                    Subscrição
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                    Cancelamento
-                  </th>
-                  <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                    Ações
-                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Contacto</th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Tipo / grupos</th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Estado</th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Datas</th>
+                  <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Ações</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-zinc-100 bg-white">
-                {filteredSubscribers.map((subscriber) => (
+                {paginatedSubscribers.map((subscriber) => (
                   <tr key={subscriber.id} className="transition hover:bg-zinc-50/80">
-                    <td className="px-5 py-5 align-top">
-                      <div className="font-black text-zinc-900">
-                        {subscriber.name || 'Sem nome'}
-                      </div>
-
+                    <td className="px-5 py-4 align-top">
+                      <div className="font-black text-zinc-900">{subscriber.name || 'Sem nome'}</div>
                       {subscriber.email && (
-                        <a
-                          href={`mailto:${subscriber.email}`}
-                          className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-red-700 hover:text-red-900"
-                        >
+                        <a href={`mailto:${subscriber.email}`} className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-red-700 hover:text-red-900">
                           <Mail className="h-4 w-4" />
                           {subscriber.email}
                         </a>
                       )}
-
-                      {subscriber.phone && (
-                        <div className="mt-1 text-sm text-zinc-500">{subscriber.phone}</div>
-                      )}
-
-                      {subscriber.notes && (
-                        <div className="mt-2 max-w-md rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
-                          {subscriber.notes}
-                        </div>
+                      {subscriber.phone && <div className="mt-1 text-sm text-zinc-500">{subscriber.phone}</div>}
+                      {subscriber.athlete_name && (
+                        <div className="mt-1 text-xs font-semibold text-zinc-500">Atleta: {subscriber.athlete_name}</div>
                       )}
                     </td>
 
-                    <td className="px-5 py-5 align-top">
-                      <span
-                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass(
-                          subscriber,
-                        )}`}
-                      >
+                    <td className="px-5 py-4 align-top">
+                      <div className="text-sm font-black text-zinc-800">
+                        {contactTypeLabels[subscriber.contact_type || ''] || subscriber.contact_type || '—'}
+                      </div>
+                      <div className="mt-1 text-xs font-semibold text-zinc-500">
+                        {scopeLabels[subscriber.communication_scope || ''] || subscriber.communication_scope || '—'}
+                        {subscriber.relationship ? ` · ${subscriber.relationship}` : ''}
+                      </div>
+                      <div className="mt-2 flex max-w-sm flex-wrap gap-1.5">
+                        {subscriber.groups.length > 0 ? (
+                          subscriber.groups.map((group) => (
+                            <span key={group.slug} className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-600">
+                              {group.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-zinc-400">Sem grupo associado</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-4 align-top">
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusClass(subscriber)}`}>
                         {statusLabel(subscriber)}
                       </span>
-
                       <div className="mt-2 space-y-1 text-xs text-zinc-500">
                         <div className="flex items-center gap-1">
-                          {subscriber.consent_email ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                          ) : (
-                            <XCircle className="h-3.5 w-3.5 text-zinc-400" />
-                          )}
+                          {subscriber.consent_email ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <XCircle className="h-3.5 w-3.5 text-zinc-400" />}
                           Email
                         </div>
-
                         <div className="flex items-center gap-1">
-                          {subscriber.consent_whatsapp ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                          ) : (
-                            <XCircle className="h-3.5 w-3.5 text-zinc-400" />
-                          )}
+                          {subscriber.consent_whatsapp ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <XCircle className="h-3.5 w-3.5 text-zinc-400" />}
                           WhatsApp
                         </div>
                       </div>
                     </td>
 
-                    <td className="px-5 py-5 align-top text-sm font-semibold text-zinc-700">
-                      {sourceLabels[subscriber.source] || subscriber.source || '—'}
-                    </td>
-
-                    <td className="px-5 py-5 align-top text-sm text-zinc-600">
-                      <div>{formatDate(subscriber.created_at)}</div>
-                      {subscriber.consent_email_at && (
-                        <div className="mt-1 text-xs text-zinc-400">
-                          Consentimento: {formatDate(subscriber.consent_email_at)}
-                        </div>
+                    <td className="px-5 py-4 align-top text-sm text-zinc-600">
+                      <div>Criação: {formatDate(subscriber.created_at)}</div>
+                      <div className="mt-1 text-xs text-zinc-400">Origem: {sourceLabels[subscriber.source] || subscriber.source || '—'}</div>
+                      {subscriber.unsubscribed_at && (
+                        <div className="mt-1 text-xs font-semibold text-slate-500">Cancelamento: {formatDate(subscriber.unsubscribed_at)}</div>
                       )}
                     </td>
 
-                    <td className="px-5 py-5 align-top text-sm text-zinc-600">
-                      {subscriber.unsubscribed_at ? (
-                        <>
-                          <div>{formatDate(subscriber.unsubscribed_at)}</div>
-                          {subscriber.unsubscribe_reason && (
-                            <div className="mt-1 text-xs text-zinc-400">
-                              {subscriber.unsubscribe_reason}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-
-                    <td className="px-5 py-5 align-top">
+                    <td className="px-5 py-4 align-top">
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
@@ -562,7 +728,6 @@ export function AdminSubscribersPage() {
                           <Edit3 className="h-3.5 w-3.5" />
                           Editar
                         </button>
-
                         <button
                           type="button"
                           onClick={() => toggleActive(subscriber)}
@@ -572,9 +737,7 @@ export function AdminSubscribersPage() {
                               : 'bg-red-600 text-white hover:bg-red-700'
                           }`}
                         >
-                          {subscriber.is_active && !subscriber.unsubscribed_at
-                            ? 'Inativar'
-                            : 'Reativar'}
+                          {subscriber.is_active && !subscriber.unsubscribed_at ? 'Inativar' : 'Reativar'}
                         </button>
                       </div>
                     </td>
@@ -584,159 +747,127 @@ export function AdminSubscribersPage() {
             </table>
           </div>
         )}
+
+        {filteredSubscribers.length > 0 && (
+          <div className="flex flex-col gap-3 border-t border-zinc-200 bg-zinc-50 px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm font-semibold text-zinc-500">
+              A mostrar {pageStart + 1}–{Math.min(pageStart + pageSize, filteredSubscribers.length)} de {filteredSubscribers.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={safeCurrentPage === 1}
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </button>
+              <span className="rounded-lg bg-white px-3 py-2 text-sm font-black text-zinc-700">
+                {safeCurrentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Seguinte
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {editingSubscriber && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
             <div className="mb-6">
-              <p className="text-xs font-black uppercase tracking-[0.25em] text-red-600">
-                Subscritor
-              </p>
-              <h2 className="mt-2 font-serif text-3xl font-bold text-zinc-900">
-                Editar subscritor
-              </h2>
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-red-600">Subscritor</p>
+              <h2 className="mt-2 font-serif text-3xl font-bold text-zinc-900">Editar subscritor</h2>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="text-sm font-black text-zinc-800">Nome</span>
-                <input
-                  value={editForm.name}
-                  onChange={(event) =>
-                    setEditForm((current) => ({ ...current, name: event.target.value }))
-                  }
-                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-                />
+                <input value={editForm.name} onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))} className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
               </label>
 
               <label className="space-y-2">
                 <span className="text-sm font-black text-zinc-800">Email</span>
-                <input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(event) =>
-                    setEditForm((current) => ({ ...current, email: event.target.value }))
-                  }
-                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-                />
+                <input type="email" value={editForm.email} onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))} className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
               </label>
 
               <label className="space-y-2">
                 <span className="text-sm font-black text-zinc-800">Telefone</span>
-                <input
-                  value={editForm.phone}
-                  onChange={(event) =>
-                    setEditForm((current) => ({ ...current, phone: event.target.value }))
-                  }
-                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-                />
+                <input value={editForm.phone} onChange={(event) => setEditForm((current) => ({ ...current, phone: event.target.value }))} className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
               </label>
 
               <label className="space-y-2">
                 <span className="text-sm font-black text-zinc-800">Origem</span>
-                <select
-                  value={editForm.source}
-                  onChange={(event) =>
-                    setEditForm((current) => ({ ...current, source: event.target.value }))
-                  }
-                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="site">Site</option>
-                  <option value="importacao">Importação</option>
-                  <option value="contacto">Contacto</option>
-                  <option value="socio">Sócio</option>
-                  <option value="outro">Outro</option>
+                <select value={editForm.source} onChange={(event) => setEditForm((current) => ({ ...current, source: event.target.value }))} className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100">
+                  {Object.entries(sourceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-black text-zinc-800">Tipo de contacto</span>
+                <select value={editForm.contact_type} onChange={(event) => setEditForm((current) => ({ ...current, contact_type: event.target.value }))} className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100">
+                  {Object.entries(contactTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-black text-zinc-800">Âmbito</span>
+                <select value={editForm.communication_scope} onChange={(event) => setEditForm((current) => ({ ...current, communication_scope: event.target.value }))} className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100">
+                  {Object.entries(scopeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-black text-zinc-800">Relação</span>
+                <input value={editForm.relationship} onChange={(event) => setEditForm((current) => ({ ...current, relationship: event.target.value }))} placeholder="Pai, mãe, treinador, sócio..." className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-black text-zinc-800">Atleta associado</span>
+                <input value={editForm.athlete_name} onChange={(event) => setEditForm((current) => ({ ...current, athlete_name: event.target.value }))} className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
               </label>
             </div>
 
             <label className="mt-4 block space-y-2">
               <span className="text-sm font-black text-zinc-800">Observações internas</span>
-              <textarea
-                value={editForm.notes}
-                onChange={(event) =>
-                  setEditForm((current) => ({ ...current, notes: event.target.value }))
-                }
-                rows={4}
-                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-              />
+              <textarea value={editForm.notes} onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))} rows={4} className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100" />
             </label>
 
             <div className="mt-5 grid gap-3 rounded-xl bg-zinc-50 p-4">
               <label className="flex items-start gap-3 text-sm font-semibold text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={editForm.is_active}
-                  onChange={(event) =>
-                    setEditForm((current) => ({
-                      ...current,
-                      is_active: event.target.checked,
-                    }))
-                  }
-                  className="mt-1"
-                />
+                <input type="checkbox" checked={editForm.is_active} onChange={(event) => setEditForm((current) => ({ ...current, is_active: event.target.checked }))} className="mt-1" />
                 Subscritor ativo
               </label>
-
               <label className="flex items-start gap-3 text-sm font-semibold text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={editForm.consent_email}
-                  onChange={(event) =>
-                    setEditForm((current) => ({
-                      ...current,
-                      consent_email: event.target.checked,
-                    }))
-                  }
-                  className="mt-1"
-                />
+                <input type="checkbox" checked={editForm.consent_email} onChange={(event) => setEditForm((current) => ({ ...current, consent_email: event.target.checked }))} className="mt-1" />
                 Consentimento para receber comunicações por email
               </label>
-
               <label className="flex items-start gap-3 text-sm font-semibold text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={editForm.consent_whatsapp}
-                  onChange={(event) =>
-                    setEditForm((current) => ({
-                      ...current,
-                      consent_whatsapp: event.target.checked,
-                    }))
-                  }
-                  className="mt-1"
-                />
+                <input type="checkbox" checked={editForm.consent_whatsapp} onChange={(event) => setEditForm((current) => ({ ...current, consent_whatsapp: event.target.checked }))} className="mt-1" />
                 Consentimento para comunicações por WhatsApp
               </label>
             </div>
 
             {editingSubscriber.unsubscribe_token && (
               <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">
-                  Link técnico de cancelamento
-                </p>
-                <p className="mt-2 break-all text-xs text-zinc-500">
-                  /newsletter/cancelar/{editingSubscriber.unsubscribe_token}
-                </p>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Link técnico de cancelamento</p>
+                <p className="mt-2 break-all text-xs text-zinc-500">/newsletter/cancelar/{editingSubscriber.unsubscribe_token}</p>
               </div>
             )}
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeEdit}
-                className="rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-50"
-              >
+              <button type="button" onClick={closeEdit} className="rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-50">
                 Cancelar
               </button>
-
-              <button
-                type="button"
-                onClick={saveSubscriber}
-                disabled={saving}
-                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              <button type="button" onClick={saveSubscriber} disabled={saving} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">
                 {saving ? 'A guardar...' : 'Guardar alterações'}
               </button>
             </div>
