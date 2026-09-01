@@ -8,7 +8,6 @@ import {
   Mail,
   RefreshCw,
   Search,
-  Save,
   Send,
   Users,
   XCircle,
@@ -631,36 +630,30 @@ export function AdminCommunicationsPage() {
     if (insertError) throw insertError;
   }
 
-  async function saveCommunication() {
-    const title = form.title.trim();
+  async function persistCommunication() {
+    const title = form.subject.trim();
     const subject = form.subject.trim();
     const body = form.body.trim();
 
-    if (!title || !subject || !body) {
-      setMessage({ type: 'error', text: 'Preenche título, assunto e mensagem.' });
-      return;
+    if (!subject || !body) {
+      throw new Error('Preenche assunto e mensagem.');
     }
 
     if (audienceSummary.needsGroups) {
-      setMessage({ type: 'error', text: 'Seleciona pelo menos um grupo compatível com este tipo de comunicação.' });
-      return;
+      throw new Error('Seleciona pelo menos um grupo compatível com este tipo de comunicação.');
     }
 
     if (form.communication_type === 'individual' && !form.manualRecipientId) {
-      setMessage({ type: 'error', text: 'Seleciona o contacto individual que vai receber esta comunicação.' });
-      return;
+      throw new Error('Seleciona o contacto individual que vai receber esta comunicação.');
     }
 
-    setSaving(true);
-    setMessage(null);
-
     const payload = {
-      title,
+      title: title || subject,
       subject,
       preview_text: form.preview_text.trim() || null,
       body,
       channel: form.channel,
-      status: form.status === 'sent' ? 'ready' : form.status,
+      status: 'ready' as const,
       from_name: form.from_name.trim() || 'GDR Boavista',
       from_email: form.from_email.trim() || 'notificacoes@send.gdrboavista.pt',
       communication_type: form.communication_type === 'individual' ? 'geral' : form.communication_type,
@@ -672,61 +665,40 @@ export function AdminCommunicationsPage() {
       updated_at: new Date().toISOString(),
     };
 
-    try {
-      let communicationId = form.id;
+    let communicationId = form.id;
 
-      if (communicationId) {
-        const { error } = await supabase
-          .from('gdrb_communications')
-          .update(payload)
-          .eq('id', communicationId);
+    if (communicationId) {
+      const { error } = await supabase
+        .from('gdrb_communications')
+        .update(payload)
+        .eq('id', communicationId);
 
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('gdrb_communications')
-          .insert({
-            ...payload,
-            created_by: 'admin',
-          })
-          .select('id')
-          .single();
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabase
+        .from('gdrb_communications')
+        .insert({
+          ...payload,
+          created_by: 'admin',
+        })
+        .select('id')
+        .single();
 
-        if (error) throw error;
-        communicationId = data?.id || null;
-      }
-
-      if (!communicationId) {
-        throw new Error('Não foi possível identificar a comunicação.');
-      }
-
-      await saveTargets(communicationId, form.communication_type === 'individual' ? [] : form.groupIds);
-      await saveManualRecipients(communicationId, form.communication_type === 'individual' ? form.manualRecipientId : '');
-
-      setMessage({ type: 'success', text: 'Comunicação guardada com sucesso.' });
-      await loadData();
-
-      const refreshed = communicationId
-        ? (await supabase.from('gdrb_communications').select('*').eq('id', communicationId).single()).data
-        : null;
-
-      if (refreshed) {
-        editCommunication(refreshed as Communication);
-      }
-    } catch (error) {
-      console.error(error);
-      setMessage({ type: 'error', text: 'Não foi possível guardar a comunicação.' });
-    } finally {
-      setSaving(false);
+      if (error) throw error;
+      communicationId = data?.id || null;
     }
+
+    if (!communicationId) {
+      throw new Error('Não foi possível identificar a comunicação.');
+    }
+
+    await saveTargets(communicationId, form.communication_type === 'individual' ? [] : form.groupIds);
+    await saveManualRecipients(communicationId, form.communication_type === 'individual' ? form.manualRecipientId : '');
+
+    return communicationId;
   }
 
   async function sendNewsletter() {
-    if (!form.id) {
-      setMessage({ type: 'error', text: 'Guarda a comunicação antes de enviar.' });
-      return;
-    }
-
     if (audienceSummary.needsGroups) {
       setMessage({ type: 'error', text: 'Seleciona pelo menos um grupo antes do envio definitivo.' });
       return;
@@ -751,16 +723,19 @@ export function AdminCommunicationsPage() {
     if (!confirmed) return;
 
     setSendingFinal(true);
+    setSaving(true);
     setMessage(null);
 
     try {
+      const communicationId = await persistCommunication();
+
       const response = await fetch('/api/send-newsletter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          communicationId: form.id,
+          communicationId,
           mode: 'send',
         }),
       });
@@ -771,22 +746,19 @@ export function AdminCommunicationsPage() {
         throw new Error(result?.error || 'Não foi possível enviar a comunicação.');
       }
 
-     setMessage({
+      setForm(emptyForm);
+      setSelectedCommunicationId(null);
+      setExpandedCommunicationId(null);
+      setRecipientSearchTerm('');
 
-  type: 'success',
+      await loadData();
 
-  text: `Envio concluído. Enviados: ${result.sentCount || 0}. Falhas: ${result.failedCount || 0}.`,
+      setMessage({
+        type: 'success',
+        text: `Envio concluído. Enviados: ${result.sentCount || 0}. Falhas: ${result.failedCount || 0}.`,
+      });
 
-});
-
-setForm(emptyForm);
-
-setSelectedCommunicationId(null);
-
-setExpandedCommunicationId(null);
-
-await loadData();
-
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       console.error(error);
       setMessage({
@@ -795,6 +767,7 @@ await loadData();
       });
     } finally {
       setSendingFinal(false);
+      setSaving(false);
     }
   }
 
@@ -1172,10 +1145,10 @@ await loadData();
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.24em] text-red-600">
-                {form.id ? 'Editar comunicação' : 'Nova comunicação'}
+                {form.id ? 'Comunicação existente' : 'Nova comunicação'}
               </p>
               <h2 className="mt-1 font-serif text-3xl font-bold text-zinc-900">
-                {form.id ? form.title || 'Comunicação' : 'Criar comunicação'}
+                {form.id ? form.subject || form.title || 'Comunicação' : 'Enviar comunicação'}
               </h2>
             </div>
             <button
@@ -1209,18 +1182,8 @@ await loadData();
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2 md:col-span-2">
-              <span className="text-sm font-black text-zinc-800">Título interno *</span>
-              <input
-                value={form.title}
-                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="Ex.: Jogos do fim de semana"
-                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-              />
-            </label>
-
-            <label className="space-y-2 md:col-span-2">
+          <div className="grid gap-4">
+            <label className="space-y-2">
               <span className="text-sm font-black text-zinc-800">Assunto do email *</span>
               <input
                 value={form.subject}
@@ -1228,52 +1191,6 @@ await loadData();
                 placeholder="Ex.: Agenda GDR Boavista para este fim de semana"
                 className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
               />
-            </label>
-
-            <label className="space-y-2 md:col-span-2">
-              <span className="text-sm font-black text-zinc-800">Texto de resumo</span>
-              <input
-                value={form.preview_text}
-                onChange={(event) => setForm((current) => ({ ...current, preview_text: event.target.value }))}
-                placeholder="Resumo curto que pode aparecer na pré-visualização do email"
-                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-black text-zinc-800">Canal</span>
-              <select
-                value={form.channel}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    channel: event.target.value as FormState['channel'],
-                  }))
-                }
-                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-              >
-                <option value="email">Email</option>
-                <option value="email_whatsapp">Email + WhatsApp</option>
-                <option value="whatsapp">WhatsApp</option>
-              </select>
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-black text-zinc-800">Estado</span>
-              <select
-                value={form.status}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    status: event.target.value as FormState['status'],
-                  }))
-                }
-                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-              >
-                <option value="draft">Rascunho</option>
-                <option value="ready">Pronta</option>
-                <option value="archived">Arquivada</option>
-              </select>
             </label>
           </div>
 
@@ -1446,34 +1363,24 @@ await loadData();
 
             {audienceSummary.needsGroups && (
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-                Para este tipo de comunicação, seleciona pelo menos um grupo antes de guardar/enviar.
+                Para este tipo de comunicação, seleciona pelo menos um grupo antes de enviar.
               </p>
             )}
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-[auto_1fr]">
-            <button
-              type="button"
-              onClick={saveCommunication}
-              disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? 'A guardar...' : 'Guardar'}
-            </button>
-
+          <div className="mt-5">
             <button
               type="button"
               onClick={sendNewsletter}
-              disabled={sendingFinal || saving || !form.id || audienceSummary.needsGroups || audienceSummary.recipients === 0}
+              disabled={sendingFinal || saving || audienceSummary.needsGroups || audienceSummary.recipients === 0}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Send className="h-4 w-4" />
               {sendingFinal
                 ? 'A enviar comunicação...'
                 : form.communication_type === 'individual'
-                  ? 'Enviar para contacto selecionado'
-                  : `Enviar definitivo para ${audienceSummary.recipients} destinatário(s)`}
+                  ? 'Enviar comunicação para contacto selecionado'
+                  : `Enviar comunicação para ${audienceSummary.recipients} destinatário(s)`}
             </button>
           </div>
 
