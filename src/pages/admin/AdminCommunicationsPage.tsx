@@ -771,12 +771,22 @@ export function AdminCommunicationsPage() {
         throw new Error(result?.error || 'Não foi possível enviar a comunicação.');
       }
 
-      setMessage({
-        type: 'success',
-        text: `Envio concluído. Enviados: ${result.sentCount || 0}. Falhas: ${result.failedCount || 0}.`,
-      });
+     setMessage({
 
-      await loadData();
+  type: 'success',
+
+  text: `Envio concluído. Enviados: ${result.sentCount || 0}. Falhas: ${result.failedCount || 0}.`,
+
+});
+
+setForm(emptyForm);
+
+setSelectedCommunicationId(null);
+
+setExpandedCommunicationId(null);
+
+await loadData();
+
     } catch (error) {
       console.error(error);
       setMessage({
