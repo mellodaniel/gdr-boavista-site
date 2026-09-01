@@ -67,8 +67,8 @@ export function NewsDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-[#f6f2ec] px-4 py-24 text-zinc-950">
-        <div className="mx-auto max-w-5xl rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
+      <div className="bg-[#f6f2ec] px-5 md:px-4 py-14 md:py-24 text-zinc-950">
+        <div className="mx-auto max-w-5xl rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 md:p-8 text-zinc-600 shadow-sm">
           A carregar notícia...
         </div>
       </div>
@@ -77,8 +77,8 @@ export function NewsDetailPage() {
 
   if (!newsItem) {
     return (
-      <div className="bg-[#f6f2ec] px-4 py-24 text-zinc-950">
-        <div className="mx-auto max-w-5xl rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
+      <div className="bg-[#f6f2ec] px-5 md:px-4 py-14 md:py-24 text-zinc-950">
+        <div className="mx-auto max-w-5xl rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-white p-6 md:p-10 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
             <Newspaper size={28} />
           </div>
@@ -107,13 +107,13 @@ export function NewsDetailPage() {
 
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
-      <section className="relative overflow-hidden bg-[#24180f] py-20 text-white">
+      <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-20 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-        <div className="relative mx-auto max-w-5xl px-4">
+        <div className="relative mx-auto max-w-5xl px-5 md:px-4">
           <Link
             to="/noticias"
-            className="inline-flex items-center gap-2 rounded-md border border-white/10 px-4 py-2 text-sm font-bold text-zinc-300 transition hover:bg-white/10 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-md border border-white/10 px-5 md:px-4 py-2 text-sm font-bold text-zinc-300 transition hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft size={16} />
             Voltar às notícias
@@ -129,7 +129,7 @@ export function NewsDetailPage() {
             </span>
           </div>
 
-          <h1 className="mt-8 font-serif text-5xl font-light leading-tight tracking-tight md:text-7xl">
+          <h1 className="mt-8 font-serif text-4xl font-light leading-tight tracking-tight md:text-7xl">
             {newsItem.title}
           </h1>
 
@@ -145,20 +145,20 @@ export function NewsDetailPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-16">
+      <section className="mx-auto max-w-5xl px-5 md:px-4 py-16">
         {newsItem.image_url ? (
           <img
             src={newsItem.image_url}
             alt={newsItem.title}
-            className="-mt-28 mb-12 h-auto w-full rounded-sm border border-zinc-200 bg-white object-cover shadow-2xl shadow-zinc-950/20"
+            className="-mt-28 mb-12 h-auto w-full rounded-2xl md:rounded-sm border border-zinc-200 bg-white object-cover shadow-lg md:shadow-2xl shadow-zinc-950/20"
           />
         ) : (
-          <div className="-mt-28 mb-12 flex h-80 w-full items-center justify-center rounded-sm border border-zinc-200 bg-white shadow-2xl shadow-zinc-950/20">
+          <div className="-mt-28 mb-12 flex h-80 w-full items-center justify-center rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-lg md:shadow-2xl shadow-zinc-950/20">
             <Newspaper size={58} className="text-red-700" />
           </div>
         )}
 
-        <article className="rounded-sm border border-zinc-200 bg-white p-8 shadow-sm md:p-12">
+        <article className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 shadow-sm md:p-12">
           {paragraphs.length > 0 ? (
             <div className="space-y-6 text-base leading-9 text-zinc-700">
               {paragraphs.map((paragraph) => (

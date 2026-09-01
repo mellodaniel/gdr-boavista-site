@@ -280,8 +280,8 @@ function NewsletterSignupSection() {
 
   return (
     <section className="bg-[#f6f2ec] py-10 md:py-14">
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="rounded-sm border border-[#eadfce] bg-white px-5 py-5 shadow-lg shadow-zinc-950/5 md:px-7 md:py-6">
+      <div className="mx-auto max-w-7xl px-5 md:px-4">
+        <div className="rounded-2xl md:rounded-sm border border-[#eadfce] bg-white px-5 py-5 shadow-lg shadow-zinc-950/5 md:px-7 md:py-6">
           <div className="grid gap-5 lg:grid-cols-[0.95fr_1.55fr] lg:items-center">
             <div className="flex items-start gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#2a1a12] text-red-100 shadow-sm">
@@ -305,14 +305,14 @@ function NewsletterSignupSection() {
 
             <form onSubmit={handleSubmit} className="space-y-3">
               {successMessage && (
-                <div className="flex items-start gap-3 rounded-sm border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">
+                <div className="flex items-start gap-3 rounded-2xl md:rounded-sm border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">
                   <CheckCircle2 size={18} />
                   <span>{successMessage}</span>
                 </div>
               )}
 
               {errorMessage && (
-                <div className="rounded-sm border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
+                <div className="rounded-2xl md:rounded-sm border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
                   {errorMessage}
                 </div>
               )}
@@ -328,7 +328,7 @@ function NewsletterSignupSection() {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="O teu nome"
-                    className="mt-1.5 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                    className="mt-1.5 w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                   />
                 </div>
 
@@ -342,7 +342,7 @@ function NewsletterSignupSection() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="email@exemplo.pt"
-                    className="mt-1.5 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                    className="mt-1.5 w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                   />
                 </div>
 
@@ -356,7 +356,7 @@ function NewsletterSignupSection() {
                 </button>
               </div>
 
-              <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-zinc-200 bg-[#faf7f2] px-3 py-2.5 text-xs leading-5 text-zinc-600">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl md:rounded-sm border border-zinc-200 bg-[#faf7f2] px-3 py-2.5 text-xs leading-5 text-zinc-600">
                 <input
                   type="checkbox"
                   checked={acceptsNewsletter}
@@ -509,7 +509,7 @@ export function HomePage() {
 
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
-      <section className="relative min-h-[760px] overflow-hidden bg-[#24180f] text-white">
+      <section className="relative min-h-[640px] overflow-hidden bg-[#24180f] text-white md:min-h-[760px]">
         <img
           src="/hero-boavista.webp"
           alt="GDR Boavista"
@@ -519,10 +519,10 @@ export function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#24180f]/80 to-black/30" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_35%)]" />
 
-        <div className="relative mx-auto flex min-h-[760px] max-w-7xl flex-col justify-center px-6 py-24 sm:px-8 lg:px-16 xl:px-28">
+        <div className="relative mx-auto flex min-h-[640px] max-w-7xl flex-col justify-center md:min-h-[760px] px-6 py-14 md:py-24 sm:px-8 lg:px-16 xl:px-28">
           <div className="max-w-3xl lg:ml-8 xl:ml-10">
-            <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center md:mb-12">
-              <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-[2rem] bg-white p-4 shadow-2xl ring-4 ring-white/15 md:h-36 md:w-36 md:rounded-[2.35rem] md:p-5">
+            <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center md:mb-12 md:gap-6">
+              <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-[1.75rem] bg-white p-4 shadow-lg md:shadow-2xl ring-4 ring-white/15 md:h-36 md:w-36 md:rounded-[2.35rem] md:p-5">
                 <div className="absolute -inset-2 rounded-[2.25rem] bg-red-700/20 blur-xl md:rounded-[2.65rem]" />
                 <img
                   src="/logo-gdr-boavista-header-256.png"
@@ -548,7 +548,7 @@ export function HomePage() {
               </div>
             </div>
 
-            <h1 className="max-w-3xl font-serif text-5xl font-light leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
+            <h1 className="max-w-3xl font-serif text-4xl font-light leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
               Formar atletas,
               <br />
               unir famílias.
@@ -582,7 +582,7 @@ export function HomePage() {
               {heroHighlights.map((item) => (
                 <span
                   key={item}
-                  className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white"
+                  className="rounded-full border border-white/15 bg-white/10 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white"
                 >
                   {item}
                 </span>
@@ -597,7 +597,7 @@ export function HomePage() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.45),transparent_34%)]" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#24180f] via-[#4a1515] to-[#7f1d1d]" />
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 md:grid-cols-[1fr_auto]">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-5 md:px-4 md:grid-cols-[1fr_auto]">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.42em] text-red-200">Torneio em destaque</p>
               <h2 className="mt-4 font-serif text-4xl font-light leading-tight md:text-6xl">
@@ -608,15 +608,15 @@ export function HomePage() {
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
-                <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
+                <span className="rounded-full bg-white/12 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
                   {featuredTournament.football_type}
                 </span>
                 {featuredTournament.location && (
-                  <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
+                  <span className="rounded-full bg-white/12 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
                     {featuredTournament.location}
                   </span>
                 )}
-                <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
+                <span className="rounded-full bg-white/12 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
                   {formatTournamentDate(featuredTournament)}
                 </span>
               </div>
@@ -625,7 +625,7 @@ export function HomePage() {
             <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
               <Link
                 to={featuredTournamentLink}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-red-800 shadow-xl transition hover:bg-red-50"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-4 text-sm font-black uppercase tracking-wide text-red-800 shadow-md md:shadow-xl transition hover:bg-red-50"
               >
                 Ver torneio online
                 <ChevronRight size={18} />
@@ -635,14 +635,14 @@ export function HomePage() {
         </section>
       )}
 
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="mx-auto max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
               Quem somos
             </p>
 
-            <h2 className="mt-8 font-serif text-5xl font-light leading-tight text-[#24180f] md:text-7xl">
+            <h2 className="mt-8 font-serif text-4xl font-light leading-tight text-[#24180f] md:text-7xl">
               Um clube feito de pessoas, compromisso e paixão pelo futebol.
             </h2>
 
@@ -659,14 +659,14 @@ export function HomePage() {
             </div>
           </div>
 
-          <div className="mt-16 grid gap-0 overflow-hidden rounded-sm bg-[#24180f] text-white md:grid-cols-3">
+          <div className="mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-sm bg-[#24180f] text-white md:grid-cols-3">
             {valueItems.map((item, index) => {
               const Icon = item.icon;
 
               return (
                 <article
                   key={item.title}
-                  className={`p-10 text-center ${
+                  className={`p-6 md:p-10 text-center ${
                     index !== valueItems.length - 1
                       ? 'border-b border-white/10 md:border-b-0 md:border-r'
                       : ''
@@ -689,7 +689,7 @@ export function HomePage() {
       </section>
 
       <section className="bg-white py-14 md:py-24">
-        <div className="mx-auto max-w-7xl px-4">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.32em] text-red-700 md:text-sm md:tracking-[0.45em]">
@@ -710,11 +710,11 @@ export function HomePage() {
           </div>
 
           {isLoadingAgenda ? (
-            <div className="mt-10 rounded-sm border border-zinc-200 bg-[#f6f2ec] p-8 text-zinc-600">
+            <div className="mt-10 rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-zinc-600">
               A carregar agenda da semana...
             </div>
           ) : agendaItems.length === 0 ? (
-            <div className="mt-10 rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-10 text-center">
+            <div className="mt-10 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-6 md:p-10 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
                 <CalendarDays size={28} />
               </div>
@@ -725,7 +725,7 @@ export function HomePage() {
 
             </div>
           ) : (
-            <div className="mt-7 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-10">
+            <div className="mt-7 overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-10">
               {agendaItems.map((item, index) => {
                 const itemKey = `${item.type}-${item.id}`;
                 const isExpanded = expandedAgendaItemId === itemKey;
@@ -766,12 +766,12 @@ export function HomePage() {
                         </div>
 
                         <div className="flex shrink-0 items-center gap-4 text-sm font-semibold text-zinc-600">
-                          <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3">
+                          <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-5 md:px-4 py-3">
                             <CalendarDays size={16} className="text-red-700" />
                             {formatTournamentDate(tournament)}
                           </span>
 
-                          <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
+                          <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
                             Detalhes
                             <ChevronDown
                               size={16}
@@ -784,13 +784,13 @@ export function HomePage() {
                       {isExpanded && (
                         <div className="border-t border-zinc-100 bg-[#fdfbf8] px-5 py-5">
                           <div className="grid gap-3 text-sm text-zinc-600 md:grid-cols-2">
-                            <span className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-3 font-semibold shadow-sm">
+                            <span className="inline-flex items-center gap-2 rounded-md bg-white px-5 md:px-4 py-3 font-semibold shadow-sm">
                               <CalendarDays size={16} className="text-red-700" />
                               {formatTournamentDate(tournament)}
                             </span>
 
                             {tournament.location && (
-                              <span className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-3 font-semibold shadow-sm">
+                              <span className="inline-flex items-center gap-2 rounded-md bg-white px-5 md:px-4 py-3 font-semibold shadow-sm">
                                 <MapPin size={16} className="text-red-700" />
                                 {tournament.location}
                               </span>
@@ -843,13 +843,13 @@ export function HomePage() {
                       </div>
 
                       <div className="flex shrink-0 items-center gap-4 text-sm font-semibold text-zinc-600">
-                        <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3">
+                        <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-5 md:px-4 py-3">
                           <CalendarDays size={16} className="text-red-700" />
                           {formatDateShort(match.match_date)}
                           {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ''}
                         </span>
 
-                        <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
+                        <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
                           Detalhes
                           <ChevronDown
                             size={16}
@@ -866,12 +866,12 @@ export function HomePage() {
                         </p>
 
                         <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
-                          <span className="rounded-md bg-white px-4 py-3 font-semibold shadow-sm">
+                          <span className="rounded-md bg-white px-5 md:px-4 py-3 font-semibold shadow-sm">
                             {match.venue_type === 'casa' ? 'Casa' : 'Fora'}
                           </span>
 
                           {match.location && (
-                            <span className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-3 font-semibold shadow-sm">
+                            <span className="inline-flex items-center gap-2 rounded-md bg-white px-5 md:px-4 py-3 font-semibold shadow-sm">
                               <MapPin size={16} className="text-red-700" />
                               {match.location}
                             </span>
@@ -887,8 +887,8 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.32em] text-red-700 md:text-sm md:tracking-[0.45em]">
@@ -909,7 +909,7 @@ export function HomePage() {
           </div>
 
           {news.length === 0 ? (
-            <div className="mt-10 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center">
+            <div className="mt-10 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-white p-6 md:p-10 text-center">
               <Newspaper className="mx-auto text-red-700" size={32} />
 
               <h3 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
@@ -921,7 +921,7 @@ export function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="mt-7 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-10 md:grid md:gap-6 md:border-0 md:bg-transparent md:shadow-none lg:grid-cols-3">
+            <div className="mt-7 overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-10 md:grid md:gap-6 md:border-0 md:bg-transparent md:shadow-none lg:grid-cols-3">
               {news.map((item, index) => {
                 const isExpanded = expandedHomeNewsId === item.id;
 
@@ -941,10 +941,10 @@ export function HomePage() {
                         <img
                           src={item.image_url}
                           alt={item.title}
-                          className="h-[4.5rem] w-24 shrink-0 rounded-sm object-cover"
+                          className="h-[4.5rem] w-24 shrink-0 rounded-2xl md:rounded-sm object-cover"
                         />
                       ) : (
-                        <div className="flex h-[4.5rem] w-24 shrink-0 items-center justify-center rounded-sm bg-[#24180f]">
+                        <div className="flex h-[4.5rem] w-24 shrink-0 items-center justify-center rounded-2xl md:rounded-sm bg-[#24180f]">
                           <Newspaper size={22} className="text-red-500" />
                         </div>
                       )}
@@ -978,7 +978,7 @@ export function HomePage() {
 
                           <Link
                             to={`/noticias/${item.id}`}
-                            className="inline-flex items-center gap-2 rounded-md bg-red-700 px-4 py-3 text-xs font-black uppercase tracking-wide text-white"
+                            className="inline-flex items-center gap-2 rounded-md bg-red-700 px-5 md:px-4 py-3 text-xs font-black uppercase tracking-wide text-white"
                           >
                             Ler notícia
                             <ChevronRight size={15} />
@@ -1002,7 +1002,7 @@ export function HomePage() {
                           </div>
                         )}
 
-                        <div className="p-7">
+                        <div className="p-5 md:p-7">
                           <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
                             {item.source}
                           </span>
@@ -1036,7 +1036,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="overflow-hidden bg-white py-24">
+      <section className="overflow-hidden bg-white py-14 md:py-24">
         <style>{`
           @keyframes gdrb-sponsor-marquee {
             0% { transform: translateX(0); }
@@ -1059,18 +1059,18 @@ export function HomePage() {
           }
         `}</style>
 
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="relative overflow-hidden rounded-sm bg-[#24180f] text-white shadow-2xl">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
+          <div className="relative overflow-hidden rounded-2xl md:rounded-sm bg-[#24180f] text-white shadow-lg md:shadow-2xl">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.32),transparent_34%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_28%)]" />
 
-            <div className="relative grid gap-10 p-8 md:p-12 lg:grid-cols-[0.9fr_1.4fr] lg:items-center">
+            <div className="relative grid gap-10 p-6 md:p-12 lg:grid-cols-[0.9fr_1.4fr] lg:items-center">
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.38em] text-red-300">
                   Parceiros em destaque
                 </p>
 
-                <h2 className="mt-5 font-serif text-5xl font-light leading-tight md:text-6xl">
+                <h2 className="mt-5 font-serif text-4xl font-light leading-tight md:text-6xl">
                   Marcas que apoiam o GDR Boavista.
                 </h2>
 
@@ -1098,9 +1098,9 @@ export function HomePage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-sm border border-white/10 bg-white/10 p-4">
+              <div className="overflow-hidden rounded-2xl md:rounded-sm border border-white/10 bg-white/10 p-4">
                 {sponsors.length === 0 ? (
-                  <div className="rounded-sm border border-dashed border-white/20 bg-white/10 p-10 text-center">
+                  <div className="rounded-2xl md:rounded-sm border border-dashed border-white/20 bg-white/10 p-6 md:p-10 text-center">
                     <h3 className="font-serif text-3xl font-light">
                       Espaço reservado aos parceiros
                     </h3>
@@ -1118,9 +1118,9 @@ export function HomePage() {
                     <div className="gdrb-sponsor-marquee flex w-max gap-4 py-2">
                       {marqueeSponsors.map((sponsor, index) => {
                         const content = (
-                          <div className="flex h-full min-h-[170px] w-[230px] flex-col justify-between rounded-sm border border-white/10 bg-white p-5 text-[#24180f] shadow-xl transition hover:-translate-y-1 hover:shadow-2xl">
+                          <div className="flex h-full min-h-[150px] w-[205px] md:min-h-[170px] md:w-[230px] flex-col justify-between rounded-2xl md:rounded-sm border border-white/10 bg-white p-5 text-[#24180f] shadow-md md:shadow-xl transition hover:-translate-y-1 hover:shadow-2xl">
                             <div>
-                              <div className="flex h-20 items-center justify-center rounded-sm bg-[#f6f2ec] p-4">
+                              <div className="flex h-20 items-center justify-center rounded-2xl md:rounded-sm bg-[#f6f2ec] p-4">
                                 {sponsor.logo_url ? (
                                   <img
                                     src={sponsor.logo_url}
@@ -1180,13 +1180,13 @@ export function HomePage() {
 
       <NewsletterSignupSection />
 
-      <section className="bg-[#24180f] py-24 text-white">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="bg-[#24180f] py-14 md:py-24 text-white">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="grid gap-6 md:grid-cols-3">
             {missionItems.map((item) => (
               <article
                 key={item.title}
-                className="rounded-sm border border-white/10 bg-white/5 p-8"
+                className="rounded-2xl md:rounded-sm border border-white/10 bg-white/5 p-6 md:p-8"
               >
                 <h3 className="font-serif text-3xl font-light">
                   {item.title}
@@ -1201,19 +1201,19 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="bg-white py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <a
             href={googleMapsUrl}
             target="_blank"
             rel="noreferrer"
-            className="group relative block min-h-[420px] overflow-hidden rounded-sm bg-[#24180f] shadow-xl"
+            className="group relative block min-h-[320px] overflow-hidden md:min-h-[420px] rounded-2xl md:rounded-sm bg-[#24180f] shadow-md md:shadow-xl"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.35),transparent_38%)]" />
             <div className="absolute inset-0 bg-gradient-to-br from-[#24180f] via-[#24180f]/90 to-red-950" />
 
-            <div className="relative flex min-h-[420px] flex-col items-center justify-center p-10 text-center text-white">
-              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white p-3 shadow-2xl">
+            <div className="relative flex min-h-[320px] flex-col items-center justify-center md:min-h-[420px] p-6 md:p-10 text-center text-white">
+              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white p-3 shadow-lg md:shadow-2xl">
                 <img
                   src="/logo-gdr-boavista-header-256.png"
                   alt="GDR Boavista"
@@ -1225,7 +1225,7 @@ export function HomePage() {
                 Localização
               </p>
 
-              <h2 className="mt-5 font-serif text-5xl font-light leading-tight md:text-6xl">
+              <h2 className="mt-5 font-serif text-4xl font-light leading-tight md:text-6xl">
                 Visita-nos no campo.
               </h2>
 
@@ -1242,8 +1242,8 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-red-700 py-20 text-white">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-4 md:flex-row md:items-center">
+      <section className="bg-red-700 py-14 md:py-20 text-white">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-5 md:px-4 md:flex-row md:items-center">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-200">
               Sócios

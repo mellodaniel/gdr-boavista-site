@@ -871,7 +871,7 @@ export default function PublicTournamentPage() {
   if (errorMessage || !tournament) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-16">
-        <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow-sm">
+        <div className="mx-auto max-w-5xl rounded-2xl bg-white p-6 md:p-8 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Torneio não encontrado</h1>
           <p className="mt-2 text-slate-600">O torneio que procuras não existe ou foi removido.</p>
           <Link to="/" className="mt-6 inline-flex rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white hover:bg-[#24170f]">
@@ -885,7 +885,7 @@ export default function PublicTournamentPage() {
   if (!tournament.is_public) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-16">
-        <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow-sm">
+        <div className="mx-auto max-w-5xl rounded-2xl bg-white p-6 md:p-8 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Gestor de Torneios Boavista</p>
           <h1 className="mt-3 text-3xl font-bold text-slate-900">{tournament.name}</h1>
           <p className="mt-4 text-slate-600">Este torneio ainda não está publicado.</p>
@@ -899,16 +899,16 @@ export default function PublicTournamentPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50">
-      <section className="bg-gradient-to-br from-[#24170f] via-[#3b2118] to-red-900 px-4 py-8 text-white sm:px-6 md:py-14">
+      <section className="bg-gradient-to-br from-[#24170f] via-[#3b2118] to-red-900 px-5 md:px-4 py-8 text-white sm:px-6 md:py-14">
         <div className="mx-auto max-w-6xl">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-red-100">GDR Boavista</p>
           <h1 className="mt-3 text-3xl font-bold leading-tight md:text-5xl">{tournament.name}</h1>
 
           <div className="mt-5 flex flex-wrap gap-2 text-xs sm:text-sm md:gap-3">
-            {tournament.age_group && <span className="rounded-full bg-white/15 px-4 py-2">{tournament.age_group}</span>}
-            {tournament.football_type && <span className="rounded-full bg-white/15 px-4 py-2">{tournament.football_type}</span>}
-            {tournament.location && <span className="rounded-full bg-white/15 px-4 py-2">{tournament.location}</span>}
-            {tournament.edition && <span className="rounded-full bg-white/15 px-4 py-2">Edição {tournament.edition}</span>}
+            {tournament.age_group && <span className="rounded-full bg-white/15 px-5 md:px-4 py-2">{tournament.age_group}</span>}
+            {tournament.football_type && <span className="rounded-full bg-white/15 px-5 md:px-4 py-2">{tournament.football_type}</span>}
+            {tournament.location && <span className="rounded-full bg-white/15 px-5 md:px-4 py-2">{tournament.location}</span>}
+            {tournament.edition && <span className="rounded-full bg-white/15 px-5 md:px-4 py-2">Edição {tournament.edition}</span>}
           </div>
 
           <div className="mt-6 rounded-2xl bg-white/10 p-4 text-sm text-red-50 ring-1 ring-white/20 md:mt-8">
@@ -934,19 +934,19 @@ export default function PublicTournamentPage() {
         </div>
       </section>
 
-      <nav className="sticky top-0 z-20 border-y border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur sm:px-6">
+      <nav className="sticky top-0 z-20 border-y border-slate-200 bg-white/95 px-5 md:px-4 py-3 shadow-sm backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto pb-1 text-xs font-bold uppercase tracking-wide text-slate-700 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <a href="#numeros" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Números</a>
-          <a href="#jogos" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Jogos</a>
-          <a href="#memorias" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Memórias</a>
-          <a href="#entrevistas" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Entrevistas</a>
-          <a href="#classificacao" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Classificação</a>
-          <a href="#marcadores" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Marcadores</a>
-          <a href="#equipas" className="shrink-0 rounded-full bg-slate-100 px-4 py-2 hover:bg-red-50 hover:text-red-700">Equipas</a>
+          <a href="#numeros" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Números</a>
+          <a href="#jogos" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Jogos</a>
+          <a href="#memorias" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Memórias</a>
+          <a href="#entrevistas" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Entrevistas</a>
+          <a href="#classificacao" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Classificação</a>
+          <a href="#marcadores" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Marcadores</a>
+          <a href="#equipas" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Equipas</a>
         </div>
       </nav>
 
-      <section className="px-4 py-6 sm:px-6 md:py-10">
+      <section className="px-5 md:px-4 py-6 sm:px-6 md:py-10">
         <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
           <TournamentNumbersSection numbers={tournamentNumbers} />
 
@@ -1054,7 +1054,7 @@ export default function PublicTournamentPage() {
                     type="button"
                     onClick={() => loadTournament(false)}
                     disabled={refreshing}
-                    className="inline-flex items-center justify-center rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-[#24170f] disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex items-center justify-center rounded-xl bg-red-700 px-5 md:px-4 py-2 text-sm font-semibold text-white hover:bg-[#24170f] disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {refreshing ? 'A atualizar...' : 'Atualizar dados'}
                   </button>
@@ -1107,7 +1107,7 @@ export default function PublicTournamentPage() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-5 md:px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Limpar filtros
                 </button>
@@ -1173,28 +1173,28 @@ export default function PublicTournamentPage() {
                           <table className="w-full min-w-[920px] text-left text-sm">
                             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                               <tr>
-                                <th className="px-4 py-3">Jogo</th>
-                                <th className="px-4 py-3">Hora</th>
-                                <th className="px-4 py-3">Campo</th>
-                                <th className="px-4 py-3">Grupo/Fase</th>
-                                <th className="px-4 py-3 text-center">Confronto</th>
-                                <th className="px-4 py-3">Estado</th>
+                                <th className="px-5 md:px-4 py-3">Jogo</th>
+                                <th className="px-5 md:px-4 py-3">Hora</th>
+                                <th className="px-5 md:px-4 py-3">Campo</th>
+                                <th className="px-5 md:px-4 py-3">Grupo/Fase</th>
+                                <th className="px-5 md:px-4 py-3 text-center">Confronto</th>
+                                <th className="px-5 md:px-4 py-3">Estado</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
                               {group.matches.map((match) => (
                                 <tr key={match.id} className="hover:bg-slate-50">
-                                  <td className="px-4 py-4 font-semibold text-slate-900">Jogo {match.match_number}</td>
-                                  <td className="px-4 py-4 text-slate-700">{formatTime(match.match_time)}</td>
-                                  <td className="px-4 py-4 text-slate-700">{getFieldName(match.field_id)}</td>
-                                  <td className="px-4 py-4 text-slate-700">
+                                  <td className="px-5 md:px-4 py-4 font-semibold text-slate-900">Jogo {match.match_number}</td>
+                                  <td className="px-5 md:px-4 py-4 text-slate-700">{formatTime(match.match_time)}</td>
+                                  <td className="px-5 md:px-4 py-4 text-slate-700">{getFieldName(match.field_id)}</td>
+                                  <td className="px-5 md:px-4 py-4 text-slate-700">
                                     <div className="font-semibold">{getGroupName(match.group_id)}</div>
                                     <div className="text-xs text-slate-500">{phaseLabels[match.phase] || match.phase}</div>
                                   </td>
-                                  <td className="px-4 py-4">
+                                  <td className="px-5 md:px-4 py-4">
                                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
                                       <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'a')}</span>
-                                      <span className="rounded-xl bg-slate-100 px-4 py-2 font-bold text-slate-900">
+                                      <span className="rounded-xl bg-slate-100 px-5 md:px-4 py-2 font-bold text-slate-900">
                                         {formatMatchResult(match)}
                                       </span>
                                       <span className="font-semibold text-slate-900">{getMatchTeamName(match, 'b')}</span>
@@ -1206,7 +1206,7 @@ export default function PublicTournamentPage() {
                                       teamById={teamById}
                                     />
                                   </td>
-                                  <td className="px-4 py-4">
+                                  <td className="px-5 md:px-4 py-4">
                                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                                       {statusLabels[match.status] || match.status}
                                     </span>
@@ -1291,7 +1291,7 @@ export default function PublicTournamentPage() {
                                 <p className="text-xs font-bold uppercase tracking-wide text-slate-500">#{index + 1}</p>
                                 <p className="truncate text-base font-black text-slate-900">{row.team.name}</p>
                               </div>
-                              <div className="rounded-2xl bg-white px-4 py-2 text-center shadow-sm">
+                              <div className="rounded-2xl bg-white px-5 md:px-4 py-2 text-center shadow-sm">
                                 <p className="text-2xl font-black text-red-700">{row.points}</p>
                                 <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">pts</p>
                               </div>
@@ -1317,31 +1317,31 @@ export default function PublicTournamentPage() {
                         <table className="w-full min-w-[640px] text-left text-sm">
                           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                             <tr>
-                              <th className="px-4 py-3">#</th>
-                              <th className="px-4 py-3">Equipa</th>
-                              <th className="px-4 py-3 text-center">Pts</th>
-                              <th className="px-4 py-3 text-center">J</th>
-                              <th className="px-4 py-3 text-center">V</th>
-                              <th className="px-4 py-3 text-center">E</th>
-                              <th className="px-4 py-3 text-center">D</th>
-                              <th className="px-4 py-3 text-center">GM</th>
-                              <th className="px-4 py-3 text-center">GS</th>
-                              <th className="px-4 py-3 text-center">DG</th>
+                              <th className="px-5 md:px-4 py-3">#</th>
+                              <th className="px-5 md:px-4 py-3">Equipa</th>
+                              <th className="px-5 md:px-4 py-3 text-center">Pts</th>
+                              <th className="px-5 md:px-4 py-3 text-center">J</th>
+                              <th className="px-5 md:px-4 py-3 text-center">V</th>
+                              <th className="px-5 md:px-4 py-3 text-center">E</th>
+                              <th className="px-5 md:px-4 py-3 text-center">D</th>
+                              <th className="px-5 md:px-4 py-3 text-center">GM</th>
+                              <th className="px-5 md:px-4 py-3 text-center">GS</th>
+                              <th className="px-5 md:px-4 py-3 text-center">DG</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-200">
                             {rows.map((row, index) => (
                               <tr key={row.team.id}>
-                                <td className="px-4 py-3 font-semibold text-slate-500">{index + 1}</td>
-                                <td className="px-4 py-3 font-semibold text-slate-900">{row.team.name}</td>
-                                <td className="px-4 py-3 text-center text-lg font-bold text-slate-900">{row.points}</td>
-                                <td className="px-4 py-3 text-center">{row.played}</td>
-                                <td className="px-4 py-3 text-center">{row.wins}</td>
-                                <td className="px-4 py-3 text-center">{row.draws}</td>
-                                <td className="px-4 py-3 text-center">{row.losses}</td>
-                                <td className="px-4 py-3 text-center">{row.goalsFor}</td>
-                                <td className="px-4 py-3 text-center">{row.goalsAgainst}</td>
-                                <td className="px-4 py-3 text-center">{row.goalDifference}</td>
+                                <td className="px-5 md:px-4 py-3 font-semibold text-slate-500">{index + 1}</td>
+                                <td className="px-5 md:px-4 py-3 font-semibold text-slate-900">{row.team.name}</td>
+                                <td className="px-5 md:px-4 py-3 text-center text-lg font-bold text-slate-900">{row.points}</td>
+                                <td className="px-5 md:px-4 py-3 text-center">{row.played}</td>
+                                <td className="px-5 md:px-4 py-3 text-center">{row.wins}</td>
+                                <td className="px-5 md:px-4 py-3 text-center">{row.draws}</td>
+                                <td className="px-5 md:px-4 py-3 text-center">{row.losses}</td>
+                                <td className="px-5 md:px-4 py-3 text-center">{row.goalsFor}</td>
+                                <td className="px-5 md:px-4 py-3 text-center">{row.goalsAgainst}</td>
+                                <td className="px-5 md:px-4 py-3 text-center">{row.goalDifference}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1638,13 +1638,13 @@ function TournamentAwardsGallery() {
           onClick={closePhoto}
         >
           <div
-            className="relative max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+            className="relative max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-lg md:shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
               onClick={closePhoto}
-              className="absolute right-4 top-4 z-10 rounded-full bg-white/95 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-900 shadow-lg transition hover:bg-red-700 hover:text-white"
+              className="absolute right-4 top-4 z-10 rounded-full bg-white/95 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-900 shadow-lg transition hover:bg-red-700 hover:text-white"
             >
               Fechar
             </button>

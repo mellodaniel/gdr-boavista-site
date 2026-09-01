@@ -88,16 +88,16 @@ export function MembersPage() {
 
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
-      <section className="relative overflow-hidden bg-[#24180f] py-24 text-white">
+      <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-4">
+        <div className="relative mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
               Sócios
             </p>
 
-            <h1 className="mt-8 font-serif text-6xl font-light leading-[0.95] tracking-tight md:text-8xl">
+            <h1 className="mt-8 font-serif text-5xl font-light leading-[0.95] tracking-tight md:text-8xl">
               Faz parte da
               <br />
               família Boavista.
@@ -111,14 +111,14 @@ export function MembersPage() {
         </div>
       </section>
 
-      <section className="py-24">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <section className="py-14 md:py-24">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 md:px-4 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
               Apoiar o clube
             </p>
 
-            <h2 className="mt-6 font-serif text-5xl font-light leading-tight text-[#24180f] md:text-6xl">
+            <h2 className="mt-6 font-serif text-4xl font-light leading-tight text-[#24180f] md:text-6xl">
               Ser sócio é estar mais perto do clube.
             </h2>
 
@@ -135,7 +135,7 @@ export function MembersPage() {
                 return (
                   <article
                     key={item.title}
-                    className="rounded-sm border border-zinc-200 bg-white p-6"
+                    className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6"
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-700">
@@ -157,7 +157,7 @@ export function MembersPage() {
               })}
             </div>
 
-            <div className="mt-8 rounded-sm bg-[#24180f] p-7 text-white">
+            <div className="mt-8 rounded-2xl md:rounded-sm bg-[#24180f] p-5 md:p-7 text-white">
               <h3 className="font-serif text-3xl font-light">
                 Contactos de sócios
               </h3>
@@ -184,7 +184,7 @@ export function MembersPage() {
 
           <form
             onSubmit={handleSubmit}
-            className="rounded-sm border border-zinc-200 bg-white p-7 shadow-2xl shadow-zinc-950/10"
+            className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-5 md:p-7 shadow-lg md:shadow-2xl shadow-zinc-950/10"
           >
             <div>
               <h2 className="font-serif text-4xl font-light text-[#24180f]">
@@ -198,14 +198,14 @@ export function MembersPage() {
             </div>
 
             {successMessage && (
-              <div className="mt-6 flex items-start gap-3 rounded-sm border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
+              <div className="mt-6 flex items-start gap-3 rounded-2xl md:rounded-sm border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
                 <CheckCircle2 size={20} />
                 {successMessage}
               </div>
             )}
 
             {errorMessage && (
-              <div className="mt-6 rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+              <div className="mt-6 rounded-2xl md:rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
                 {errorMessage}
               </div>
             )}
@@ -223,7 +223,7 @@ export function MembersPage() {
                     handleChange('full_name', event.target.value)
                   }
                   placeholder="O seu nome"
-                  className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  className="mt-2 w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
@@ -240,7 +240,7 @@ export function MembersPage() {
                       handleChange('email', event.target.value)
                     }
                     placeholder="email@exemplo.pt"
-                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                    className="mt-2 w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                   />
                 </div>
 
@@ -256,7 +256,7 @@ export function MembersPage() {
                       handleChange('phone', event.target.value)
                     }
                     placeholder="+351 000 000 000"
-                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                    className="mt-2 w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                   />
                 </div>
               </div>
@@ -269,7 +269,7 @@ export function MembersPage() {
                   value={form.nif}
                   onChange={(event) => handleChange('nif', event.target.value)}
                   placeholder="Opcional"
-                  className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  className="mt-2 w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
@@ -283,7 +283,7 @@ export function MembersPage() {
                   onChange={(event) => handleChange('notes', event.target.value)}
                   rows={5}
                   placeholder="Pode deixar alguma observação adicional..."
-                  className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm leading-7 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  className="mt-2 w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm leading-7 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
             </div>

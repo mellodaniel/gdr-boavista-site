@@ -174,7 +174,7 @@ function PlayerCard({ player }: { player: GdrbRosterPlayer }) {
 
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
 
-        <div className="absolute left-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-black text-[#24180f] shadow-lg ring-1 ring-black/5">
+        <div className="absolute left-4 top-4 rounded-full bg-white px-5 md:px-4 py-2 text-sm font-black text-[#24180f] shadow-lg ring-1 ring-black/5">
           {formatPlayerNumber(player.shirt_number)}
         </div>
 
@@ -327,15 +327,15 @@ export function SeniorRosterPage() {
           aria-hidden="true"
         />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-16 md:py-24">
+        <div className="relative mx-auto max-w-7xl px-5 md:px-4 py-16 md:py-24">
           <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
             <div>
-              <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-red-200 backdrop-blur">
+              <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-red-200 backdrop-blur">
                 <Sparkles size={16} />
                 Plantel privado
               </div>
 
-              <h1 className="mt-7 max-w-4xl font-serif text-5xl font-light leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
+              <h1 className="mt-7 max-w-4xl font-serif text-4xl font-light leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
                 Equipa Sénior
                 <span className="block text-red-300">GDR Boavista.</span>
               </h1>
@@ -347,19 +347,19 @@ export function SeniorRosterPage() {
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3 text-sm font-bold text-zinc-300">
-                <span className="rounded-full bg-white px-4 py-2 text-[#24180f]">
+                <span className="rounded-full bg-white px-5 md:px-4 py-2 text-[#24180f]">
                   Época 2026/2027
                 </span>
-                <span className="rounded-full border border-white/15 px-4 py-2">
+                <span className="rounded-full border border-white/15 px-5 md:px-4 py-2">
                   Futebol sénior
                 </span>
-                <span className="rounded-full border border-white/15 px-4 py-2">
+                <span className="rounded-full border border-white/15 px-5 md:px-4 py-2">
                   Página por link direto
                 </span>
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5 shadow-2xl shadow-black/20 backdrop-blur md:p-6">
+            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5 shadow-lg md:shadow-2xl shadow-black/20 backdrop-blur md:p-6">
               <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.28em] text-red-200">
@@ -372,7 +372,7 @@ export function SeniorRosterPage() {
                 <img
                   src="/logo-gdr-boavista-header-256.png"
                   alt="GDR Boavista"
-                  className="h-14 w-14 rounded-2xl bg-white p-2 shadow-xl"
+                  className="h-14 w-14 rounded-2xl bg-white p-2 shadow-md md:shadow-xl"
                 />
               </div>
 
@@ -393,7 +393,7 @@ export function SeniorRosterPage() {
       </section>
 
       <section className="border-y border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 md:px-4 py-6 md:flex-row md:items-center md:justify-between">
           <p className="text-sm font-black uppercase tracking-[0.25em] text-red-700">
             Juntos, fortes e comprometidos.
           </p>
@@ -406,9 +406,9 @@ export function SeniorRosterPage() {
       </section>
 
       <section className="py-14 md:py-20">
-        <div className="mx-auto max-w-7xl px-4">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           {isLoading ? (
-            <div className="rounded-[2rem] border border-zinc-200 bg-white p-10 text-center text-sm font-bold text-zinc-500 shadow-sm">
+            <div className="rounded-[2rem] border border-zinc-200 bg-white p-6 md:p-10 text-center text-sm font-bold text-zinc-500 shadow-sm">
               A carregar plantel...
             </div>
           ) : players.length === 0 ? (
@@ -440,7 +440,7 @@ export function SeniorRosterPage() {
                     <button
                       type="button"
                       onClick={() => setActiveGroup('Todos')}
-                      className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${
+                      className={`rounded-full px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${
                         activeGroup === 'Todos'
                           ? 'bg-[#24180f] text-white shadow-lg shadow-zinc-950/10'
                           : 'border border-zinc-200 bg-white text-zinc-600 hover:border-red-200 hover:text-red-700'
@@ -454,7 +454,7 @@ export function SeniorRosterPage() {
                         key={group}
                         type="button"
                         onClick={() => setActiveGroup(group)}
-                        className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${
+                        className={`rounded-full px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${
                           activeGroup === group
                             ? 'bg-red-700 text-white shadow-lg shadow-red-700/20'
                             : 'border border-zinc-200 bg-white text-zinc-600 hover:border-red-200 hover:text-red-700'
@@ -486,7 +486,7 @@ export function SeniorRosterPage() {
                         </div>
 
                         <div className="h-px flex-1 bg-zinc-200" />
-                        <div className="hidden items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-zinc-500 shadow-sm ring-1 ring-zinc-200 md:flex">
+                        <div className="hidden items-center gap-2 rounded-full bg-white px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-zinc-500 shadow-sm ring-1 ring-zinc-200 md:flex">
                           <Flag size={14} />
                           {groupPlayers.length} elemento(s)
                         </div>
@@ -503,7 +503,7 @@ export function SeniorRosterPage() {
               </div>
 
               <div className="mt-16 overflow-hidden rounded-[2rem] border border-zinc-200 bg-[#24180f] text-white shadow-sm">
-                <div className="grid gap-8 p-7 md:grid-cols-[1fr_auto] md:items-center md:p-10">
+                <div className="grid gap-8 p-5 md:grid-cols-[1fr_auto] md:items-center md:p-10">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.3em] text-red-300">
                       Orgulho Boavista

@@ -119,7 +119,7 @@ export function GalleryPage() {
       <section className="relative overflow-hidden bg-[#24180f] py-14 text-white md:py-24">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-4">
+        <div className="relative mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-xs font-bold uppercase tracking-[0.32em] text-red-400 md:text-sm md:tracking-[0.45em]">
               Galeria
@@ -139,7 +139,7 @@ export function GalleryPage() {
       </section>
 
       <section className="py-12 md:py-24">
-        <div className="mx-auto max-w-7xl px-4">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.32em] text-red-700 md:text-sm md:tracking-[0.45em]">
@@ -152,7 +152,7 @@ export function GalleryPage() {
             </div>
 
             {hasRealGallery ? (
-              <div className="rounded-sm border border-zinc-200 bg-white p-3 shadow-sm md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+              <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-3 shadow-sm md:border-0 md:bg-transparent md:p-0 md:shadow-none">
                 <button
                   type="button"
                   onClick={() => setIsCategoriesOpen((current) => !current)}
@@ -178,7 +178,7 @@ export function GalleryPage() {
                         setSelectedCategory(category);
                         setIsCategoriesOpen(false);
                       }}
-                      className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
+                      className={`rounded-full px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
                         selectedCategory === category
                           ? 'bg-red-700 text-white'
                           : 'bg-zinc-100 text-zinc-600 hover:bg-red-50 hover:text-red-700'
@@ -193,7 +193,7 @@ export function GalleryPage() {
           </div>
 
           {isLoadingGallery ? (
-            <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-center text-sm font-semibold text-zinc-500 md:mt-10 md:p-10">
+            <div className="mt-8 rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 text-center text-sm font-semibold text-zinc-500 md:mt-10 md:p-10">
               A carregar galeria...
             </div>
           ) : (
@@ -207,7 +207,7 @@ export function GalleryPage() {
                 return (
                   <article
                     key={itemId}
-                    className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition md:hover:-translate-y-1 md:hover:shadow-xl"
+                    className="group overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition md:hover:-translate-y-1 md:hover:shadow-xl"
                   >
                     {imageUrl ? (
                       <div className="h-52 overflow-hidden bg-[#f6f2ec] md:h-72">
@@ -259,7 +259,7 @@ export function GalleryPage() {
           )}
 
           {!isLoadingGallery && !hasRealGallery ? (
-            <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-6 text-center md:mt-12 md:p-10">
+            <div className="mt-8 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-white p-6 text-center md:mt-12 md:p-10">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-700 md:h-16 md:w-16">
                 <Camera size={24} />
               </div>

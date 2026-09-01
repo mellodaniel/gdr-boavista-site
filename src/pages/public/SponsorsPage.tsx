@@ -31,16 +31,16 @@ export function SponsorsPage() {
 
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
-      <section className="relative overflow-hidden bg-[#24180f] py-24 text-white">
+      <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-4">
+        <div className="relative mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
               Parceiros e Apoios
             </p>
 
-            <h1 className="mt-8 font-serif text-6xl font-light leading-[0.95] tracking-tight md:text-8xl">
+            <h1 className="mt-8 font-serif text-5xl font-light leading-[0.95] tracking-tight md:text-8xl">
               Parceiros que
               <br />
               caminham connosco.
@@ -55,14 +55,14 @@ export function SponsorsPage() {
         </div>
       </section>
 
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="mx-auto max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
               Apoio ao clube
             </p>
 
-            <h2 className="mt-8 font-serif text-5xl font-light leading-tight text-[#24180f] md:text-7xl">
+            <h2 className="mt-8 font-serif text-4xl font-light leading-tight text-[#24180f] md:text-7xl">
               Valorizar quem acredita no Boavista.
             </h2>
 
@@ -79,8 +79,8 @@ export function SponsorsPage() {
             </div>
           </div>
 
-          <div className="mt-16 grid gap-0 overflow-hidden rounded-sm bg-[#24180f] text-white md:grid-cols-3">
-            <article className="border-b border-white/10 p-10 text-center md:border-b-0 md:border-r">
+          <div className="mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-sm bg-[#24180f] text-white md:grid-cols-3">
+            <article className="border-b border-white/10 p-6 md:p-10 text-center md:border-b-0 md:border-r">
               <Handshake className="mx-auto text-red-500" size={30} />
               <h3 className="mt-6 font-serif text-2xl font-light">Parceria</h3>
               <p className="mt-4 text-sm uppercase leading-6 tracking-[0.12em] text-zinc-400">
@@ -88,7 +88,7 @@ export function SponsorsPage() {
               </p>
             </article>
 
-            <article className="border-b border-white/10 p-10 text-center md:border-b-0 md:border-r">
+            <article className="border-b border-white/10 p-6 md:p-10 text-center md:border-b-0 md:border-r">
               <ShieldCheck className="mx-auto text-red-500" size={30} />
               <h3 className="mt-6 font-serif text-2xl font-light">Confiança</h3>
               <p className="mt-4 text-sm uppercase leading-6 tracking-[0.12em] text-zinc-400">
@@ -96,7 +96,7 @@ export function SponsorsPage() {
               </p>
             </article>
 
-            <article className="p-10 text-center">
+            <article className="p-6 md:p-10 text-center">
               <Trophy className="mx-auto text-red-500" size={30} />
               <h3 className="mt-6 font-serif text-2xl font-light">Formação</h3>
               <p className="mt-4 text-sm uppercase leading-6 tracking-[0.12em] text-zinc-400">
@@ -107,15 +107,15 @@ export function SponsorsPage() {
         </div>
       </section>
 
-      <section className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="bg-white py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
                 Parceiros
               </p>
 
-              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
+              <h2 className="mt-5 font-serif text-4xl font-light text-[#24180f] md:text-6xl">
                 Os nossos parceiros
               </h2>
 
@@ -127,11 +127,11 @@ export function SponsorsPage() {
           </div>
 
           {isLoading ? (
-            <div className="mt-10 rounded-sm border border-zinc-200 bg-[#f6f2ec] p-8 text-zinc-600">
+            <div className="mt-10 rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-zinc-600">
               A carregar parceiros...
             </div>
           ) : sponsors.length === 0 ? (
-            <div className="mt-10 rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-10 text-center">
+            <div className="mt-10 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-[#f6f2ec] p-6 md:p-10 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
                 <Handshake size={28} />
               </div>
@@ -149,11 +149,11 @@ export function SponsorsPage() {
               {sponsors.map((sponsor) => (
                 <article
                   key={sponsor.id}
-                  className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  className="group overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
                   <div className="h-1.5 bg-red-700" />
 
-                  <div className="flex min-h-[180px] items-center justify-center bg-[#f6f2ec] p-8">
+                  <div className="flex min-h-[180px] items-center justify-center bg-[#f6f2ec] p-6 md:p-8">
                     {sponsor.logo_url ? (
                       <img
                         src={sponsor.logo_url}
@@ -167,7 +167,7 @@ export function SponsorsPage() {
                     )}
                   </div>
 
-                  <div className="p-7">
+                  <div className="p-5 md:p-7">
                     <h3 className="font-serif text-4xl font-light leading-tight text-[#24180f]">
                       {sponsor.name}
                     </h3>
@@ -197,8 +197,8 @@ export function SponsorsPage() {
         </div>
       </section>
 
-      <section className="bg-red-700 py-20 text-white">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-4 md:flex-row md:items-center">
+      <section className="bg-red-700 py-14 md:py-20 text-white">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-5 md:px-4 md:flex-row md:items-center">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-200">
               Apoiar o Boavista

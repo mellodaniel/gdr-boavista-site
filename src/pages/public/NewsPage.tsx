@@ -94,7 +94,7 @@ export function NewsPage() {
       <section className="relative overflow-hidden bg-[#24180f] py-16 text-white md:py-24">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-4">
+        <div className="relative mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-400 md:text-sm md:tracking-[0.45em]">
               Notícias
@@ -111,8 +111,8 @@ export function NewsPage() {
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto -mt-6 max-w-7xl px-4 pb-16 md:-mt-10 md:pb-24">
-        <div className="rounded-sm border border-zinc-200 bg-white p-4 shadow-2xl shadow-zinc-950/10 md:p-7">
+      <section className="relative z-10 mx-auto -mt-6 max-w-7xl px-5 md:px-4 pb-16 md:-mt-10 md:pb-24">
+        <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-4 shadow-lg md:shadow-2xl shadow-zinc-950/10 md:p-7">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="font-serif text-2xl font-light text-[#24180f] md:text-3xl">
@@ -127,7 +127,7 @@ export function NewsPage() {
             <button
               type="button"
               onClick={() => setIsFiltersOpen((value) => !value)}
-              className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700 md:hidden"
+              className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700 md:hidden"
             >
               Filtrar
               <ChevronDown
@@ -156,7 +156,7 @@ export function NewsPage() {
             <select
               value={sourceFilter}
               onChange={(event) => setSourceFilter(event.target.value)}
-              className="rounded-md border border-zinc-200 px-4 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              className="rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
             >
               {sourceFilters.map((source) => (
                 <option key={source} value={source}>
@@ -167,18 +167,18 @@ export function NewsPage() {
           </div>
 
           <div className="mt-5 flex flex-col justify-between gap-3 border-t border-zinc-200 pt-4 md:flex-row md:items-center">
-            <span className="inline-flex w-fit rounded-full bg-red-700 px-4 py-2 text-xs font-black uppercase tracking-wide text-white md:text-sm">
+            <span className="inline-flex w-fit rounded-full bg-red-700 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-wide text-white md:text-sm">
               Publicadas · {publishedCount}
             </span>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600">
+          <div className="mt-8 rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 md:p-8 text-zinc-600">
             A carregar notícias...
           </div>
         ) : filteredNews.length === 0 ? (
-          <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
+          <div className="mt-8 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-white p-6 md:p-10 text-center shadow-sm">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
               <Newspaper size={28} />
             </div>
@@ -192,7 +192,7 @@ export function NewsPage() {
             </p>
           </div>
         ) : (
-          <div className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm md:grid md:gap-6 md:border-0 md:bg-transparent md:shadow-none lg:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-8 overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm md:grid md:gap-6 md:border-0 md:bg-transparent md:shadow-none lg:grid-cols-2 xl:grid-cols-3">
             {filteredNews.map((item, index) => {
               const isExpanded = expandedNewsId === item.id;
 
@@ -212,10 +212,10 @@ export function NewsPage() {
                       <img
                         src={item.image_url}
                         alt={item.title}
-                        className="h-20 w-24 shrink-0 rounded-sm object-cover"
+                        className="h-20 w-24 shrink-0 rounded-2xl md:rounded-sm object-cover"
                       />
                     ) : (
-                      <div className="flex h-20 w-24 shrink-0 items-center justify-center rounded-sm bg-[#24180f]">
+                      <div className="flex h-20 w-24 shrink-0 items-center justify-center rounded-2xl md:rounded-sm bg-[#24180f]">
                         <Newspaper size={24} className="text-red-500" />
                       </div>
                     )}
@@ -253,7 +253,7 @@ export function NewsPage() {
                         <NewsLikeButton newsId={item.id} compact />
                         <Link
                           to={`/noticias/${item.id}`}
-                          className="inline-flex items-center gap-2 rounded-md bg-red-700 px-4 py-3 text-xs font-black uppercase tracking-wide text-white"
+                          className="inline-flex items-center gap-2 rounded-md bg-red-700 px-5 md:px-4 py-3 text-xs font-black uppercase tracking-wide text-white"
                         >
                           Ler notícia
                           <ChevronRight size={15} />
@@ -289,7 +289,7 @@ export function NewsPage() {
                       </div>
                     )}
 
-                    <div className="p-7">
+                    <div className="p-5 md:p-7">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
                           {item.source}

@@ -53,16 +53,16 @@ const timeline = [
 export function ClubPage() {
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
-      <section className="relative overflow-hidden bg-[#24180f] py-24 text-white">
+      <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-4">
+        <div className="relative mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
               O clube
             </p>
 
-            <h1 className="mt-8 font-serif text-6xl font-light leading-[0.95] tracking-tight md:text-8xl">
+            <h1 className="mt-8 font-serif text-5xl font-light leading-[0.95] tracking-tight md:text-8xl">
               Mais do que futebol,
               <br />
               uma casa de formação.
@@ -77,14 +77,14 @@ export function ClubPage() {
         </div>
       </section>
 
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="mx-auto max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
               Identidade
             </p>
 
-            <h2 className="mt-8 font-serif text-5xl font-light leading-tight text-[#24180f] md:text-7xl">
+            <h2 className="mt-8 font-serif text-4xl font-light leading-tight text-[#24180f] md:text-7xl">
               Um clube com missão, visão e valores.
             </h2>
 
@@ -103,14 +103,14 @@ export function ClubPage() {
             </div>
           </div>
 
-          <div className="mt-16 grid gap-0 overflow-hidden rounded-sm bg-[#24180f] text-white md:grid-cols-3">
+          <div className="mt-16 grid gap-0 overflow-hidden rounded-2xl md:rounded-sm bg-[#24180f] text-white md:grid-cols-3">
             {timeline.map((item, index) => {
               const Icon = item.icon;
 
               return (
                 <article
                   key={item.title}
-                  className={`p-10 text-center ${
+                  className={`p-6 md:p-10 text-center ${
                     index !== timeline.length - 1
                       ? 'border-b border-white/10 md:border-b-0 md:border-r'
                       : ''
@@ -132,20 +132,20 @@ export function ClubPage() {
         </div>
       </section>
 
-      <section className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="bg-white py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-start">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
                 Missão
               </p>
 
-              <h2 className="mt-5 font-serif text-5xl font-light leading-tight text-[#24180f] md:text-6xl">
+              <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-[#24180f] md:text-6xl">
                 Formar, integrar e preparar.
               </h2>
             </div>
 
-            <div className="rounded-sm border border-zinc-200 bg-[#f6f2ec] p-8 shadow-sm">
+            <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 shadow-sm">
               <p className="text-base leading-8 text-zinc-700">
                 A estrutura do Grupo Desportivo e Recreativo da Boavista visa
                 promover a formação e integração global dos atletas do clube nas
@@ -164,20 +164,20 @@ export function ClubPage() {
         </div>
       </section>
 
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-start">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
                 Visão
               </p>
 
-              <h2 className="mt-5 font-serif text-5xl font-light leading-tight text-[#24180f] md:text-6xl">
+              <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-[#24180f] md:text-6xl">
                 Ser referência na formação.
               </h2>
             </div>
 
-            <div className="rounded-sm border border-zinc-200 bg-white p-8 shadow-sm">
+            <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 md:p-8 shadow-sm">
               <p className="text-base leading-8 text-zinc-700">
                 A estrutura do Grupo Desportivo e Recreativo da Boavista
                 pretende constituir-se como referência na promoção e
@@ -198,14 +198,14 @@ export function ClubPage() {
         </div>
       </section>
 
-      <section className="bg-[#24180f] py-24 text-white">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="bg-[#24180f] py-14 md:py-24 text-white">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
               Valores
             </p>
 
-            <h2 className="mt-8 font-serif text-5xl font-light leading-tight md:text-7xl">
+            <h2 className="mt-8 font-serif text-4xl font-light leading-tight md:text-7xl">
               Os princípios que orientam o GDR Boavista.
             </h2>
 
@@ -220,7 +220,7 @@ export function ClubPage() {
             {values.map((item) => (
               <article
                 key={item.title}
-                className="rounded-sm border border-white/10 bg-white/5 p-8"
+                className="rounded-2xl md:rounded-sm border border-white/10 bg-white/5 p-6 md:p-8"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-700 text-white">
                   <ShieldCheck size={22} />
@@ -239,9 +239,9 @@ export function ClubPage() {
         </div>
       </section>
 
-      <section className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="rounded-sm border border-zinc-200 bg-[#f6f2ec] p-10 shadow-sm md:p-14">
+      <section className="bg-white py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
+          <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-[#f6f2ec] p-6 shadow-sm md:p-14">
             <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">

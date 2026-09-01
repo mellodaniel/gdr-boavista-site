@@ -495,15 +495,15 @@ function getValidationMessages(form: PilotForm) {
 }
 
 function getInputClass() {
-  return 'w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100';
+  return 'w-full rounded-xl border border-slate-300 bg-white px-5 md:px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100';
 }
 
 function getSelectClass() {
-  return 'w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100';
+  return 'w-full rounded-xl border border-slate-300 bg-white px-5 md:px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100';
 }
 
 function getTextareaClass() {
-  return 'w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100';
+  return 'w-full rounded-xl border border-slate-300 bg-white px-5 md:px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100';
 }
 
 function getStepIndex(step: PilotStep) {
@@ -870,10 +870,10 @@ export function TournamentPilotPage() {
   const currentStepIndex = getStepIndex(currentStep);
 
   return (
-    <main className="min-h-screen bg-[#f7f2ea] px-4 py-10 text-slate-900">
+    <main className="min-h-screen bg-[#f7f2ea] px-5 md:px-4 py-10 text-slate-900">
       <div className="mx-auto max-w-6xl space-y-8">
-        <section className="overflow-hidden rounded-3xl bg-[#24180f] text-white shadow-xl">
-          <div className="grid gap-8 p-8 md:grid-cols-[1.4fr_0.8fr] md:p-12">
+        <section className="overflow-hidden rounded-3xl bg-[#24180f] text-white shadow-md md:shadow-xl">
+          <div className="grid gap-8 p-6 md:grid-cols-[1.4fr_0.8fr] md:p-12">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-300">
                 Piloto Self-Service
@@ -886,9 +886,9 @@ export function TournamentPilotPage() {
                 página pública, dias, campos, equipas placeholder, grupos, regras, parceiros e jogos.
               </p>
               <div className="mt-6 flex flex-wrap gap-3 text-xs font-bold uppercase tracking-[0.18em] text-white/75">
-                <span className="rounded-full bg-white/10 px-4 py-2">Sem IA generativa</span>
-                <span className="rounded-full bg-white/10 px-4 py-2">Custo zero</span>
-                <span className="rounded-full bg-white/10 px-4 py-2">Criação controlada</span>
+                <span className="rounded-full bg-white/10 px-5 md:px-4 py-2">Sem IA generativa</span>
+                <span className="rounded-full bg-white/10 px-5 md:px-4 py-2">Custo zero</span>
+                <span className="rounded-full bg-white/10 px-5 md:px-4 py-2">Criação controlada</span>
               </div>
             </div>
 
@@ -1149,7 +1149,7 @@ export function TournamentPilotPage() {
                   </Field>
 
                   <Field label="Pausa para almoço" className="md:col-span-2">
-                    <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                    <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-5 md:px-4 py-3 text-sm font-semibold text-slate-700">
                       <input
                         type="checkbox"
                         checked={form.hasLunchBreak}
@@ -1253,7 +1253,7 @@ export function TournamentPilotPage() {
 
                   <Field label="Fase final" className="md:col-span-2">
                     <div className="grid gap-3 md:grid-cols-3">
-                      <label className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <label className="rounded-xl border border-slate-200 bg-slate-50 px-5 md:px-4 py-3 text-sm font-semibold text-slate-700">
                         <input
                           className="mr-2"
                           type="checkbox"
@@ -1262,7 +1262,7 @@ export function TournamentPilotPage() {
                         />
                         Meias-finais
                       </label>
-                      <label className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <label className="rounded-xl border border-slate-200 bg-slate-50 px-5 md:px-4 py-3 text-sm font-semibold text-slate-700">
                         <input
                           className="mr-2"
                           type="checkbox"
@@ -1271,7 +1271,7 @@ export function TournamentPilotPage() {
                         />
                         3.º e 4.º lugar
                       </label>
-                      <label className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <label className="rounded-xl border border-slate-200 bg-slate-50 px-5 md:px-4 py-3 text-sm font-semibold text-slate-700">
                         <input
                           className="mr-2"
                           type="checkbox"
@@ -1342,7 +1342,7 @@ export function TournamentPilotPage() {
                       </Field>
 
                       <Field label="Logo do parceiro">
-                        <label className="flex cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 hover:border-green-600 hover:bg-green-50">
+                        <label className="flex cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 md:px-4 py-3 text-sm font-semibold text-slate-600 hover:border-green-600 hover:bg-green-50">
                           <Upload className="h-4 w-4" />
                           {partnerLogoFile ? partnerLogoFile.name : 'Escolher ficheiro'}
                           <input type="file" accept="image/*" className="hidden" onChange={handlePartnerLogoChange} />
@@ -1456,7 +1456,7 @@ export function TournamentPilotPage() {
                     {validationMessages.map((message) => (
                       <div
                         key={message.text}
-                        className={`rounded-xl border px-4 py-3 text-sm leading-6 ${
+                        className={`rounded-xl border px-5 md:px-4 py-3 text-sm leading-6 ${
                           message.type === 'error'
                             ? 'border-red-200 bg-red-50 text-red-700'
                             : message.type === 'warning'
@@ -1651,7 +1651,7 @@ function LinkButton({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 font-bold text-green-700 hover:border-green-700 hover:bg-green-50"
+      className="inline-flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-5 md:px-4 py-3 font-bold text-green-700 hover:border-green-700 hover:bg-green-50"
     >
       {label}
       <ExternalLink className="h-4 w-4" />

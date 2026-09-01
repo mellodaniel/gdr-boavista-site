@@ -59,14 +59,14 @@ export function AppInstallPage() {
           <div className="absolute -left-28 bottom-0 h-80 w-80 rounded-full bg-white/20 blur-3xl" />
         </div>
 
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-20 lg:grid-cols-[1fr_440px] lg:items-center lg:py-28">
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-5 md:px-4 py-14 md:py-20 lg:grid-cols-[1fr_440px] lg:items-center lg:py-28">
           <div>
-            <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.28em] text-red-200">
+            <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.28em] text-red-200">
               <Smartphone size={16} />
               App Android oficial
             </div>
 
-            <h1 className="mt-7 max-w-3xl font-serif text-5xl font-light leading-[1.02] md:text-7xl">
+            <h1 className="mt-7 max-w-3xl font-serif text-4xl font-light leading-[1.02] md:text-7xl">
               Leve o GDR Boavista no telemóvel.
             </h1>
 
@@ -79,7 +79,7 @@ export function AppInstallPage() {
               <button
                 type="button"
                 onClick={handleAndroidDownload}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-xl shadow-black/20 transition hover:-translate-y-0.5 hover:bg-red-800"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-md md:shadow-xl shadow-black/20 transition hover:-translate-y-0.5 hover:bg-red-800"
               >
                 <Download size={18} />
                 Baixar app Android
@@ -103,7 +103,7 @@ export function AppInstallPage() {
             )}
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white p-6 text-[#24180f] shadow-2xl shadow-black/30">
+          <div className="rounded-[2rem] border border-white/10 bg-white p-6 text-[#24180f] shadow-lg md:shadow-2xl shadow-black/30">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.28em] text-red-700">
@@ -131,12 +131,12 @@ export function AppInstallPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-16">
+      <section className="mx-auto max-w-7xl px-5 md:px-4 py-16">
         <div className="grid gap-6 lg:grid-cols-3">
           {installSteps.map((step) => (
             <article
               key={step.title}
-              className="rounded-[1.7rem] border border-[#eadfd2] bg-white p-7 shadow-sm shadow-black/5"
+              className="rounded-[1.7rem] border border-[#eadfd2] bg-white p-5 md:p-7 shadow-sm shadow-black/5"
             >
               <h3 className="font-serif text-2xl font-light text-[#24180f]">
                 {step.title}
@@ -149,8 +149,8 @@ export function AppInstallPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-20">
-        <div className="grid gap-8 rounded-[2rem] border border-[#eadfd2] bg-white p-8 shadow-sm shadow-black/5 lg:grid-cols-[320px_1fr] lg:items-center">
+      <section className="mx-auto max-w-7xl px-5 md:px-4 pb-20">
+        <div className="grid gap-8 rounded-[2rem] border border-[#eadfd2] bg-white p-6 md:p-8 shadow-sm shadow-black/5 lg:grid-cols-[320px_1fr] lg:items-center">
           <div className="flex justify-center">
             <div className="flex h-44 w-44 items-center justify-center rounded-[2rem] bg-[#f6f2ec] p-5 ring-1 ring-[#eadfd2]">
               <img

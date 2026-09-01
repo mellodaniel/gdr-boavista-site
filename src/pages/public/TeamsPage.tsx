@@ -146,16 +146,16 @@ export function TeamsPage() {
 
   return (
     <div className="bg-[#f6f2ec] text-zinc-950">
-      <section className="relative overflow-hidden bg-[#24180f] py-24 text-white">
+      <section className="relative overflow-hidden bg-[#24180f] py-14 md:py-24 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-4">
+        <div className="relative mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-400">
               Equipas
             </p>
 
-            <h1 className="mt-8 font-serif text-6xl font-light leading-[0.95] tracking-tight md:text-8xl">
+            <h1 className="mt-8 font-serif text-5xl font-light leading-[0.95] tracking-tight md:text-8xl">
               Formação,
               <br />
               competição e futuro.
@@ -169,15 +169,15 @@ export function TeamsPage() {
         </div>
       </section>
 
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="py-14 md:py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
                 Escalões
               </p>
 
-              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
+              <h2 className="mt-5 font-serif text-4xl font-light text-[#24180f] md:text-6xl">
                 As nossas equipas
               </h2>
             </div>
@@ -188,7 +188,7 @@ export function TeamsPage() {
                   key={filter}
                   type="button"
                   onClick={() => setActiveFilter(filter)}
-                  className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  className={`rounded-full px-5 md:px-4 py-2 text-sm font-bold transition ${
                     activeFilter === filter
                       ? 'bg-[#24180f] text-white'
                       : 'border border-zinc-200 bg-white text-zinc-600 hover:border-red-700 hover:text-red-700'
@@ -201,7 +201,7 @@ export function TeamsPage() {
           </div>
 
           {isLoading ? (
-            <div className="mt-10 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600">
+            <div className="mt-10 rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 md:p-8 text-zinc-600">
               A carregar equipas...
             </div>
           ) : (
@@ -209,7 +209,7 @@ export function TeamsPage() {
               {visibleTeams.map((team) => (
                 <article
                   key={team.id}
-                  className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  className="group overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
                   <div className="h-1.5 bg-red-700" />
 
@@ -227,7 +227,7 @@ export function TeamsPage() {
                     </div>
                   )}
 
-                  <div className="p-7">
+                  <div className="p-5 md:p-7">
                     <div className="flex flex-wrap gap-2">
                       <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
                         {team.football_type}
@@ -255,10 +255,10 @@ export function TeamsPage() {
         </div>
       </section>
 
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="bg-white py-14 md:py-20">
+        <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="grid gap-6 md:grid-cols-3">
-            <article className="border border-zinc-200 bg-[#f6f2ec] p-8">
+            <article className="border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8">
               <Users className="text-red-700" size={30} />
               <h3 className="mt-6 font-serif text-3xl font-light text-[#24180f]">
                 Escola de Futebol
@@ -269,7 +269,7 @@ export function TeamsPage() {
               </p>
             </article>
 
-            <article className="border border-zinc-200 bg-[#f6f2ec] p-8">
+            <article className="border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8">
               <Trophy className="text-red-700" size={30} />
               <h3 className="mt-6 font-serif text-3xl font-light text-[#24180f]">
                 Formação
@@ -280,7 +280,7 @@ export function TeamsPage() {
               </p>
             </article>
 
-            <article className="border border-zinc-200 bg-[#f6f2ec] p-8">
+            <article className="border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8">
               <Trophy className="text-red-700" size={30} />
               <h3 className="mt-6 font-serif text-3xl font-light text-[#24180f]">
                 Competição

@@ -61,13 +61,13 @@ export function PublicLayout() {
     <div className="min-h-screen bg-[#f6f2ec] text-zinc-950">
       <AnalyticsTracker />
       <header className="sticky top-0 z-50 border-b border-[#eadfd2] bg-[#f6f2ec]/95 shadow-sm shadow-black/5 backdrop-blur-xl">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
+        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 md:h-20 md:px-4">
           <Link
             to="/"
             onClick={() => trackHeaderClick('navigation_click', 'Logo / Home')}
             className="flex items-center gap-3"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-2 shadow-sm ring-1 ring-zinc-200 md:h-14 md:w-14">
               <img
                 src="/logo-gdr-boavista-header-256.png"
                 alt="GDR Boavista"
@@ -89,7 +89,7 @@ export function PublicLayout() {
                 to={item.path}
                 onClick={() => trackHeaderClick('navigation_click', item.label)}
                 className={({ isActive }) =>
-                  `rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  `rounded-full px-5 md:px-4 py-2 text-sm font-semibold transition ${
                     isActive
                       ? 'bg-[#24180f] text-white'
                       : 'text-zinc-600 hover:bg-white hover:text-red-700'
@@ -150,7 +150,7 @@ export function PublicLayout() {
         </div>
 
         {isMenuOpen && (
-          <div className="border-t border-zinc-200 bg-[#f6f2ec] px-4 py-5 lg:hidden">
+          <div className="border-t border-[#eadfd2] bg-[#f6f2ec]/98 px-5 py-4 shadow-[0_20px_40px_rgba(36,24,15,0.10)] backdrop-blur-xl lg:hidden">
             <nav className="grid gap-2">
               {navigation.map((item) => (
                 <NavLink
@@ -161,7 +161,7 @@ export function PublicLayout() {
                     trackHeaderClick('navigation_click', item.label);
                   }}
                   className={({ isActive }) =>
-                    `rounded-2xl px-4 py-3 text-sm font-bold ${
+                    `rounded-2xl px-5 md:px-4 py-3 text-sm font-bold ${
                       isActive
                         ? 'bg-[#24180f] text-white'
                         : 'bg-white text-zinc-700'
@@ -179,7 +179,7 @@ export function PublicLayout() {
                   trackHeaderClick('shop_click', 'Loja - menu mobile');
                 }}
                 className={({ isActive }) =>
-                  `rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-wide ${
+                  `rounded-2xl px-5 md:px-4 py-3 text-sm font-black uppercase tracking-wide ${
                     isActive
                       ? 'bg-[#24180f] text-white'
                       : 'bg-red-700 text-white'
@@ -196,7 +196,7 @@ export function PublicLayout() {
                   trackHeaderClick('pwa_install_page_click', 'App - menu mobile');
                 }}
                 className={({ isActive }) =>
-                  `rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-wide ${
+                  `rounded-2xl px-5 md:px-4 py-3 text-sm font-black uppercase tracking-wide ${
                     isActive
                       ? 'bg-[#24180f] text-white'
                       : 'bg-white text-zinc-700'
@@ -215,10 +215,10 @@ export function PublicLayout() {
       </main>
 
       <footer className="bg-[#24180f] text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 lg:grid-cols-[1.2fr_1fr_1fr]">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 md:gap-10 md:px-4 md:py-14 lg:grid-cols-[1.2fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-2">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-2 md:h-16 md:w-16">
                 <img
                   src="/logo-gdr-boavista-header-256.png"
                   alt="GDR Boavista"
@@ -294,7 +294,7 @@ export function PublicLayout() {
         </div>
 
         <div className="border-t border-white/10 py-5">
-          <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-4 text-xs font-semibold text-zinc-500 md:flex-row">
+          <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-5 md:px-4 text-xs font-semibold text-zinc-500 md:flex-row">
             <p>© {new Date().getFullYear()} GDR Boavista.</p>
             <div className="flex flex-wrap items-center gap-4">
               <Link

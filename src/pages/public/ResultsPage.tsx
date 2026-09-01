@@ -281,7 +281,7 @@ export function ResultsPage() {
           className="pointer-events-none absolute -right-14 top-8 h-44 w-44 object-contain opacity-[0.05] md:h-72 md:w-72"
         />
 
-        <div className="relative mx-auto max-w-7xl px-4">
+        <div className="relative mx-auto max-w-7xl px-5 md:px-4">
           <div className="max-w-4xl">
             <p className="text-xs font-bold uppercase tracking-[0.32em] text-red-400 md:text-sm md:tracking-[0.45em]">
               Jogos · Resultados
@@ -296,8 +296,8 @@ export function ResultsPage() {
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto -mt-7 max-w-7xl px-4 pb-16 md:-mt-10 md:pb-24">
-        <div className="rounded-sm border border-zinc-200 bg-white p-4 shadow-2xl shadow-zinc-950/10 md:p-7">
+      <section className="relative z-10 mx-auto -mt-7 max-w-7xl px-5 md:px-4 pb-16 md:-mt-10 md:pb-24">
+        <div className="rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-4 shadow-lg md:shadow-2xl shadow-zinc-950/10 md:p-7">
           <button
             type="button"
             onClick={() => setIsFiltersOpen((current) => !current)}
@@ -329,7 +329,7 @@ export function ResultsPage() {
                   type="date"
                   value={startDate}
                   onChange={(event) => setStartDate(event.target.value)}
-                  className="w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  className="w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </FilterField>
 
@@ -338,30 +338,30 @@ export function ResultsPage() {
                   type="date"
                   value={endDate}
                   onChange={(event) => setEndDate(event.target.value)}
-                  className="w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                  className="w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </FilterField>
 
               <FilterField label="Escalão">
-                <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
+                <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
                   {teamOptions.map((team) => <option key={team} value={team}>{team}</option>)}
                 </select>
               </FilterField>
 
               <FilterField label="Tipo">
-                <select value={footballTypeFilter} onChange={(event) => setFootballTypeFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
+                <select value={footballTypeFilter} onChange={(event) => setFootballTypeFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
                   {footballTypeOptions.map((type) => <option key={type} value={type}>{type}</option>)}
                 </select>
               </FilterField>
 
               <FilterField label="Estado">
-                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
+                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
                   {statusFilterOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </FilterField>
 
               <FilterField label="Casa/Fora">
-                <select value={venueFilter} onChange={(event) => setVenueFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
+                <select value={venueFilter} onChange={(event) => setVenueFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
                   {venueFilterOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </FilterField>
@@ -374,7 +374,7 @@ export function ResultsPage() {
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder="Adversário, torneio..."
-                    className="w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100 pl-11"
+                    className="w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100 pl-11"
                   />
                 </div>
               </FilterField>
@@ -397,7 +397,7 @@ export function ResultsPage() {
         </div>
 
         {isLoading ? (
-          <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-6 text-sm font-semibold text-zinc-600 shadow-sm md:p-8">
+          <div className="mt-8 rounded-2xl md:rounded-sm border border-zinc-200 bg-white p-6 text-sm font-semibold text-zinc-600 shadow-sm md:p-8">
             A carregar jogos e torneios...
           </div>
         ) : (
@@ -507,7 +507,7 @@ function AgendaCard({ match, isExpanded, onToggle }: AgendaCardProps) {
   const isAway = match.venue_type === 'fora';
 
   return (
-    <article className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition duration-300 md:hover:-translate-y-1 md:hover:shadow-2xl md:hover:shadow-red-950/10">
+    <article className="overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition duration-300 md:hover:-translate-y-1 md:hover:shadow-2xl md:hover:shadow-red-950/10">
       <div className={`h-1.5 ${isAway ? 'bg-zinc-950' : 'bg-red-700'}`} />
       <div className="p-4 md:p-7">
         <div className="flex flex-wrap gap-2">
@@ -552,7 +552,7 @@ type TournamentCardProps = {
 
 function TournamentCard({ tournament, isExpanded, onToggle }: TournamentCardProps) {
   return (
-    <article className="overflow-hidden rounded-sm border border-amber-200 bg-gradient-to-br from-[#24180f] via-[#3a2415] to-red-950 text-white shadow-sm transition duration-300 md:hover:-translate-y-1 md:hover:shadow-2xl md:hover:shadow-red-950/20">
+    <article className="overflow-hidden rounded-2xl md:rounded-sm border border-amber-200 bg-gradient-to-br from-[#24180f] via-[#3a2415] to-red-950 text-white shadow-sm transition duration-300 md:hover:-translate-y-1 md:hover:shadow-2xl md:hover:shadow-red-950/20">
       <div className="h-1.5 bg-amber-400" />
       <div className="p-4 md:p-7">
         <div className="flex flex-wrap gap-2">
@@ -602,7 +602,7 @@ function ResultCard({ match, isExpanded, onToggle }: ResultCardProps) {
   const result = getMatchResult(match);
 
   return (
-    <article className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition md:hover:-translate-y-1 md:hover:shadow-xl">
+    <article className="overflow-hidden rounded-2xl md:rounded-sm border border-zinc-200 bg-white shadow-sm transition md:hover:-translate-y-1 md:hover:shadow-xl">
       <div className="h-1.5 bg-red-700" />
       <div className="p-4 md:grid md:gap-6 md:p-7 lg:grid-cols-[1fr_auto] lg:items-center">
         <div>
@@ -616,7 +616,7 @@ function ResultCard({ match, isExpanded, onToggle }: ResultCardProps) {
             <h3 className="font-serif text-xl font-light uppercase text-[#24180f] md:text-right md:text-3xl">
               {result.firstTeam}
             </h3>
-            <div className="w-fit rounded-sm bg-[#24180f] px-4 py-3 text-3xl font-black text-white md:px-6 md:py-4 md:text-4xl">
+            <div className="w-fit rounded-2xl md:rounded-sm bg-[#24180f] px-5 py-3 text-3xl font-black text-white md:px-6 md:py-4 md:text-4xl">
               <span>{result.firstScore ?? '-'}</span>
               <span className="px-2 text-red-500 md:px-3">-</span>
               <span>{result.secondScore ?? '-'}</span>
@@ -630,7 +630,7 @@ function ResultCard({ match, isExpanded, onToggle }: ResultCardProps) {
         </div>
 
         <div className={`${isExpanded ? 'block' : 'hidden'} mt-4 border-t border-zinc-100 pt-4 md:block md:border-t-0 md:pt-0 lg:min-w-[220px]`}>
-          <div className="rounded-sm bg-[#f6f2ec] px-5 py-4 text-left md:text-center">
+          <div className="rounded-2xl md:rounded-sm bg-[#f6f2ec] px-5 py-4 text-left md:text-center">
             <CalendarDays className="hidden text-red-700 md:mx-auto md:block" size={24} />
             <p className="text-sm font-black uppercase text-[#24180f] md:mt-3">
               {formatDate(match.match_date)}
@@ -694,7 +694,7 @@ function EmptyState({ icon, title }: EmptyStateProps) {
   const Icon = icon === 'calendar' ? CalendarDays : icon === 'trophy' ? Trophy : ShieldCheck;
 
   return (
-    <div className="mt-5 rounded-sm border border-dashed border-zinc-300 bg-white p-6 text-center shadow-sm md:mt-8 md:p-10">
+    <div className="mt-5 rounded-2xl md:rounded-sm border border-dashed border-zinc-300 bg-white p-6 text-center shadow-sm md:mt-8 md:p-10">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-700 md:h-16 md:w-16">
         <Icon size={24} />
       </div>
