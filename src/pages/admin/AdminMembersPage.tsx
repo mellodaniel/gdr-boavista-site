@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, FileSpreadsheet, Mail, Phone, RefreshCcw, Users } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Download,
+  FileSpreadsheet,
+  Mail,
+  Phone,
+  RefreshCcw,
+  Search,
+  Users,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbMemberRequest } from '../../types/database';
 
@@ -9,6 +21,11 @@ const statusOptions = [
   { value: 'pendente', label: 'Pendente' },
   { value: 'convertido', label: 'Convertido' },
   { value: 'arquivado', label: 'Arquivado' },
+];
+
+const listStatusOptions = [
+  { value: 'todos', label: 'Todos' },
+  ...statusOptions,
 ];
 
 const reportStatusOptions = [
@@ -49,6 +66,15 @@ function formatDate(date: string) {
 function formatStatus(status: string) {
   const foundStatus = statusOptions.find((item) => item.value === status);
   return foundStatus?.label ?? status;
+}
+
+function getStatusBadgeClass(status: string) {
+  if (status === 'novo') return 'border-blue-200 bg-blue-50 text-blue-700';
+  if (status === 'em_contacto') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (status === 'pendente') return 'border-orange-200 bg-orange-50 text-orange-700';
+  if (status === 'convertido') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (status === 'arquivado') return 'border-zinc-200 bg-zinc-100 text-zinc-600';
+  return 'border-zinc-200 bg-zinc-50 text-zinc-700';
 }
 
 function toDateInputValue(date: Date) {
@@ -93,7 +119,7 @@ function escapeHtmlValue(value: unknown) {
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
-    .replaceAll('\"', '&quot;')
+    .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
 
@@ -152,6 +178,11 @@ export function AdminMembersPage() {
   const [reportEndDate, setReportEndDate] = useState(getDefaultEndDate());
   const [reportStatus, setReportStatus] = useState('todos');
   const [reportFormat, setReportFormat] = useState<ReportFormat>('csv');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('todos');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
 
   async function loadRequests() {
     setIsLoading(true);
@@ -176,6 +207,49 @@ export function AdminMembersPage() {
   useEffect(() => {
     loadRequests();
   }, []);
+
+  const requestCounts = useMemo(() => {
+    return {
+      total: requests.filter((request) => request.status !== 'arquivado').length,
+      novo: requests.filter((request) => request.status === 'novo').length,
+      emContacto: requests.filter((request) => request.status === 'em_contacto').length,
+      pendente: requests.filter((request) => request.status === 'pendente').length,
+      convertido: requests.filter((request) => request.status === 'convertido').length,
+      arquivado: requests.filter((request) => request.status === 'arquivado').length,
+    };
+  }, [requests]);
+
+  const filteredRequests = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    return requests.filter((request) => {
+      const matchesStatus =
+        statusFilter === 'todos'
+          ? request.status !== 'arquivado'
+          : request.status === statusFilter;
+
+      const matchesSearch =
+        !term ||
+        request.full_name.toLowerCase().includes(term) ||
+        request.email?.toLowerCase().includes(term) ||
+        request.phone?.toLowerCase().includes(term) ||
+        request.nif?.toLowerCase().includes(term) ||
+        request.notes?.toLowerCase().includes(term);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [requests, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const visibleRequests = filteredRequests.slice(startIndex, startIndex + pageSize);
+  const firstVisible = filteredRequests.length === 0 ? 0 : startIndex + 1;
+  const lastVisible = Math.min(startIndex + pageSize, filteredRequests.length);
 
   const reportRequests = useMemo(() => {
     const startDate = reportStartDate
@@ -388,6 +462,29 @@ export function AdminMembersPage() {
         </div>
       </section>
 
+      <section className="mt-8 grid gap-4 md:grid-cols-5">
+        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-400">Todos</p>
+          <p className="mt-2 text-3xl font-black text-zinc-900">{requestCounts.total}</p>
+        </div>
+        <div className="rounded-sm border border-blue-200 bg-blue-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">Novos</p>
+          <p className="mt-2 text-3xl font-black text-blue-700">{requestCounts.novo}</p>
+        </div>
+        <div className="rounded-sm border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">Em contacto</p>
+          <p className="mt-2 text-3xl font-black text-amber-700">{requestCounts.emContacto}</p>
+        </div>
+        <div className="rounded-sm border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Convertidos</p>
+          <p className="mt-2 text-3xl font-black text-emerald-700">{requestCounts.convertido}</p>
+        </div>
+        <div className="rounded-sm border border-zinc-200 bg-zinc-50 p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Arquivados</p>
+          <p className="mt-2 text-3xl font-black text-zinc-700">{requestCounts.arquivado}</p>
+        </div>
+      </section>
+
       <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-7 shadow-sm">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
           <div>
@@ -418,10 +515,7 @@ export function AdminMembersPage() {
 
         <div className="mt-7 grid gap-4 md:grid-cols-5">
           <div>
-            <label className="text-sm font-black text-zinc-800">
-              Data inicial
-            </label>
-
+            <label className="text-sm font-black text-zinc-800">Data inicial</label>
             <input
               type="date"
               value={reportStartDate}
@@ -431,10 +525,7 @@ export function AdminMembersPage() {
           </div>
 
           <div>
-            <label className="text-sm font-black text-zinc-800">
-              Data final
-            </label>
-
+            <label className="text-sm font-black text-zinc-800">Data final</label>
             <input
               type="date"
               value={reportEndDate}
@@ -444,10 +535,7 @@ export function AdminMembersPage() {
           </div>
 
           <div>
-            <label className="text-sm font-black text-zinc-800">
-              Estado
-            </label>
-
+            <label className="text-sm font-black text-zinc-800">Estado</label>
             <select
               value={reportStatus}
               onChange={(event) => setReportStatus(event.target.value)}
@@ -462,10 +550,7 @@ export function AdminMembersPage() {
           </div>
 
           <div>
-            <label className="text-sm font-black text-zinc-800">
-              Formato
-            </label>
-
+            <label className="text-sm font-black text-zinc-800">Formato</label>
             <select
               value={reportFormat}
               onChange={(event) => setReportFormat(event.target.value as ReportFormat)}
@@ -504,107 +589,236 @@ export function AdminMembersPage() {
         </div>
       )}
 
+      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Pesquisar por nome, email, telefone, NIF ou observações..."
+              className="w-full rounded-md border border-zinc-200 py-3 pl-12 pr-4 text-sm font-semibold outline-none transition focus:border-red-700 focus:ring-4 focus:ring-red-100"
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="rounded-md border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-700 focus:ring-4 focus:ring-red-100"
+            >
+              {listStatusOptions.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={pageSize}
+              onChange={(event) => setPageSize(Number(event.target.value))}
+              className="rounded-md border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-red-700 focus:ring-4 focus:ring-red-100"
+            >
+              <option value={10}>10 por página</option>
+              <option value={25}>25 por página</option>
+              <option value={50}>50 por página</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={loadRequests}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-50"
+            >
+              <RefreshCcw size={16} />
+              Atualizar
+            </button>
+          </div>
+        </div>
+      </section>
+
       {isLoading ? (
         <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-8 text-zinc-600 shadow-sm">
           A carregar pedidos de sócio...
         </div>
-      ) : requests.length === 0 ? (
+      ) : filteredRequests.length === 0 ? (
         <div className="mt-8 rounded-sm border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
             <Users size={28} />
           </div>
 
           <h2 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
-            Sem pedidos de sócio
+            Sem pedidos encontrados
           </h2>
 
           <p className="mt-3 text-zinc-500">
-            Ainda não existem pedidos registados.
+            Altera os filtros ou a pesquisa para consultar outros pedidos.
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid gap-5">
-          {requests.map((request) => (
-            <article
-              key={request.id}
-              className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm"
-            >
-              <div className="h-1.5 bg-red-700" />
+        <section className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-zinc-200">
+              <thead className="bg-zinc-50">
+                <tr>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Pedido
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Contacto
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Estado
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Data
+                  </th>
+                  <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
 
-              <div className="grid gap-6 p-7 lg:grid-cols-[1fr_auto] lg:items-start">
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                      {formatStatus(request.status)}
-                    </span>
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {visibleRequests.map((request) => {
+                  const isExpanded = expandedRequestId === request.id;
 
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">
-                      {formatDate(request.created_at)}
-                    </span>
-                  </div>
+                  return (
+                    <tr key={request.id} className="align-top transition hover:bg-zinc-50/80">
+                      <td className="px-5 py-5">
+                        <div className="font-black text-zinc-900">{request.full_name}</div>
+                        {request.nif && (
+                          <div className="mt-1 text-xs font-semibold text-zinc-500">
+                            NIF: {request.nif}
+                          </div>
+                        )}
+                        {isExpanded && request.notes && (
+                          <div className="mt-3 max-w-lg rounded-md bg-[#f6f2ec] px-4 py-3 text-sm leading-6 text-zinc-600">
+                            {request.notes}
+                          </div>
+                        )}
+                      </td>
 
-                  <h3 className="mt-6 font-serif text-4xl font-light text-[#24180f]">
-                    {request.full_name}
-                  </h3>
+                      <td className="px-5 py-5 text-sm text-zinc-600">
+                        <div className="space-y-2">
+                          {request.email && (
+                            <a
+                              href={`mailto:${request.email}`}
+                              className="flex items-center gap-2 font-semibold text-red-700 hover:text-red-900"
+                            >
+                              <Mail size={15} />
+                              {request.email}
+                            </a>
+                          )}
 
-                  <div className="mt-5 grid gap-3 text-sm text-zinc-600">
-                    {request.email && (
-                      <a
-                        href={`mailto:${request.email}`}
-                        className="flex items-center gap-3 hover:text-red-700"
-                      >
-                        <Mail size={17} className="text-red-700" />
-                        {request.email}
-                      </a>
-                    )}
+                          {request.phone && (
+                            <a
+                              href={`tel:${request.phone}`}
+                              className="flex items-center gap-2 font-semibold text-zinc-700 hover:text-red-700"
+                            >
+                              <Phone size={15} />
+                              {request.phone}
+                            </a>
+                          )}
+                        </div>
+                      </td>
 
-                    {request.phone && (
-                      <a
-                        href={`tel:${request.phone}`}
-                        className="flex items-center gap-3 hover:text-red-700"
-                      >
-                        <Phone size={17} className="text-red-700" />
-                        {request.phone}
-                      </a>
-                    )}
+                      <td className="px-5 py-5">
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${getStatusBadgeClass(request.status)}`}>
+                          {formatStatus(request.status)}
+                        </span>
 
-                    {request.nif && (
-                      <p className="rounded-sm bg-[#f6f2ec] px-4 py-3 font-semibold text-zinc-700">
-                        NIF: {request.nif}
-                      </p>
-                    )}
-                  </div>
+                        <select
+                          value={request.status}
+                          onChange={(event) => handleStatusChange(request.id, event.target.value)}
+                          className="mt-3 block w-full min-w-[180px] rounded-md border border-zinc-200 px-3 py-2 text-xs font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+                        >
+                          {statusOptions.map((status) => (
+                            <option key={status.value} value={status.value}>
+                              {status.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
 
-                  {request.notes && (
-                    <p className="mt-5 rounded-sm bg-[#f6f2ec] px-4 py-3 text-sm leading-7 text-zinc-600">
-                      {request.notes}
-                    </p>
-                  )}
-                </div>
+                      <td className="px-5 py-5 text-sm font-semibold text-zinc-600">
+                        {formatDate(request.created_at)}
+                      </td>
 
-                <div className="lg:min-w-[240px]">
-                  <label className="text-sm font-black text-zinc-800">
-                    Estado do pedido
-                  </label>
+                      <td className="px-5 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          {(request.notes || request.nif) && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedRequestId((current) =>
+                                  current === request.id ? null : request.id,
+                                )
+                              }
+                              className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50"
+                            >
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              Detalhes
+                            </button>
+                          )}
 
-                  <select
-                    value={request.status}
-                    onChange={(event) =>
-                      handleStatusChange(request.id, event.target.value)
-                    }
-                    className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
-                  >
-                    {statusOptions.map((status) => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleStatusChange(
+                                request.id,
+                                request.status === 'arquivado' ? 'novo' : 'arquivado',
+                              )
+                            }
+                            className={
+                              request.status === 'arquivado'
+                                ? 'rounded-md bg-red-700 px-3 py-2 text-xs font-black text-white transition hover:bg-[#24180f]'
+                                : 'rounded-md bg-zinc-900 px-3 py-2 text-xs font-black text-white transition hover:bg-zinc-700'
+                            }
+                          >
+                            {request.status === 'arquivado' ? 'Reativar' : 'Arquivar'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-col gap-4 border-t border-zinc-200 px-5 py-4 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
+            <div>
+              A mostrar <strong>{firstVisible}</strong>-<strong>{lastVisible}</strong> de{' '}
+              <strong>{filteredRequests.length}</strong> pedido(s)
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={safeCurrentPage === 1}
+                className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft size={14} />
+                Anterior
+              </button>
+
+              <span className="px-3 text-xs font-black uppercase tracking-[0.16em] text-zinc-400">
+                {safeCurrentPage}/{totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-black text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Seguinte
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );
