@@ -41,6 +41,7 @@ const fullAdminNavigation: AdminNavigationItem[] = [
   { label: 'Contactos', path: '/admin/contactos', icon: Mail },
   { label: 'Subscritores', path: '/admin/subscritores', icon: Mail },
   { label: 'Comunicações', path: '/admin/comunicacoes', icon: Mail },
+  { label: 'Importar Contactos', path: '/admin/importar-contactos', icon: Users },
   { label: 'Galeria', path: '/admin/galeria', icon: Image },
   { label: 'Loja', path: '/admin/loja', icon: ShoppingBag },
 ];

@@ -26,6 +26,7 @@ import { AdminMembersPage } from '../pages/admin/AdminMembersPage';
 import { AdminContactsPage } from '../pages/admin/AdminContactsPage';
 import { AdminSubscribersPage } from '../pages/admin/AdminSubscribersPage';
 import { AdminCommunicationsPage } from '../pages/admin/AdminCommunicationsPage';
+import { AdminContactImportPage } from '../pages/admin/AdminContactImportPage';
 import { AdminNewsPage } from '../pages/admin/AdminNewsPage';
 import { AdminFacebookPostsPage } from '../pages/admin/AdminFacebookPostsPage';
 import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
@@ -103,6 +104,7 @@ export function AppRoutes() {
           <Route path="contactos" element={<AdminContactsPage />} />
           <Route path="subscritores" element={<AdminSubscribersPage />} />
           <Route path="comunicacoes" element={<AdminCommunicationsPage />} />
+          <Route path="importar-contactos" element={<AdminContactImportPage />} />
           <Route path="galeria" element={<AdminGalleryPage />} />
           <Route path="loja" element={<AdminShopPage />} />
         </Route>
