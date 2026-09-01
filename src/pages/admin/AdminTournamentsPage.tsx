@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   Archive,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Eye,
   EyeOff,
@@ -10,6 +12,7 @@ import {
   RotateCcw,
   Save,
   Search,
+  SlidersHorizontal,
   Trash2,
   Trophy,
 } from 'lucide-react';
@@ -114,6 +117,7 @@ export function AdminTournamentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [visibilityFilter, setVisibilityFilter] = useState<TournamentVisibilityFilter>('active');
@@ -400,7 +404,7 @@ export function AdminTournamentsPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-8 text-white shadow-2xl shadow-zinc-950/10 md:p-10">
+      <section className="relative overflow-hidden rounded-sm bg-[#24180f] p-5 text-white shadow-2xl shadow-zinc-950/10 sm:p-6 md:p-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(220,38,38,0.28),transparent_34%)]" />
 
         <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -409,17 +413,17 @@ export function AdminTournamentsPage() {
               Administração
             </p>
 
-            <h1 className="mt-6 font-serif text-5xl font-light leading-tight md:text-7xl">
+            <h1 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl md:mt-6 md:text-7xl">
               Torneios.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base sm:leading-7 md:mt-6 md:leading-8">
               Gere torneios organizados pelo clube e participações externas dos escalões,
               separando visibilidade pública, ocultos e histórico arquivado.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
             <button
               type="button"
               onClick={loadTournaments}
@@ -445,22 +449,22 @@ export function AdminTournamentsPage() {
         </div>
       </section>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3 md:mt-6 md:grid-cols-2 md:gap-4 xl:grid-cols-4">
+        <div className="rounded-sm border border-zinc-200 bg-white p-3.5 shadow-sm sm:p-4 md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.25em] text-zinc-400">Ativos</p>
-          <p className="mt-2 text-3xl font-black text-[#24180f]">{counts.active}</p>
+          <p className="mt-1 text-2xl font-black md:mt-2 md:text-3xl text-[#24180f]">{counts.active}</p>
         </div>
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-sm border border-zinc-200 bg-white p-3.5 shadow-sm sm:p-4 md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.25em] text-zinc-400">Visíveis</p>
-          <p className="mt-2 text-3xl font-black text-green-700">{counts.visible}</p>
+          <p className="mt-1 text-2xl font-black md:mt-2 md:text-3xl text-green-700">{counts.visible}</p>
         </div>
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-sm border border-zinc-200 bg-white p-3.5 shadow-sm sm:p-4 md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.25em] text-zinc-400">Ocultos</p>
-          <p className="mt-2 text-3xl font-black text-zinc-700">{counts.hidden}</p>
+          <p className="mt-1 text-2xl font-black md:mt-2 md:text-3xl text-zinc-700">{counts.hidden}</p>
         </div>
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-sm border border-zinc-200 bg-white p-3.5 shadow-sm sm:p-4 md:p-5">
           <p className="text-xs font-black uppercase tracking-[0.25em] text-zinc-400">Arquivados</p>
-          <p className="mt-2 text-3xl font-black text-red-700">{counts.archived}</p>
+          <p className="mt-1 text-2xl font-black md:mt-2 md:text-3xl text-red-700">{counts.archived}</p>
         </div>
       </div>
 
@@ -477,10 +481,10 @@ export function AdminTournamentsPage() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mt-8 rounded-sm border border-zinc-200 bg-white p-7 shadow-sm">
+        <form onSubmit={handleSubmit} className="mt-6 rounded-sm border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 md:mt-8 md:p-7">
           <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-5">
             <div>
-              <h2 className="font-serif text-4xl font-light text-[#24180f]">
+              <h2 className="font-serif text-3xl font-light text-[#24180f] md:text-4xl">
                 {editingId ? 'Editar torneio' : 'Novo torneio'}
               </h2>
 
@@ -654,7 +658,7 @@ export function AdminTournamentsPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-6 grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
             <button
               type="button"
               onClick={resetForm}
@@ -675,8 +679,20 @@ export function AdminTournamentsPage() {
         </form>
       )}
 
-      <section className="mt-8 rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_auto]">
+      <section className="mt-6 rounded-sm border border-zinc-200 bg-white p-4 shadow-sm md:mt-8 md:p-5">
+        <button
+          type="button"
+          onClick={() => setShowFilters((value) => !value)}
+          className="flex min-h-11 w-full items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-sm font-black text-[#24180f] md:hidden"
+        >
+          <span className="inline-flex items-center gap-2">
+            <SlidersHorizontal size={17} className="text-red-700" />
+            Filtros e pesquisa
+          </span>
+          {showFilters ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+
+        <div className={`${showFilters ? 'grid' : 'hidden'} mt-4 gap-3 md:mt-0 md:grid md:gap-4 xl:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_auto]`}>
           <label className="relative block">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={17} />
             <input
@@ -737,7 +753,7 @@ export function AdminTournamentsPage() {
           </select>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-zinc-500">
+        <div className="mt-4 flex flex-col gap-3 text-sm text-zinc-500 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <span>
             A mostrar <strong>{showingFrom}-{showingTo}</strong> de <strong>{filteredTournaments.length}</strong> torneios.
           </span>
@@ -778,7 +794,7 @@ export function AdminTournamentsPage() {
           Não existem torneios para os filtros selecionados.
         </div>
       ) : (
-        <div className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+        <div className="mt-6 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-8">
           <div className="hidden grid-cols-[1.3fr_0.9fr_0.8fr_0.8fr_0.7fr_0.9fr] gap-4 border-b border-zinc-200 bg-zinc-50 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] text-zinc-500 lg:grid">
             <span>Torneio</span>
             <span>Escalão</span>
@@ -793,13 +809,13 @@ export function AdminTournamentsPage() {
             const expanded = expandedId === tournament.id;
 
             return (
-              <article key={tournament.id} className="border-b border-zinc-100 last:border-b-0">
-                <div className="grid gap-4 px-5 py-5 lg:grid-cols-[1.3fr_0.9fr_0.8fr_0.8fr_0.7fr_0.9fr] lg:items-center">
+              <article key={tournament.id} className="border-b border-zinc-100 bg-white last:border-b-0">
+                <div className="grid gap-3 px-4 py-4 sm:px-5 sm:py-5 lg:grid-cols-[1.3fr_0.9fr_0.8fr_0.8fr_0.7fr_0.9fr] lg:items-center">
                   <div>
                     <button
                       type="button"
                       onClick={() => setExpandedId(expanded ? null : tournament.id)}
-                      className="text-left font-serif text-2xl font-light text-[#24180f] hover:text-red-700"
+                      className="text-left font-serif text-xl font-light text-[#24180f] hover:text-red-700 sm:text-2xl"
                     >
                       {tournament.name}
                     </button>
@@ -835,11 +851,11 @@ export function AdminTournamentsPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
                     <button
                       type="button"
                       onClick={() => setExpandedId(expanded ? null : tournament.id)}
-                      className="rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                      className="min-h-11 rounded-md border border-zinc-200 px-3 py-2.5 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700 sm:min-h-0 sm:py-2"
                     >
                       Detalhes
                     </button>
@@ -849,7 +865,7 @@ export function AdminTournamentsPage() {
                         <button
                           type="button"
                           onClick={() => handleEdit(tournament)}
-                          className="rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                          className="min-h-11 rounded-md border border-zinc-200 px-3 py-2.5 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700 sm:min-h-0 sm:py-2"
                         >
                           Editar
                         </button>
@@ -857,7 +873,7 @@ export function AdminTournamentsPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleVisibility(tournament)}
-                          className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700"
+                          className="inline-flex min-h-11 items-center justify-center gap-1 rounded-md border border-zinc-200 px-3 py-2.5 text-xs font-bold text-zinc-700 hover:border-red-700 hover:text-red-700 sm:min-h-0 sm:py-2"
                         >
                           {tournament.is_visible ? <EyeOff size={14} /> : <Eye size={14} />}
                           {tournament.is_visible ? 'Ocultar' : 'Mostrar'}
@@ -866,7 +882,7 @@ export function AdminTournamentsPage() {
                         <button
                           type="button"
                           onClick={() => handleArchive(tournament)}
-                          className="inline-flex items-center gap-1 rounded-md border border-amber-200 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50"
+                          className="inline-flex min-h-11 items-center justify-center gap-1 rounded-md border border-amber-200 px-3 py-2.5 text-xs font-bold text-amber-700 hover:bg-amber-50 sm:min-h-0 sm:py-2"
                         >
                           <Archive size={14} />
                           Arquivar
@@ -878,7 +894,7 @@ export function AdminTournamentsPage() {
                       <button
                         type="button"
                         onClick={() => handleRestore(tournament)}
-                        className="inline-flex items-center gap-1 rounded-md border border-green-200 px-3 py-2 text-xs font-bold text-green-700 hover:bg-green-50"
+                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-md border border-green-200 px-3 py-2.5 text-xs font-bold text-green-700 hover:bg-green-50 sm:min-h-0 sm:py-2"
                       >
                         <RotateCcw size={14} />
                         Reativar
@@ -888,7 +904,7 @@ export function AdminTournamentsPage() {
                     <button
                       type="button"
                       onClick={() => handleDelete(tournament)}
-                      className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50"
+                      className="inline-flex min-h-11 items-center justify-center gap-1 rounded-md border border-red-200 px-3 py-2.5 text-xs font-bold text-red-700 hover:bg-red-50 sm:min-h-0 sm:py-2"
                     >
                       <Trash2 size={14} />
                       Apagar
@@ -897,7 +913,7 @@ export function AdminTournamentsPage() {
                 </div>
 
                 {expanded && (
-                  <div className="border-t border-zinc-100 bg-[#f6f2ec] px-5 py-5">
+                  <div className="border-t border-zinc-100 bg-[#f6f2ec] px-4 py-4 sm:px-5 sm:py-5">
                     <div className="grid gap-4 text-sm md:grid-cols-3">
                       <div>
                         <p className="font-black uppercase tracking-[0.2em] text-zinc-400">Local</p>
@@ -936,7 +952,7 @@ export function AdminTournamentsPage() {
             );
           })}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-zinc-600">
+          <div className="flex flex-col gap-3 border-t border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-600 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5">
             <span>
               Página <strong>{safeCurrentPage}</strong> de <strong>{totalPages}</strong>
             </span>
