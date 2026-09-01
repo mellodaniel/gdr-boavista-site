@@ -386,6 +386,7 @@ export function HomePage() {
   const [sponsors, setSponsors] = useState<GdrbSponsor[]>([]);
   const [isLoadingAgenda, setIsLoadingAgenda] = useState(true);
   const [expandedAgendaItemId, setExpandedAgendaItemId] = useState<string | null>(null);
+  const [expandedHomeNewsId, setExpandedHomeNewsId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadHomeData() {
@@ -687,15 +688,15 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-24">
+      <section className="bg-white py-14 md:py-24">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
+              <p className="text-xs font-bold uppercase tracking-[0.32em] text-red-700 md:text-sm md:tracking-[0.45em]">
                 Semana de {getWeekLabel()}
               </p>
 
-              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
+              <h2 className="mt-4 font-serif text-3xl font-light text-[#24180f] md:mt-5 md:text-6xl">
                 Jogos e torneios da semana
               </h2>
             </div>
@@ -724,7 +725,7 @@ export function HomePage() {
 
             </div>
           ) : (
-            <div className="mt-10 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+            <div className="mt-7 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-10">
               {agendaItems.map((item, index) => {
                 const itemKey = `${item.type}-${item.id}`;
                 const isExpanded = expandedAgendaItemId === itemKey;
@@ -890,11 +891,11 @@ export function HomePage() {
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.45em] text-red-700">
+              <p className="text-xs font-bold uppercase tracking-[0.32em] text-red-700 md:text-sm md:tracking-[0.45em]">
                 Notícias
               </p>
 
-              <h2 className="mt-5 font-serif text-5xl font-light text-[#24180f] md:text-6xl">
+              <h2 className="mt-4 font-serif text-3xl font-light text-[#24180f] md:mt-5 md:text-6xl">
                 Últimas novidades
               </h2>
             </div>
@@ -920,53 +921,116 @@ export function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {news.map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/noticias/${item.id}`}
-                  className="group overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <article>
-                    <div className="h-1.5 bg-red-700" />
+            <div className="mt-7 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm md:mt-10 md:grid md:gap-6 md:border-0 md:bg-transparent md:shadow-none lg:grid-cols-3">
+              {news.map((item, index) => {
+                const isExpanded = expandedHomeNewsId === item.id;
 
-                    {item.image_url && (
-                      <div className="h-52 overflow-hidden">
+                return (
+                  <article
+                    key={item.id}
+                    className={`${index === 0 ? '' : 'border-t border-zinc-100 md:border-t-0'} overflow-hidden bg-white md:rounded-sm md:border md:border-zinc-200 md:shadow-sm md:transition md:hover:-translate-y-1 md:hover:shadow-xl`}
+                  >
+                    <div className="hidden h-1.5 bg-red-700 md:block" />
+
+                    <button
+                      type="button"
+                      onClick={() => setExpandedHomeNewsId(isExpanded ? null : item.id)}
+                      className="flex w-full gap-4 p-4 text-left md:hidden"
+                    >
+                      {item.image_url ? (
                         <img
                           src={item.image_url}
                           alt={item.title}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          className="h-[4.5rem] w-24 shrink-0 rounded-sm object-cover"
                         />
+                      ) : (
+                        <div className="flex h-[4.5rem] w-24 shrink-0 items-center justify-center rounded-sm bg-[#24180f]">
+                          <Newspaper size={22} className="text-red-500" />
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-700">
+                          {item.source}
+                        </span>
+
+                        <h3 className="mt-2 line-clamp-2 font-serif text-xl font-light leading-tight text-[#24180f]">
+                          {item.title}
+                        </h3>
+                      </div>
+
+                      <ChevronDown
+                        size={18}
+                        className={`mt-1 shrink-0 text-zinc-400 transition ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {isExpanded && (
+                      <div className="border-t border-zinc-100 bg-[#fdfbf8] p-4 md:hidden">
+                        {item.summary && (
+                          <p className="text-sm leading-6 text-zinc-600">
+                            {item.summary}
+                          </p>
+                        )}
+
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                          <NewsLikeButton newsId={item.id} compact />
+
+                          <Link
+                            to={`/noticias/${item.id}`}
+                            className="inline-flex items-center gap-2 rounded-md bg-red-700 px-4 py-3 text-xs font-black uppercase tracking-wide text-white"
+                          >
+                            Ler notícia
+                            <ChevronRight size={15} />
+                          </Link>
+                        </div>
                       </div>
                     )}
 
-                    <div className="p-7">
-                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
-                        {item.source}
-                      </span>
+                    <Link
+                      to={`/noticias/${item.id}`}
+                      className="group hidden md:block"
+                    >
+                      <article>
+                        {item.image_url && (
+                          <div className="h-52 overflow-hidden">
+                            <img
+                              src={item.image_url}
+                              alt={item.title}
+                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            />
+                          </div>
+                        )}
 
-                      <h3 className="mt-5 font-serif text-3xl font-light leading-tight text-[#24180f]">
-                        {item.title}
-                      </h3>
+                        <div className="p-7">
+                          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-700">
+                            {item.source}
+                          </span>
 
-                      {item.summary && (
-                        <p className="mt-4 text-sm leading-7 text-zinc-600">
-                          {item.summary}
-                        </p>
-                      )}
+                          <h3 className="mt-5 font-serif text-3xl font-light leading-tight text-[#24180f]">
+                            {item.title}
+                          </h3>
 
-                      <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
-                        <NewsLikeButton newsId={item.id} compact />
+                          {item.summary && (
+                            <p className="mt-4 text-sm leading-7 text-zinc-600">
+                              {item.summary}
+                            </p>
+                          )}
 
-                        <span className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700">
-                          Ler notícia completa
-                          <ChevronRight size={16} />
-                        </span>
-                      </div>
-                    </div>
+                          <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
+                            <NewsLikeButton newsId={item.id} compact />
+
+                            <span className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-700">
+                              Ler notícia completa
+                              <ChevronRight size={16} />
+                            </span>
+                          </div>
+                        </div>
+                      </article>
+                    </Link>
                   </article>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
