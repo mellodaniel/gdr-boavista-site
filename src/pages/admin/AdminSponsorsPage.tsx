@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  Filter,
   Handshake,
   Plus,
   RefreshCcw,
@@ -87,6 +88,7 @@ export function AdminSponsorsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [expandedSponsorId, setExpandedSponsorId] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   async function loadSponsors() {
     setIsLoading(true);
@@ -605,13 +607,28 @@ export function AdminSponsorsPage() {
       )}
 
       <section className="mt-8 rounded-sm border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 p-5">
-          <div className="grid gap-4 xl:grid-cols-[1fr_auto_auto_auto] xl:items-end">
+        <div className="border-b border-zinc-200 p-4 md:p-5">
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((current) => !current)}
+            className="flex w-full items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-700 md:hidden"
+            aria-expanded={showMobileFilters}
+          >
+            <span className="inline-flex items-center gap-2">
+              <Filter size={17} />
+              Filtros e pesquisa
+            </span>
+            {showMobileFilters ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+          </button>
+
+          <div
+            className={`${showMobileFilters ? 'mt-3 grid' : 'hidden'} gap-4 md:grid xl:grid-cols-[1fr_auto_auto_auto] xl:items-end`}
+          >
             <div>
               <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">
                 Pesquisa
               </label>
-              <div className="mt-2 flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 focus-within:border-red-700 focus-within:ring-4 focus-within:ring-red-100">
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-3 md:py-2 focus-within:border-red-700 focus-within:ring-4 focus-within:ring-red-100">
                 <Search size={17} className="text-zinc-400" />
                 <input
                   type="search"
@@ -630,7 +647,7 @@ export function AdminSponsorsPage() {
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-                className="mt-2 w-full rounded-md border border-zinc-200 px-3 py-2 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100 xl:w-44"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100 xl:w-36"
               >
                 {statusFilters.map((filter) => (
                   <option key={filter.value} value={filter.value}>
@@ -647,7 +664,7 @@ export function AdminSponsorsPage() {
               <select
                 value={levelFilter}
                 onChange={(event) => setLevelFilter(event.target.value)}
-                className="mt-2 w-full rounded-md border border-zinc-200 px-3 py-2 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100 xl:w-56"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100 xl:w-48"
               >
                 <option value="all">Todos os tipos</option>
                 {availableLevels.map((level) => (
@@ -665,7 +682,7 @@ export function AdminSponsorsPage() {
               <select
                 value={pageSize}
                 onChange={(event) => setPageSize(Number(event.target.value))}
-                className="mt-2 w-full rounded-md border border-zinc-200 px-3 py-2 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100 xl:w-32"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-3 py-3 text-sm font-semibold outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100 xl:w-32"
               >
                 {pageSizeOptions.map((option) => (
                   <option key={option} value={option}>
@@ -695,7 +712,126 @@ export function AdminSponsorsPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="space-y-3 p-3 md:hidden">
+              {paginatedSponsors.map((sponsor) => {
+                const isExpanded = expandedSponsorId === sponsor.id;
+                const level = normalizePartnerLevel(sponsor.sponsor_level);
+
+                return (
+                  <article
+                    key={`${sponsor.id}-mobile`}
+                    className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-[#f6f2ec] p-2">
+                        {sponsor.logo_url ? (
+                          <img
+                            src={sponsor.logo_url}
+                            alt={sponsor.name}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        ) : (
+                          <Handshake size={24} className="text-red-700" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="truncate font-black text-[#24180f]">{sponsor.name}</h3>
+                            <p className="mt-1 text-xs font-semibold text-zinc-500">{level}</p>
+                          </div>
+
+                          <span
+                            className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${
+                              sponsor.is_active
+                                ? 'bg-green-50 text-green-700'
+                                : 'bg-zinc-100 text-zinc-600'
+                            }`}
+                          >
+                            {sponsor.is_active ? 'Visível' : 'Oculto'}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                          <span>Ordem: <strong className="text-zinc-700">{sponsor.sort_order ?? 0}</strong></span>
+                          <span>Criado: <strong className="text-zinc-700">{formatDate(sponsor.created_at)}</strong></span>
+                        </div>
+
+                        {sponsor.website_url ? (
+                          <a
+                            href={sponsor.website_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-red-700"
+                          >
+                            <ExternalLink size={14} />
+                            Abrir website
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {isExpanded ? (
+                      <div className="mt-4 space-y-3 rounded-md bg-[#f6f2ec] p-3 text-sm text-zinc-700">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">
+                            Descrição
+                          </p>
+                          <p className="mt-1 leading-6">{sponsor.description || 'Sem descrição.'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">
+                            URL do logo
+                          </p>
+                          <p className="mt-1 break-all text-xs leading-5">{sponsor.logo_url || '—'}</p>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
+                      >
+                        {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                        Detalhes
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(sponsor)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
+                      >
+                        <Edit3 size={15} />
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(sponsor)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
+                      >
+                        {sponsor.is_active ? <EyeOff size={15} /> : <Eye size={15} />}
+                        {sponsor.is_active ? 'Ocultar' : 'Mostrar'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(sponsor)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-red-200 px-3 py-2 text-xs font-bold text-red-700"
+                      >
+                        <Trash2 size={15} />
+                        Apagar
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-zinc-200 text-left text-sm">
                 <thead className="bg-zinc-50 text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
                   <tr>
@@ -824,7 +960,7 @@ export function AdminSponsorsPage() {
               return (
                 <div
                   key={`${sponsor.id}-details`}
-                  className="border-t border-zinc-100 bg-[#f6f2ec] px-5 py-5"
+                  className="hidden border-t border-zinc-100 bg-[#f6f2ec] px-5 py-5 md:block"
                 >
                   <div className="grid gap-5 md:grid-cols-[220px_1fr]">
                     <div className="flex min-h-32 items-center justify-center rounded-md border border-zinc-200 bg-white p-5">

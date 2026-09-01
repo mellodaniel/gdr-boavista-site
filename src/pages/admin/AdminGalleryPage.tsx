@@ -7,6 +7,7 @@ import {
   Edit3,
   Eye,
   EyeOff,
+  Filter,
   ImagePlus,
   Plus,
   RefreshCcw,
@@ -83,6 +84,7 @@ export function AdminGalleryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   async function loadGalleryItems() {
     setIsLoading(true);
@@ -544,8 +546,23 @@ export function AdminGalleryPage() {
       ) : null}
 
       <section className="rounded-sm border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 p-5">
-          <div className="grid gap-3 xl:grid-cols-[1.5fr_0.8fr_0.8fr_0.6fr]">
+        <div className="border-b border-zinc-200 p-4 md:p-5">
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((current) => !current)}
+            className="flex w-full items-center justify-between rounded-sm border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-700 md:hidden"
+            aria-expanded={showMobileFilters}
+          >
+            <span className="inline-flex items-center gap-2">
+              <Filter size={17} />
+              Filtros e pesquisa
+            </span>
+            {showMobileFilters ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+          </button>
+
+          <div
+            className={`${showMobileFilters ? 'mt-3 grid' : 'hidden'} gap-3 md:grid xl:grid-cols-[1.5fr_0.8fr_0.8fr_0.6fr]`}
+          >
             <label className="relative block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={17} />
               <input
@@ -560,7 +577,7 @@ export function AdminGalleryPage() {
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-              className="rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
+              className="w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
             >
               {statusFilters.map((filter) => (
                 <option key={filter.value} value={filter.value}>
@@ -572,7 +589,7 @@ export function AdminGalleryPage() {
             <select
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
-              className="rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
+              className="w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
             >
               <option value="all">Todas as categorias</option>
               {availableCategories.map((category) => (
@@ -585,7 +602,7 @@ export function AdminGalleryPage() {
             <select
               value={pageSize}
               onChange={(event) => setPageSize(Number(event.target.value))}
-              className="rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
+              className="w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
             >
               {pageSizeOptions.map((option) => (
                 <option key={option} value={option}>
@@ -596,7 +613,120 @@ export function AdminGalleryPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="p-3 md:hidden">
+          {isLoading ? (
+            <div className="py-10 text-center text-sm text-zinc-500">A carregar galeria...</div>
+          ) : paginatedItems.length === 0 ? (
+            <div className="py-10 text-center text-sm text-zinc-500">Nenhuma imagem encontrada.</div>
+          ) : (
+            <div className="space-y-3">
+              {paginatedItems.map((item) => {
+                const isExpanded = expandedItemId === item.id;
+
+                return (
+                  <article
+                    key={`${item.id}-mobile`}
+                    className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start gap-3">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="h-20 w-24 shrink-0 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-20 w-24 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-zinc-400">
+                          <Camera size={22} />
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <h3 className="min-w-0 flex-1 font-black leading-5 text-[#24180f]">
+                            {item.title}
+                          </h3>
+                          <span
+                            className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${
+                              item.is_active
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-zinc-100 text-zinc-500'
+                            }`}
+                          >
+                            {item.is_active ? 'Visível' : 'Oculta'}
+                          </span>
+                        </div>
+
+                        <p className="mt-2 text-xs font-semibold text-zinc-500">
+                          {normalizeCategory(item.category)}
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                          <span>Ordem: <strong className="text-zinc-700">{item.sort_order ?? 0}</strong></span>
+                          <span>Criada: <strong className="text-zinc-700">{formatDate(item.created_at)}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {isExpanded ? (
+                      <div className="mt-4 space-y-2 rounded-md bg-zinc-50 p-3 text-xs leading-6 text-zinc-600">
+                        <p>{item.description || 'Sem descrição.'}</p>
+                        <p className="break-all">
+                          <span className="font-bold text-zinc-700">URL:</span>{' '}
+                          {item.image_url || '—'}
+                        </p>
+                        <p>
+                          <span className="font-bold text-zinc-700">Atualizada:</span>{' '}
+                          {formatDate(item.updated_at)}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
+                      >
+                        {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                        Detalhes
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(item)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
+                      >
+                        <Edit3 size={15} />
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void toggleVisibility(item)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
+                      >
+                        {item.is_active ? <EyeOff size={15} /> : <Eye size={15} />}
+                        {item.is_active ? 'Ocultar' : 'Mostrar'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void deleteItem(item)}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-red-200 px-3 py-2 text-xs font-bold text-red-700"
+                      >
+                        <Trash2 size={15} />
+                        Apagar
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full divide-y divide-zinc-200 text-sm">
             <thead className="bg-zinc-50 text-left text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
               <tr>
