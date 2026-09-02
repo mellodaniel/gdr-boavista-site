@@ -583,6 +583,71 @@ export function HomePage() {
         </div>
       </section>
 
+      <section className="relative overflow-hidden bg-[#f8f6f2] text-[#24180f]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_22%,rgba(185,28,28,0.09),transparent_26%)]" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-200/70 to-transparent" />
+
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-5 py-14 md:px-4 md:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-3 rounded-full border border-red-200/80 bg-white/80 px-4 py-2 shadow-sm backdrop-blur-md">
+              <span className="h-2 w-2 rounded-full bg-red-700 shadow-[0_0_14px_rgba(185,28,28,0.25)]" />
+              <span className="text-[11px] font-black uppercase tracking-[0.28em] text-red-700">
+                Época 2026/27 · Equipa Sénior
+              </span>
+            </div>
+
+            <h2 className="mt-6 max-w-3xl font-serif text-4xl font-light leading-[1.03] tracking-tight text-[#24180f] md:text-6xl">
+              Campeões invictos.
+              <br />
+              Um novo desafio começa agora.
+            </h2>
+
+            <p className="mt-6 max-w-2xl text-base leading-8 text-[#65584e] md:text-lg">
+              Depois de uma época inesquecível, conquistada sem uma única derrota,
+              os nossos Seniores entram em 2026/27 com a mesma ambição, união e
+              compromisso. O passado dá-nos orgulho; o próximo capítulo dá-nos
+              ainda mais vontade de lutar.
+            </p>
+
+            <blockquote className="mt-6 max-w-2xl border-l-2 border-red-300 pl-5 font-serif text-xl italic leading-8 text-[#3d3028] md:text-2xl">
+              Ao novo plantel, toda a força do Boavista. Que esta equipa continue
+              a honrar o símbolo, a camisola e todos os que caminham connosco.
+            </blockquote>
+
+            <div className="mt-8">
+              <Link
+                to="/equipas/seniores/plantel-2026-gdrb-7f4k"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-[0_18px_40px_-24px_rgba(127,29,29,0.45)] transition hover:-translate-y-0.5 hover:bg-red-800 hover:shadow-[0_22px_44px_-24px_rgba(127,29,29,0.5)]"
+              >
+                Conhecer o plantel 2026/27
+                <ChevronRight size={18} />
+              </Link>
+            </div>
+          </div>
+
+          <div className="hidden lg:flex lg:justify-end">
+            <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-[#e8dfd7] bg-white p-2.5 shadow-[0_28px_70px_-42px_rgba(67,43,27,0.45)]">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.45rem]">
+                <img
+                  src="/hero-boavista-premium.webp"
+                  alt="Futebol no GDR Boavista"
+                  className="h-full w-full object-cover object-[62%_center] brightness-110 saturate-105 transition duration-700 hover:scale-[1.025]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#24180f]/72 via-transparent to-white/5" />
+                <div className="absolute bottom-0 left-0 right-0 p-7">
+                  <p className="text-xs font-black uppercase tracking-[0.28em] text-red-100">
+                    Orgulho · Ambição · União
+                  </p>
+                  <p className="mt-3 max-w-sm font-serif text-3xl font-light leading-tight text-white">
+                    Uma equipa pronta para escrever o próximo capítulo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {featuredTournament && (
         <section className="relative overflow-hidden bg-[#111827] py-14 text-white">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(220,38,38,0.45),transparent_34%)]" />
