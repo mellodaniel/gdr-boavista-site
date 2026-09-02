@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Trophy, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Trophy, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbTeam } from '../../types/database';
 
@@ -106,6 +107,18 @@ const fallbackTeams = [
 ];
 
 const filters = ['Todos', 'Futebol 5', 'Futebol 7', 'Futebol 9', 'Futebol 11'];
+
+
+function normalizeText(value: string | null | undefined) {
+  return (value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function hasSeniorRoster(team: GdrbTeam) {
+  return normalizeText(team.name).includes('senior');
+}
 
 export function TeamsPage() {
   const [teams, setTeams] = useState<GdrbTeam[]>([]);
@@ -246,6 +259,17 @@ export function TeamsPage() {
                       <p className="mt-4 text-sm leading-7 text-zinc-600">
                         {team.description}
                       </p>
+                    )}
+
+                    {hasSeniorRoster(team) && (
+                      <Link
+                        to="/equipas/seniores/plantel-2026-gdrb-7f4k"
+                        className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#24180f] px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2"
+                      >
+                        <Users size={17} />
+                        Ver plantel
+                        <ArrowRight size={16} />
+                      </Link>
                     )}
                   </div>
                 </article>
