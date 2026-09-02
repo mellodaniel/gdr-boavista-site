@@ -13,6 +13,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 
 type SubscriberGroup = {
   id: string;
@@ -173,8 +174,8 @@ export function AdminSubscribersPage() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [editingSubscriber, setEditingSubscriber] = useState<Subscriber | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>(emptyEditForm);
+  const [editingSubscriber, setEditingSubscriber] = useSessionState<Subscriber | null>('admin:subscribers:editingSubscriber', null);
+  const [editForm, setEditForm] = useSessionState<EditForm>('admin:subscribers:editForm', emptyEditForm);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 

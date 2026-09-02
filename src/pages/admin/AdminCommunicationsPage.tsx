@@ -14,6 +14,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 
 type CommunicationType = 'newsletter' | 'escalao' | 'interno' | 'socios' | 'parceiros' | 'geral';
 type CommunicationKind = CommunicationType | 'individual';
@@ -341,8 +342,8 @@ export function AdminCommunicationsPage() {
   const [subscriberGroups, setSubscriberGroups] = useState<SubscriberGroup[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [selectedCommunicationId, setSelectedCommunicationId] = useState<string | null>(null);
+  const [form, setForm] = useSessionState<FormState>('admin:communications:form', emptyForm);
+  const [selectedCommunicationId, setSelectedCommunicationId] = useSessionState<string | null>('admin:communications:selectedId', null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingFinal, setSendingFinal] = useState(false);

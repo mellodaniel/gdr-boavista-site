@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { supabase } from "../../lib/supabase";
+import { useSessionState } from "../../hooks/useSessionState";
 import type { GdrbMatch, GdrbTournament } from "../../types/database";
 
 const initialForm = {
@@ -224,14 +225,14 @@ export function AdminMatchesPage() {
 
   const [matches, setMatches] = useState<GdrbMatch[]>([]);
   const [tournaments, setTournaments] = useState<GdrbTournament[]>([]);
-  const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useSessionState('admin:matches:form', initialForm);
+  const [editingId, setEditingId] = useSessionState<string | null>('admin:matches:editingId', null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
 
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useSessionState('admin:matches:showForm', false);
   const [showScheduled, setShowScheduled] = useState(true);
   const [showAwaitingResult, setShowAwaitingResult] = useState(true);
   const [showFinished, setShowFinished] = useState(false);

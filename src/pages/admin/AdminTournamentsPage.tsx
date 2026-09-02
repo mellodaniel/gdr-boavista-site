@@ -17,6 +17,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 import type { GdrbTournament } from '../../types/database';
 
 type TournamentKind = 'organized' | 'external';
@@ -110,13 +111,13 @@ function isArchived(tournament: AdminTournament) {
 
 export function AdminTournamentsPage() {
   const [tournaments, setTournaments] = useState<AdminTournament[]>([]);
-  const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useSessionState('admin:tournaments:form', initialForm);
+  const [editingId, setEditingId] = useSessionState<string | null>('admin:tournaments:editingId', null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useSessionState('admin:tournaments:showForm', false);
   const [showFilters, setShowFilters] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');

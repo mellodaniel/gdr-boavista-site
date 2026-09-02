@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { RouteScrollManager } from '../components/RouteScrollManager';
 
 import { PublicLayout } from '../layouts/PublicLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
@@ -52,7 +53,9 @@ import PublicTournamentPage from '../pages/PublicTournamentPage';
 
 export function AppRoutes() {
   return (
-    <Routes>
+    <>
+      <RouteScrollManager />
+      <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<HomePage />} />
         <Route path="clube" element={<ClubPage />} />
@@ -107,6 +110,7 @@ export function AppRoutes() {
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }

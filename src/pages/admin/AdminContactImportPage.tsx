@@ -27,6 +27,7 @@ type ExistingSubscriber = {
 };
 
 type ImportAction = 'create' | 'update' | 'skip';
+type GroupAssignmentMode = 'single_group' | 'csv_groups';
 
 type NormalizedImportRow = {
   name: string;
@@ -309,6 +310,11 @@ export function AdminContactImportPage() {
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
+  const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
+  const [groupAssignmentMode, setGroupAssignmentMode] = useState<GroupAssignmentMode>('single_group');
+  const [targetGroupId, setTargetGroupId] = useState('');
+  const [defaultContactType, setDefaultContactType] = useState('encarregado');
   const [previewRows, setPreviewRows] = useState<ImportPreviewRow[]>([]);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -362,6 +368,11 @@ export function AdminContactImportPage() {
     return map;
   }, [groups]);
 
+  const destinationGroups = useMemo(() => {
+    const escalationGroups = groups.filter((group) => group.group_type === 'escalao');
+    return escalationGroups.length > 0 ? escalationGroups : groups;
+  }, [groups]);
+
   const subscriberByEmail = useMemo(() => {
     const map = new Map<string, ExistingSubscriber>();
 
@@ -399,15 +410,59 @@ export function AdminContactImportPage() {
     };
   }, [previewRows]);
 
-  function buildPreviewRows(rows: Record<string, string>[]) {
+  function buildPreviewRows(
+    rows: Record<string, string>[],
+    options: {
+      assignmentMode?: GroupAssignmentMode;
+      destinationGroupId?: string;
+      fallbackContactType?: string;
+    } = {},
+  ) {
+    const assignmentMode = options.assignmentMode ?? groupAssignmentMode;
+    const destinationGroupId = options.destinationGroupId ?? targetGroupId;
+    const fallbackContactType = options.fallbackContactType ?? defaultContactType;
+    const destinationGroup = destinationGroupId
+      ? groups.find((group) => group.id === destinationGroupId) || null
+      : null;
+
     return rows.map((row, index): ImportPreviewRow => {
       const errors: string[] = [];
       const warnings: string[] = [];
-      const rawEmail = getValue(row, ['email', 'e-mail', 'mail']).trim().toLowerCase();
-      const rawPhone = normalizePhone(getValue(row, ['telefone', 'telemovel', 'telemóvel', 'phone', 'telemovel_telefone']));
-      const rawContactType = normalizeText(getValue(row, ['tipo_contacto', 'tipo', 'contact_type'])) || 'newsletter';
+      const rawEmail = getValue(row, [
+        'email',
+        'e-mail',
+        'e_mail',
+        'mail',
+        'email_address',
+        'endereco_email',
+        'endereço_email',
+        'correio_eletronico',
+        'correio_eletrónico',
+      ]).trim().toLowerCase();
+      const rawPhone = normalizePhone(
+        getValue(row, [
+          'telefone',
+          'telemovel',
+          'telemóvel',
+          'phone',
+          'mobile',
+          'mobile_phone',
+          'contacto',
+          'contato',
+          'numero_telemovel',
+          'número_telemóvel',
+          'telemovel_telefone',
+        ]),
+      );
+      const csvContactType = normalizeText(getValue(row, ['tipo_contacto', 'tipo', 'contact_type']));
+      const rawContactType = csvContactType || fallbackContactType;
       const contactType = rawContactType.replace(/ç/g, 'c');
-      const groupNames = getGroupNames(getValue(row, ['grupo', 'grupos', 'escalao', 'escalão', 'equipa']));
+      const csvGroupNames = getGroupNames(getValue(row, ['grupo', 'grupos', 'escalao', 'escalão', 'equipa', 'team']));
+      const groupNames = assignmentMode === 'single_group'
+        ? destinationGroup
+          ? [destinationGroup.name]
+          : []
+        : csvGroupNames;
       const rowGroups: CommunicationGroup[] = [];
 
       if (!rawEmail && !rawPhone) {
@@ -420,6 +475,10 @@ export function AdminContactImportPage() {
 
       if (!contactTypes.includes(contactType)) {
         errors.push(`Tipo de contacto inválido: ${rawContactType}.`);
+      }
+
+      if (assignmentMode === 'single_group' && !destinationGroup) {
+        errors.push('Seleciona o escalão/grupo de destino para este ficheiro.');
       }
 
       groupNames.forEach((groupName) => {
@@ -457,13 +516,13 @@ export function AdminContactImportPage() {
         errors,
         warnings,
         normalized: {
-          name: getValue(row, ['nome', 'name']).trim(),
+          name: getValue(row, ['nome', 'name', 'nome_completo', 'full_name', 'contact_name', 'nome_contacto', 'nome_contato']).trim(),
           email: rawEmail,
           phone: rawPhone,
           contactType: normalizedContactType,
           communicationScope,
           relationship: getValue(row, ['relacao', 'relação', 'relationship']).trim(),
-          athleteName: getValue(row, ['atleta', 'athlete', 'athlete_name', 'nome_atleta']).trim(),
+          athleteName: getValue(row, ['atleta', 'athlete', 'athlete_name', 'nome_atleta', 'jogador', 'player', 'player_name']).trim(),
           consentEmail,
           consentWhatsapp,
           notes: getValue(row, ['observacoes', 'observações', 'notas', 'notes']).trim(),
@@ -488,7 +547,7 @@ export function AdminContactImportPage() {
 
     try {
       const content = await file.text();
-      const { rows } = parseCsv(content);
+      const { headers, rows } = parseCsv(content);
 
       if (rows.length === 0) {
         setMessage({ type: 'error', text: 'O ficheiro CSV não tem linhas para importar.' });
@@ -496,6 +555,8 @@ export function AdminContactImportPage() {
         return;
       }
 
+      setRawRows(rows);
+      setDetectedHeaders(headers);
       setPreviewRows(buildPreviewRows(rows));
     } catch (error) {
       console.error(error);
@@ -680,9 +741,32 @@ export function AdminContactImportPage() {
 
   function clearImport() {
     setFileName('');
+    setRawRows([]);
+    setDetectedHeaders([]);
     setPreviewRows([]);
     setResult(null);
     setMessage(null);
+  }
+
+  function changeAssignmentMode(mode: GroupAssignmentMode) {
+    setGroupAssignmentMode(mode);
+    if (rawRows.length > 0) {
+      setPreviewRows(buildPreviewRows(rawRows, { assignmentMode: mode }));
+    }
+  }
+
+  function changeTargetGroup(groupId: string) {
+    setTargetGroupId(groupId);
+    if (rawRows.length > 0) {
+      setPreviewRows(buildPreviewRows(rawRows, { destinationGroupId: groupId }));
+    }
+  }
+
+  function changeDefaultContactType(contactType: string) {
+    setDefaultContactType(contactType);
+    if (rawRows.length > 0) {
+      setPreviewRows(buildPreviewRows(rawRows, { fallbackContactType: contactType }));
+    }
   }
 
   return (
@@ -731,16 +815,16 @@ export function AdminContactImportPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-5 xl:grid-cols-3">
           <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-700">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700">
                 <FileSpreadsheet className="h-6 w-6" />
               </div>
               <div>
                 <h2 className="text-xl font-black text-zinc-900">1. Preparar o ficheiro</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  Descarrega o modelo, preenche as linhas e guarda em CSV. O separador recomendado é ponto e vírgula.
+                  Podes usar o modelo do GDR Boavista ou um CSV exportado de outro sistema, como o Enjogo.
                 </p>
                 <button
                   type="button"
@@ -754,22 +838,109 @@ export function AdminContactImportPage() {
             </div>
           </div>
 
+          <div className="rounded-2xl border border-red-200 bg-red-50/60 p-6">
+            <h2 className="text-xl font-black text-zinc-900">2. Definir destino</h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-600">
+              Para exportações por escalão, escolhe um destino único e todos os contactos do ficheiro ficam associados a esse escalão.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-2">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3">
+                  <input
+                    type="radio"
+                    name="group-assignment-mode"
+                    checked={groupAssignmentMode === 'single_group'}
+                    onChange={() => changeAssignmentMode('single_group')}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-black text-zinc-900">Associar todo o CSV a um escalão</span>
+                    <span className="mt-1 block text-xs font-semibold text-zinc-500">Recomendado para exportações do Enjogo por equipa/escalão.</span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3">
+                  <input
+                    type="radio"
+                    name="group-assignment-mode"
+                    checked={groupAssignmentMode === 'csv_groups'}
+                    onChange={() => changeAssignmentMode('csv_groups')}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-black text-zinc-900">Usar grupos existentes no CSV</span>
+                    <span className="mt-1 block text-xs font-semibold text-zinc-500">Usa as colunas grupo, escalão ou equipa de cada linha.</span>
+                  </span>
+                </label>
+              </div>
+
+              {groupAssignmentMode === 'single_group' && (
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    Escalão / grupo de destino
+                  </label>
+                  <select
+                    value={targetGroupId}
+                    onChange={(event) => changeTargetGroup(event.target.value)}
+                    className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-bold text-zinc-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                  >
+                    <option value="">Selecionar destino...</option>
+                    {destinationGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}{group.birth_years ? ` (${group.birth_years})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                  Tipo padrão quando o CSV não informar
+                </label>
+                <select
+                  value={defaultContactType}
+                  onChange={(event) => changeDefaultContactType(event.target.value)}
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-bold text-zinc-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                >
+                  {contactTypes.map((contactType) => (
+                    <option key={contactType} value={contactType}>
+                      {contactTypeLabels[contactType] || contactType}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-700">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700">
                 <Upload className="h-6 w-6" />
               </div>
-              <div>
-                <h2 className="text-xl font-black text-zinc-900">2. Carregar e validar</h2>
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-zinc-900">3. Carregar e validar</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  O sistema mostra uma prévia antes de gravar. Linhas com erro ficam bloqueadas.
+                  O sistema deteta as colunas conhecidas, identifica duplicados e mostra a prévia antes de gravar.
                 </p>
                 <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700">
                   <Upload className="h-4 w-4" />
                   Escolher CSV
                   <input type="file" accept=".csv,text/csv" onChange={handleFileChange} className="hidden" />
                 </label>
-                {fileName && <p className="mt-3 text-xs font-semibold text-zinc-500">Ficheiro: {fileName}</p>}
+                {fileName && <p className="mt-3 break-all text-xs font-semibold text-zinc-500">Ficheiro: {fileName}</p>}
+                {detectedHeaders.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-zinc-400">Colunas detetadas</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {detectedHeaders.map((header) => (
+                        <span key={header} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-zinc-600 ring-1 ring-zinc-200">
+                          {header}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -791,8 +962,14 @@ export function AdminContactImportPage() {
             <p className="mt-2 text-sm font-semibold text-zinc-600">Email primeiro; se não houver email, usa telefone.</p>
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Grupos múltiplos</p>
-            <p className="mt-2 text-sm font-semibold text-zinc-600">Usa | no campo grupo. Ex: Iniciados|Treinadores</p>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Destino atual</p>
+            <p className="mt-2 text-sm font-semibold text-zinc-600">
+              {groupAssignmentMode === 'single_group'
+                ? targetGroupId
+                  ? destinationGroups.find((group) => group.id === targetGroupId)?.name || 'Selecionar escalão'
+                  : 'Selecionar escalão antes de importar'
+                : 'Definido por cada linha do CSV'}
+            </p>
           </div>
         </div>
       </section>
@@ -825,6 +1002,19 @@ export function AdminContactImportPage() {
             <p className="mt-1 text-xs font-semibold text-zinc-500">
               Confirma os dados antes de gravar. Nenhum contacto é criado antes de clicares em “Confirmar importação”.
             </p>
+            {previewRows.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+                <span className="rounded-full bg-zinc-200/70 px-3 py-1.5 text-zinc-700">{fileName}</span>
+                <span className="rounded-full bg-red-100 px-3 py-1.5 text-red-700">
+                  {groupAssignmentMode === 'single_group'
+                    ? `Destino: ${destinationGroups.find((group) => group.id === targetGroupId)?.name || 'não selecionado'}`
+                    : 'Destino: grupos do CSV'}
+                </span>
+                <span className="rounded-full bg-blue-100 px-3 py-1.5 text-blue-700">
+                  Padrão: {contactTypeLabels[defaultContactType] || defaultContactType}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">

@@ -17,6 +17,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 
 type GalleryItem = {
   id: string;
@@ -67,13 +68,13 @@ function normalizeCategory(category: string | null | undefined) {
 
 export function AdminGalleryPage() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
-  const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useSessionState('admin:gallery:form', initialForm);
+  const [editingId, setEditingId] = useSessionState<string | null>('admin:gallery:editingId', null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useSessionState('admin:gallery:showForm', false);
 
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');

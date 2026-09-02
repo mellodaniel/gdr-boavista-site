@@ -13,6 +13,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 import type { GdrbTeam } from '../../types/database';
 
 const initialForm = {
@@ -52,12 +53,12 @@ function normalizeText(value: string | null | undefined) {
 
 export function AdminTeamsPage() {
   const [teams, setTeams] = useState<GdrbTeam[]>([]);
-  const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useSessionState('admin:teams:form', initialForm);
+  const [editingId, setEditingId] = useSessionState<string | null>('admin:teams:editingId', null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useSessionState('admin:teams:showForm', false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<TeamStatusFilter>('active');

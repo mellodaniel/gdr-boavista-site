@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { CheckCircle2, HeartHandshake, Mail, Phone, ShieldCheck, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 
 const initialForm = {
   full_name: '',
@@ -33,7 +34,7 @@ const reasons = [
 ];
 
 export function MembersPage() {
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useSessionState('public:members:form', initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');

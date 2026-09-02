@@ -9,6 +9,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 import { trackAnalyticsEvent } from '../../lib/analytics';
 
 const initialForm = {
@@ -52,7 +53,7 @@ const contactItems = [
 ];
 
 export function ContactsPage() {
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useSessionState('public:contacts:form', initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');

@@ -17,6 +17,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 import type { GdrbSponsor } from '../../types/database';
 
 const initialForm = {
@@ -71,13 +72,13 @@ function formatDate(value: string | null | undefined) {
 
 export function AdminSponsorsPage() {
   const [sponsors, setSponsors] = useState<GdrbSponsor[]>([]);
-  const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useSessionState('admin:sponsors:form', initialForm);
+  const [editingId, setEditingId] = useSessionState<string | null>('admin:sponsors:editingId', null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useSessionState('admin:sponsors:showForm', false);
 
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');

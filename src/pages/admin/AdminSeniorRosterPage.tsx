@@ -17,6 +17,7 @@ import {
 import { Link } from 'react-router-dom';
 
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 import type { GdrbRosterGroup, GdrbRosterPlayer } from '../../types/database';
 
 const ROSTER_STORAGE_BUCKET = 'gdrb-roster-images';
@@ -74,12 +75,12 @@ function normalizeText(value: string | null | undefined) {
 
 export function AdminSeniorRosterPage() {
   const [players, setPlayers] = useState<GdrbRosterPlayer[]>([]);
-  const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useSessionState('admin:roster:form', initialForm);
+  const [editingId, setEditingId] = useSessionState<string | null>('admin:roster:editingId', null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useSessionState('admin:roster:showForm', false);
 
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');

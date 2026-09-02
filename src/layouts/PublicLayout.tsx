@@ -12,7 +12,6 @@ import {
 import { AnalyticsTracker } from '../components/public/AnalyticsTracker';
 import { CookieConsentBanner } from '../components/public/CookieConsentBanner';
 import { MobileBottomNavigation } from '../components/public/MobileBottomNavigation';
-import { ScrollToTop } from '../components/public/ScrollToTop';
 import { trackAnalyticsEvent } from '../lib/analytics';
 
 const navigation = [
@@ -134,7 +133,6 @@ export function PublicLayout() {
   return (
     <div className="min-h-screen bg-[#f6f2ec] text-zinc-950 md:bg-transparent">
       <AnalyticsTracker />
-      <ScrollToTop />
 
       <a
         href="#conteudo-principal"

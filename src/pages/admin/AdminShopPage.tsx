@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 
 type ProductStockStatus = 'available' | 'preorder' | 'soon' | 'sold_out';
 type OrderStatus = 'novo' | 'aguardar_pagamento' | 'pago' | 'entregue' | 'cancelado';
@@ -359,8 +360,8 @@ function getPublicImageUrl(path: string) {
 export function AdminShopPage() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [orders, setOrders] = useState<ShopOrder[]>([]);
-  const [form, setForm] = useState<ProductFormState>(emptyProductForm);
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [form, setForm] = useSessionState<ProductFormState>('admin:shop:productForm', emptyProductForm);
+  const [editingProductId, setEditingProductId] = useSessionState<string | null>('admin:shop:editingProductId', null);
   const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
   const [searchTerm, setSearchTerm] = useState('');
   const [productStatusFilter, setProductStatusFilter] = useState<ProductFilter>('active');
@@ -370,7 +371,7 @@ export function AdminShopPage() {
   const [productPageSize, setProductPageSize] = useState<PageSize>(10);
   const [orderPageSize, setOrderPageSize] = useState<PageSize>(10);
   const [expandedOrderIds, setExpandedOrderIds] = useState<string[]>([]);
-  const [isProductFormOpen, setIsProductFormOpen] = useState(false);
+  const [isProductFormOpen, setIsProductFormOpen] = useSessionState('admin:shop:isProductFormOpen', false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

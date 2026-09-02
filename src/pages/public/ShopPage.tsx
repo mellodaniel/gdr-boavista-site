@@ -20,6 +20,7 @@ import {
 import { Link } from 'react-router-dom';
 import { trackAnalyticsEvent } from '../../lib/analytics';
 import { supabase } from '../../lib/supabase';
+import { useSessionState } from '../../hooks/useSessionState';
 
 type ProductStockStatus = 'available' | 'preorder' | 'soon' | 'sold_out';
 
@@ -210,7 +211,7 @@ export function ShopPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [checkoutForm, setCheckoutForm] = useState<CheckoutFormState>(emptyCheckoutForm);
+  const [checkoutForm, setCheckoutForm] = useSessionState<CheckoutFormState>('public:shop:checkoutForm', emptyCheckoutForm);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState<string | null>(null);
