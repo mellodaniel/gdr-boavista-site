@@ -3,6 +3,8 @@ import type { ChangeEvent } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Download,
   FileSpreadsheet,
   RefreshCw,
@@ -60,6 +62,16 @@ type ImportResult = {
   failed: number;
 };
 
+type ImportFailure = {
+  rowNumber: number;
+  name: string;
+  email: string;
+  phone: string;
+  group: string;
+  problem: string;
+  recommendedAction: string;
+};
+
 const contactTypes = [
   'newsletter',
   'encarregado',
@@ -91,16 +103,6 @@ const contactTypeLabels: Record<string, string> = {
   socio: 'Sócio',
   parceiro: 'Parceiro',
   staff: 'Staff',
-  outro: 'Outro',
-};
-
-const scopeLabels: Record<string, string> = {
-  newsletter: 'Newsletter',
-  escalao: 'Escalão',
-  interno: 'Interno',
-  socios: 'Sócios',
-  parceiros: 'Parceiros',
-  geral: 'Geral',
   outro: 'Outro',
 };
 
@@ -304,6 +306,7 @@ function createTemplateCsv() {
 }
 
 export function AdminContactImportPage() {
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [groups, setGroups] = useState<CommunicationGroup[]>([]);
   const [subscribers, setSubscribers] = useState<ExistingSubscriber[]>([]);
   const [loading, setLoading] = useState(true);
@@ -317,11 +320,14 @@ export function AdminContactImportPage() {
   const [defaultContactType, setDefaultContactType] = useState('encarregado');
   const [previewRows, setPreviewRows] = useState<ImportPreviewRow[]>([]);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [runtimeFailures, setRuntimeFailures] = useState<ImportFailure[]>([]);
+  const [showAllPreview, setShowAllPreview] = useState(false);
+  const [previewPage, setPreviewPage] = useState(1);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  async function loadReferenceData() {
+  async function loadReferenceData(preserveMessage = false) {
     setLoading(true);
-    setMessage(null);
+    if (!preserveMessage) setMessage(null);
 
     const [groupsResponse, subscribersResponse] = await Promise.all([
       supabase
@@ -409,6 +415,41 @@ export function AdminContactImportPage() {
       noEmailConsent: validRows.filter((row) => !row.normalized.consentEmail).length,
     };
   }, [previewRows]);
+
+  const validationFailures = useMemo<ImportFailure[]>(() => {
+    return previewRows
+      .filter((row) => row.errors.length > 0)
+      .flatMap((row) =>
+        row.errors.map((problem) => ({
+          rowNumber: row.rowNumber,
+          name: row.normalized.name,
+          email: row.normalized.email,
+          phone: row.normalized.phone,
+          group: row.normalized.groupNames.join(' | '),
+          problem,
+          recommendedAction: problem.includes('Email inválido')
+            ? 'Corrigir o endereço de email e voltar a importar.'
+            : problem.includes('Falta email ou telefone')
+              ? 'Adicionar pelo menos email ou telefone.'
+              : problem.includes('Grupo/escalão não encontrado')
+                ? 'Corrigir o nome do grupo/escalão ou escolher um destino único.'
+                : problem.includes('Seleciona o escalão/grupo')
+                  ? 'Selecionar um escalão/grupo de destino.'
+                  : 'Corrigir os dados indicados e voltar a importar.',
+        })),
+      );
+  }, [previewRows]);
+
+  const allFailures = useMemo(
+    () => [...validationFailures, ...runtimeFailures],
+    [validationFailures, runtimeFailures],
+  );
+
+  const previewPageSize = 25;
+  const previewPageCount = Math.max(1, Math.ceil(previewRows.length / previewPageSize));
+  const previewRowsToShow = showAllPreview
+    ? previewRows.slice((previewPage - 1) * previewPageSize, previewPage * previewPageSize)
+    : previewRows.slice(0, 10);
 
   function buildPreviewRows(
     rows: Record<string, string>[],
@@ -538,6 +579,9 @@ export function AdminContactImportPage() {
 
     setMessage(null);
     setResult(null);
+    setRuntimeFailures([]);
+    setShowAllPreview(false);
+    setPreviewPage(1);
     setPreviewRows([]);
 
     if (!file) return;
@@ -579,6 +623,33 @@ export function AdminContactImportPage() {
     URL.revokeObjectURL(url);
   }
 
+  function downloadErrorReport() {
+    if (allFailures.length === 0) return;
+
+    const headers = ['linha', 'nome', 'email', 'telefone', 'grupo', 'problema', 'acao_recomendada'];
+    const rows = allFailures.map((failure) => [
+      String(failure.rowNumber),
+      failure.name,
+      failure.email,
+      failure.phone,
+      failure.group,
+      failure.problem,
+      failure.recommendedAction,
+    ]);
+    const content = [headers, ...rows]
+      .map((row) => row.map((value) => escapeCsv(value)).join(';'))
+      .join('\n');
+    const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio-erros-${(fileName || 'importacao').replace(/\.csv$/i, '')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   async function confirmImport() {
     const validRows = previewRows.filter((row) => row.errors.length === 0);
 
@@ -587,9 +658,22 @@ export function AdminContactImportPage() {
       return;
     }
 
+    const destinationLabel = groupAssignmentMode === 'single_group'
+      ? destinationGroups.find((group) => group.id === targetGroupId)?.name || 'destino selecionado'
+      : 'grupos definidos no CSV';
+    const invalidCount = previewRows.length - validRows.length;
+    const confirmed = window.confirm(
+      `${validRows.length} contacto(s) válido(s) serão criados ou atualizados em ${destinationLabel}.` +
+        (invalidCount > 0 ? ` ${invalidCount} linha(s) com erro serão ignoradas e ficarão no relatório.` : '') +
+        '\n\nConfirmar importação?',
+    );
+    if (!confirmed) return;
+
     setImporting(true);
     setMessage(null);
     setResult(null);
+    setRuntimeFailures([]);
+    const failures: ImportFailure[] = [...validationFailures];
 
     const now = new Date().toISOString();
     const importResult: ImportResult = {
@@ -671,6 +755,15 @@ export function AdminContactImportPage() {
         if (error) {
           console.error(error);
           importResult.failed += 1;
+          failures.push({
+            rowNumber: row.rowNumber,
+            name: row.normalized.name,
+            email: row.normalized.email,
+            phone: row.normalized.phone,
+            group: row.normalized.groupNames.join(' | '),
+            problem: `Falha ao atualizar contacto: ${error.message || 'erro desconhecido'}`,
+            recommendedAction: 'Verificar os dados e tentar novamente.',
+          });
           continue;
         }
 
@@ -688,6 +781,15 @@ export function AdminContactImportPage() {
         if (error || !createdSubscriber) {
           console.error(error);
           importResult.failed += 1;
+          failures.push({
+            rowNumber: row.rowNumber,
+            name: row.normalized.name,
+            email: row.normalized.email,
+            phone: row.normalized.phone,
+            group: row.normalized.groupNames.join(' | '),
+            problem: `Falha ao criar contacto: ${error?.message || 'erro desconhecido'}`,
+            recommendedAction: 'Verificar os dados e tentar novamente.',
+          });
           continue;
         }
 
@@ -712,6 +814,15 @@ export function AdminContactImportPage() {
         if (linkError) {
           console.error(linkError);
           importResult.failed += 1;
+          failures.push({
+            rowNumber: row.rowNumber,
+            name: row.normalized.name,
+            email: row.normalized.email,
+            phone: row.normalized.phone,
+            group: row.normalized.groupNames.join(' | '),
+            problem: `Contacto gravado, mas falhou a associação ao grupo: ${linkError.message || 'erro desconhecido'}`,
+            recommendedAction: 'Verificar a associação ao grupo e repetir a operação se necessário.',
+          });
         }
       }
     }
@@ -727,16 +838,36 @@ export function AdminContactImportPage() {
       })
       .eq('id', batchId);
 
+    setRuntimeFailures(failures);
     setResult(importResult);
-    setMessage({
-      type: importResult.failed > 0 ? 'error' : 'success',
-      text:
-        importResult.failed > 0
-          ? 'Importação concluída com alguns erros. Revê os contadores abaixo.'
-          : 'Importação concluída com sucesso.',
-    });
+
+    const importedTotal = importResult.created + importResult.updated;
+    const issuesTotal = importResult.skipped + importResult.failed;
+
+    // Depois de uma importação concluída, o formulário volta ao estado inicial.
+    // Mantemos apenas o resumo/relatório da operação para dar feedback inequívoco ao utilizador.
+    setFileName('');
+    setRawRows([]);
+    setDetectedHeaders([]);
+    setPreviewRows([]);
+    setShowAllPreview(false);
+    setPreviewPage(1);
+    setTargetGroupId('');
+    setGroupAssignmentMode('single_group');
+    setAdvancedOpen(false);
+
     setImporting(false);
-    await loadReferenceData();
+    await loadReferenceData(true);
+
+    setMessage({
+      type: importedTotal > 0 ? 'success' : 'error',
+      text:
+        importedTotal > 0
+          ? issuesTotal > 0
+            ? `Importação concluída. ${importedTotal} contacto(s) foram importados e ${issuesTotal} linha(s) ficaram por tratar. Consulta o resumo e descarrega o relatório de erros.`
+            : `Importação concluída com sucesso. ${importedTotal} contacto(s) foram importados. O formulário foi limpo e está pronto para a próxima importação.`
+          : 'A importação terminou sem gravar contactos. Consulta o resumo e o relatório de erros.',
+    });
   }
 
   function clearImport() {
@@ -745,6 +876,9 @@ export function AdminContactImportPage() {
     setDetectedHeaders([]);
     setPreviewRows([]);
     setResult(null);
+    setRuntimeFailures([]);
+    setShowAllPreview(false);
+    setPreviewPage(1);
     setMessage(null);
   }
 
@@ -769,6 +903,18 @@ export function AdminContactImportPage() {
     }
   }
 
+  function toggleAdvancedOptions() {
+    if (advancedOpen) {
+      setAdvancedOpen(false);
+      if (groupAssignmentMode !== 'single_group') {
+        changeAssignmentMode('single_group');
+      }
+      return;
+    }
+
+    setAdvancedOpen(true);
+  }
+
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#21150f] via-[#3b120f] to-[#8b1d1d] p-8 text-white shadow-xl">
@@ -778,7 +924,7 @@ export function AdminContactImportPage() {
           </p>
           <h1 className="font-serif text-5xl font-bold">Importar Contactos.</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-white/80">
-            Importa contactos por CSV com validação, pré-visualização e associação automática a grupos ou escalões antes de gravar.
+            Escolhe o ficheiro CSV, indica o escalão/grupo de destino e importa. A validação acontece automaticamente antes de gravar.
           </p>
         </div>
       </section>
@@ -815,235 +961,245 @@ export function AdminContactImportPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="grid gap-5 xl:grid-cols-3">
-          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700">
-                <FileSpreadsheet className="h-6 w-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-zinc-900">1. Preparar o ficheiro</h2>
-                <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  Podes usar o modelo do GDR Boavista ou um CSV exportado de outro sistema, como o Enjogo.
-                </p>
-                <button
-                  type="button"
-                  onClick={downloadTemplate}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-800 transition hover:bg-zinc-100"
-                >
-                  <Download className="h-4 w-4" />
-                  Descarregar modelo CSV
-                </button>
-              </div>
-            </div>
+        <div className="flex flex-col gap-6">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-red-600">Importação de contactos</p>
+            <h2 className="mt-2 text-2xl font-black text-zinc-900">Ficheiro → destino → importar.</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+              Seleciona o CSV exportado, escolhe o escalão/grupo e confirma. A validação e a deteção de duplicados são automáticas.
+            </p>
           </div>
 
-          <div className="rounded-2xl border border-red-200 bg-red-50/60 p-6">
-            <h2 className="text-xl font-black text-zinc-900">2. Definir destino</h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Para exportações por escalão, escolhe um destino único e todos os contactos do ficheiro ficam associados a esse escalão.
-            </p>
-
-            <div className="mt-5 space-y-4">
-              <div className="grid gap-2">
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3">
-                  <input
-                    type="radio"
-                    name="group-assignment-mode"
-                    checked={groupAssignmentMode === 'single_group'}
-                    onChange={() => changeAssignmentMode('single_group')}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="block text-sm font-black text-zinc-900">Associar todo o CSV a um escalão</span>
-                    <span className="mt-1 block text-xs font-semibold text-zinc-500">Recomendado para exportações do Enjogo por equipa/escalão.</span>
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-end">
+            <div>
+              <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                Ficheiro CSV
+              </label>
+              <label className={`flex min-h-[52px] cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-3 transition ${
+                fileName
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : 'border-zinc-300 bg-white text-zinc-700 hover:border-red-300'
+              }`}>
+                <span className="flex min-w-0 items-center gap-3">
+                  <FileSpreadsheet className="h-5 w-5 shrink-0" />
+                  <span className="truncate text-sm font-black">
+                    {fileName || 'Escolher ficheiro CSV'}
                   </span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3">
-                  <input
-                    type="radio"
-                    name="group-assignment-mode"
-                    checked={groupAssignmentMode === 'csv_groups'}
-                    onChange={() => changeAssignmentMode('csv_groups')}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="block text-sm font-black text-zinc-900">Usar grupos existentes no CSV</span>
-                    <span className="mt-1 block text-xs font-semibold text-zinc-500">Usa as colunas grupo, escalão ou equipa de cada linha.</span>
-                  </span>
-                </label>
-              </div>
+                </span>
+                <Upload className="h-4 w-4 shrink-0" />
+                <input type="file" accept=".csv,text/csv" onChange={handleFileChange} className="hidden" />
+              </label>
+            </div>
 
-              {groupAssignmentMode === 'single_group' && (
-                <div>
-                  <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                    Escalão / grupo de destino
-                  </label>
-                  <select
-                    value={targetGroupId}
-                    onChange={(event) => changeTargetGroup(event.target.value)}
-                    className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-bold text-zinc-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                  >
-                    <option value="">Selecionar destino...</option>
-                    {destinationGroups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}{group.birth_years ? ` (${group.birth_years})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                  Tipo padrão quando o CSV não informar
-                </label>
+            <div>
+              <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                Destino
+              </label>
+              {groupAssignmentMode === 'single_group' ? (
                 <select
-                  value={defaultContactType}
-                  onChange={(event) => changeDefaultContactType(event.target.value)}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-bold text-zinc-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                  value={targetGroupId}
+                  onChange={(event) => changeTargetGroup(event.target.value)}
+                  className="min-h-[52px] w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-black text-zinc-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
                 >
-                  {contactTypes.map((contactType) => (
-                    <option key={contactType} value={contactType}>
-                      {contactTypeLabels[contactType] || contactType}
+                  <option value="">Selecionar escalão / grupo...</option>
+                  {destinationGroups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}{group.birth_years ? ` (${group.birth_years})` : ''}
                     </option>
                   ))}
                 </select>
-              </div>
+              ) : (
+                <div className="flex min-h-[52px] items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700">
+                  Usar grupos/escalões do próprio CSV
+                </div>
+              )}
             </div>
+
           </div>
 
-          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700">
-                <Upload className="h-6 w-6" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-xl font-black text-zinc-900">3. Carregar e validar</h2>
-                <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  O sistema deteta as colunas conhecidas, identifica duplicados e mostra a prévia antes de gravar.
-                </p>
-                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700">
-                  <Upload className="h-4 w-4" />
-                  Escolher CSV
-                  <input type="file" accept=".csv,text/csv" onChange={handleFileChange} className="hidden" />
-                </label>
-                {fileName && <p className="mt-3 break-all text-xs font-semibold text-zinc-500">Ficheiro: {fileName}</p>}
-                {detectedHeaders.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-zinc-400">Colunas detetadas</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {detectedHeaders.map((header) => (
-                        <span key={header} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-zinc-600 ring-1 ring-zinc-200">
-                          {header}
-                        </span>
-                      ))}
-                    </div>
+          <div className="flex flex-col gap-3 border-t border-zinc-100 pt-4 md:flex-row md:items-center md:justify-between">
+            <div className="text-xs font-semibold text-zinc-500">
+              {previewRows.length > 0 ? (
+                <span>
+                  {stats.valid} válidos · {stats.create} novos · {stats.update} a atualizar
+                  {stats.invalid > 0 ? ` · ${stats.invalid} com erro` : ''}
+                </span>
+              ) : (
+                <span>Depois de escolher o ficheiro, a pré-visualização aparece automaticamente abaixo.</span>
+              )}
+            </div>
+
+            <div className="md:min-w-[230px]">
+              <button
+                type="button"
+                onClick={toggleAdvancedOptions}
+                aria-expanded={advancedOpen}
+                className="inline-flex w-full items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 md:w-auto"
+              >
+                <span>{advancedOpen ? 'Fechar opções avançadas' : 'Opções avançadas'}</span>
+                {advancedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+
+              {advancedOpen && (
+                <div className="mt-3 grid gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 md:grid-cols-2">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">Origem do destino</p>
+                  <div className="mt-2 space-y-2">
+                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3">
+                      <input
+                        type="radio"
+                        name="group-assignment-mode"
+                        checked={groupAssignmentMode === 'single_group'}
+                        onChange={() => changeAssignmentMode('single_group')}
+                        className="mt-1"
+                      />
+                      <span>
+                        <span className="block text-sm font-black text-zinc-900">Usar o destino escolhido</span>
+                        <span className="mt-1 block text-xs font-semibold text-zinc-500">Fluxo recomendado para exportações por escalão.</span>
+                      </span>
+                    </label>
+                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3">
+                      <input
+                        type="radio"
+                        name="group-assignment-mode"
+                        checked={groupAssignmentMode === 'csv_groups'}
+                        onChange={() => changeAssignmentMode('csv_groups')}
+                        className="mt-1"
+                      />
+                      <span>
+                        <span className="block text-sm font-black text-zinc-900">Usar grupos do CSV</span>
+                        <span className="mt-1 block text-xs font-semibold text-zinc-500">Só quando o ficheiro já tiver grupo/escalão/equipa.</span>
+                      </span>
+                    </label>
                   </div>
-                )}
-              </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-[0.14em] text-zinc-500">
+                      Tipo padrão do contacto
+                    </label>
+                    <select
+                      value={defaultContactType}
+                      onChange={(event) => changeDefaultContactType(event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-bold text-zinc-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                    >
+                      {contactTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {contactTypeLabels[type] || type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={downloadTemplate}
+                    className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-100"
+                  >
+                    <Download className="h-4 w-4" />
+                    Descarregar modelo CSV
+                  </button>
+                </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Tipos aceites</p>
-            <p className="mt-2 text-sm font-semibold text-zinc-600">{contactTypes.join(', ')}</p>
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Grupos carregados</p>
-            <p className="mt-2 text-sm font-semibold text-zinc-600">{groups.length} grupos/escalões ativos</p>
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Regra de duplicados</p>
-            <p className="mt-2 text-sm font-semibold text-zinc-600">Email primeiro; se não houver email, usa telefone.</p>
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">Destino atual</p>
-            <p className="mt-2 text-sm font-semibold text-zinc-600">
-              {groupAssignmentMode === 'single_group'
-                ? targetGroupId
-                  ? destinationGroups.find((group) => group.id === targetGroupId)?.name || 'Selecionar escalão'
-                  : 'Selecionar escalão antes de importar'
-                : 'Definido por cada linha do CSV'}
-            </p>
-          </div>
+          {detectedHeaders.length > 0 && (
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">Colunas detetadas</p>
+              <p className="mt-2 text-xs font-semibold text-zinc-600">{detectedHeaders.join(' · ')}</p>
+            </div>
+          )}
         </div>
       </section>
 
       {result && (
-        <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Criados</p>
-            <p className="mt-3 text-3xl font-black text-emerald-700">{result.created}</p>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Última importação</p>
+              <h2 className="mt-1 text-xl font-black text-zinc-900">Importação concluída</h2>
+              <p className="mt-1 text-sm font-semibold text-zinc-500">
+                O formulário foi limpo automaticamente e já está pronto para o próximo ficheiro.
+              </p>
+            </div>
+            {runtimeFailures.length > 0 && (
+              <button
+                type="button"
+                onClick={downloadErrorReport}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 transition hover:bg-red-100"
+              >
+                <Download className="h-4 w-4" />
+                Descarregar relatório de erros
+              </button>
+            )}
           </div>
-          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Atualizados</p>
-            <p className="mt-3 text-3xl font-black text-blue-700">{result.updated}</p>
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Ignorados</p>
-            <p className="mt-3 text-3xl font-black text-zinc-700">{result.skipped}</p>
-          </div>
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-red-600">Falhas</p>
-            <p className="mt-3 text-3xl font-black text-red-700">{result.failed}</p>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-4">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Criados</p>
+              <p className="mt-2 text-3xl font-black text-emerald-700">{result.created}</p>
+            </div>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Atualizados</p>
+              <p className="mt-2 text-3xl font-black text-blue-700">{result.updated}</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Ignorados</p>
+              <p className="mt-2 text-3xl font-black text-zinc-700">{result.skipped}</p>
+            </div>
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-red-600">Falhas</p>
+              <p className="mt-2 text-3xl font-black text-red-700">{result.failed}</p>
+            </div>
           </div>
         </section>
       )}
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-zinc-200 bg-zinc-50 px-5 py-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-black text-zinc-800">Pré-visualização da importação</p>
-            <p className="mt-1 text-xs font-semibold text-zinc-500">
-              Confirma os dados antes de gravar. Nenhum contacto é criado antes de clicares em “Confirmar importação”.
-            </p>
-            {previewRows.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
-                <span className="rounded-full bg-zinc-200/70 px-3 py-1.5 text-zinc-700">{fileName}</span>
-                <span className="rounded-full bg-red-100 px-3 py-1.5 text-red-700">
-                  {groupAssignmentMode === 'single_group'
-                    ? `Destino: ${destinationGroups.find((group) => group.id === targetGroupId)?.name || 'não selecionado'}`
-                    : 'Destino: grupos do CSV'}
-                </span>
-                <span className="rounded-full bg-blue-100 px-3 py-1.5 text-blue-700">
-                  Padrão: {contactTypeLabels[defaultContactType] || defaultContactType}
-                </span>
-              </div>
-            )}
-          </div>
+        <div className="border-b border-zinc-200 bg-zinc-50 px-5 py-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-black text-zinc-900">Pré-visualização da importação</p>
+              <p className="mt-1 text-xs font-semibold text-zinc-500">
+                O sistema valida o ficheiro automaticamente. Revê o resumo; não é necessário percorrer todos os contactos.
+              </p>
+              {previewRows.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+                  <span className="rounded-full bg-zinc-200/70 px-3 py-1.5 text-zinc-700">{fileName}</span>
+                  <span className="rounded-full bg-red-100 px-3 py-1.5 text-red-700">
+                    {groupAssignmentMode === 'single_group'
+                      ? `Destino: ${destinationGroups.find((group) => group.id === targetGroupId)?.name || 'não selecionado'}`
+                      : 'Destino: grupos do CSV'}
+                  </span>
+                  <span className="rounded-full bg-blue-100 px-3 py-1.5 text-blue-700">
+                    Padrão: {contactTypeLabels[defaultContactType] || defaultContactType}
+                  </span>
+                </div>
+              )}
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={loadReferenceData}
-              disabled={loading || importing}
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Atualizar base
-            </button>
-            <button
-              type="button"
-              onClick={clearImport}
-              disabled={importing || previewRows.length === 0}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Limpar
-            </button>
-            <button
-              type="button"
-              onClick={confirmImport}
-              disabled={importing || parsing || loading || stats.valid === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              {importing ? 'A importar...' : 'Confirmar importação'}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void loadReferenceData()}
+                disabled={loading || importing}
+                className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Atualizar base
+              </button>
+              <button
+                type="button"
+                onClick={clearImport}
+                disabled={importing || previewRows.length === 0}
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-black text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Limpar
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1056,98 +1212,180 @@ export function AdminContactImportPage() {
             <FileSpreadsheet className="mb-4 h-10 w-10 text-zinc-300" />
             <h2 className="text-xl font-black text-zinc-900">Nenhum ficheiro carregado</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500">
-              Começa por descarregar o modelo CSV. Depois carrega o ficheiro preenchido para ver a prévia e validar erros antes de gravar.
+              Escolhe um ficheiro CSV e o respetivo escalão/grupo de destino. A validação aparece automaticamente.
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-zinc-200">
-              <thead className="bg-zinc-50">
-                <tr>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Linha</th>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Contacto</th>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Tipo / grupos</th>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Consentimentos</th>
-                  <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.16em] text-zinc-500">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 bg-white">
-                {previewRows.map((row) => (
-                  <tr key={`${row.rowNumber}-${row.normalized.email}-${row.normalized.phone}`} className="align-top transition hover:bg-zinc-50/80">
-                    <td className="px-5 py-4 text-sm font-black text-zinc-700">{row.rowNumber}</td>
-                    <td className="px-5 py-4">
-                      <div className="font-black text-zinc-900">{row.normalized.name || 'Sem nome'}</div>
-                      <div className="mt-1 text-sm font-semibold text-zinc-500">{row.normalized.email || 'Sem email'}</div>
-                      <div className="mt-1 text-sm text-zinc-500">{row.normalized.phone || 'Sem telefone'}</div>
-                      {row.normalized.athleteName && (
-                        <div className="mt-1 text-xs font-semibold text-zinc-500">Atleta: {row.normalized.athleteName}</div>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="text-sm font-black text-zinc-800">
-                        {contactTypeLabels[row.normalized.contactType] || row.normalized.contactType}
-                      </div>
-                      <div className="mt-1 text-xs font-semibold text-zinc-500">
-                        Âmbito: {scopeLabels[row.normalized.communicationScope] || row.normalized.communicationScope}
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {row.normalized.groupNames.length > 0 ? (
-                          row.normalized.groupNames.map((groupName) => (
+          <div className="p-5">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">Encontrados</p>
+                <p className="mt-2 text-2xl font-black text-zinc-900">{stats.total}</p>
+              </div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-600">Novos</p>
+                <p className="mt-2 text-2xl font-black text-emerald-700">{stats.create}</p>
+              </div>
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-600">Atualizações</p>
+                <p className="mt-2 text-2xl font-black text-blue-700">{stats.update}</p>
+              </div>
+              <div className={`rounded-xl border p-4 ${stats.invalid > 0 ? 'border-red-200 bg-red-50' : 'border-zinc-200 bg-zinc-50'}`}>
+                <p className={`text-xs font-black uppercase tracking-[0.14em] ${stats.invalid > 0 ? 'text-red-600' : 'text-zinc-500'}`}>Com problemas</p>
+                <p className={`mt-2 text-2xl font-black ${stats.invalid > 0 ? 'text-red-700' : 'text-zinc-700'}`}>{stats.invalid}</p>
+              </div>
+            </div>
+
+            {allFailures.length > 0 && (
+              <div className="mt-5 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-black text-red-800">
+                    <AlertTriangle className="h-4 w-4" />
+                    {allFailures.length} problema(s) identificado(s)
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-red-700/80">
+                    As linhas inválidas serão ignoradas. Descarrega o relatório para saber exatamente o que corrigir.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={downloadErrorReport}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-black text-red-700 transition hover:bg-red-100"
+                >
+                  <Download className="h-4 w-4" />
+                  Descarregar relatório de erros
+                </button>
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-col gap-3 border-b border-zinc-200 pb-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-black text-zinc-900">
+                  {showAllPreview ? 'Lista completa' : `Amostra — primeiros ${Math.min(10, previewRows.length)} de ${previewRows.length}`}
+                </p>
+                <p className="mt-1 text-xs font-semibold text-zinc-500">
+                  {showAllPreview
+                    ? `Página ${previewPage} de ${previewPageCount} · ${previewPageSize} por página.`
+                    : 'Para ficheiros grandes mostramos apenas uma amostra por defeito.'}
+                </p>
+              </div>
+              {previewRows.length > 10 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAllPreview((current) => !current);
+                    setPreviewPage(1);
+                  }}
+                  className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-black text-zinc-700 transition hover:bg-zinc-50"
+                >
+                  {showAllPreview ? 'Mostrar apenas amostra' : `Ver todos os ${previewRows.length} contactos`}
+                </button>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-zinc-200">
+                <thead className="bg-zinc-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-[0.14em] text-zinc-500">Linha</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-[0.14em] text-zinc-500">Contacto</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-[0.14em] text-zinc-500">Tipo / grupos</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-[0.14em] text-zinc-500">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 bg-white">
+                  {previewRowsToShow.map((row) => (
+                    <tr key={`${row.rowNumber}-${row.normalized.email}-${row.normalized.phone}`} className="align-top transition hover:bg-zinc-50/80">
+                      <td className="px-4 py-4 text-sm font-black text-zinc-700">{row.rowNumber}</td>
+                      <td className="px-4 py-4">
+                        <div className="font-black text-zinc-900">{row.normalized.name || 'Sem nome'}</div>
+                        <div className="mt-1 text-sm font-semibold text-zinc-500">{row.normalized.email || 'Sem email'}</div>
+                        {row.normalized.phone && <div className="mt-1 text-sm text-zinc-500">{row.normalized.phone}</div>}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-sm font-black text-zinc-800">
+                          {contactTypeLabels[row.normalized.contactType] || row.normalized.contactType}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {row.normalized.groupNames.map((groupName) => (
                             <span key={groupName} className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-bold text-zinc-600">
                               {groupName}
                             </span>
-                          ))
-                        ) : (
-                          <span className="text-xs font-semibold text-zinc-400">Sem grupo</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-col gap-2 text-xs font-black">
-                        <span className={row.normalized.consentEmail ? 'text-emerald-700' : 'text-zinc-400'}>
-                          Email: {row.normalized.consentEmail ? 'Sim' : 'Não'}
-                        </span>
-                        <span className={row.normalized.consentWhatsapp ? 'text-emerald-700' : 'text-zinc-400'}>
-                          WhatsApp: {row.normalized.consentWhatsapp ? 'Sim' : 'Não'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      {row.errors.length > 0 ? (
-                        <div className="space-y-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-black text-red-700">
-                            <XCircle className="h-3.5 w-3.5" />
-                            Erro
-                          </span>
-                          {row.errors.map((error) => (
-                            <p key={error} className="text-xs font-semibold text-red-600">{error}</p>
                           ))}
                         </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black ${
+                      </td>
+                      <td className="px-4 py-4">
+                        {row.errors.length > 0 ? (
+                          <div className="space-y-1.5">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-black text-red-700">
+                              <XCircle className="h-3.5 w-3.5" /> Erro
+                            </span>
+                            {row.errors.slice(0, 2).map((error) => (
+                              <p key={error} className="text-xs font-semibold text-red-600">{error}</p>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black ${
                               row.action === 'create'
                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                                 : 'border-blue-200 bg-blue-50 text-blue-700'
-                            }`}
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            {row.action === 'create' ? 'Criar' : 'Atualizar'}
-                          </span>
-                          {row.warnings.map((warning) => (
-                            <p key={warning} className="inline-flex items-start gap-1.5 text-xs font-semibold text-amber-600">
-                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                              {warning}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                            }`}>
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              {row.action === 'create' ? 'Criar' : 'Atualizar'}
+                            </span>
+                            {!row.normalized.consentEmail && (
+                              <p className="text-xs font-semibold text-amber-600">Sem consentimento de email</p>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {showAllPreview && previewPageCount > 1 && (
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setPreviewPage((page) => Math.max(1, page - 1))}
+                  disabled={previewPage === 1}
+                  className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-black text-zinc-700 disabled:opacity-40"
+                >
+                  Anterior
+                </button>
+                <span className="text-xs font-bold text-zinc-500">Página {previewPage} de {previewPageCount}</span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewPage((page) => Math.min(previewPageCount, page + 1))}
+                  disabled={previewPage === previewPageCount}
+                  className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-black text-zinc-700 disabled:opacity-40"
+                >
+                  Seguinte
+                </button>
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-black text-zinc-900">Pronto para importar</p>
+                <p className="mt-1 text-xs font-semibold text-zinc-500">
+                  {stats.valid} contacto(s) válido(s) serão criados ou atualizados.
+                  {stats.invalid > 0 ? ` ${stats.invalid} linha(s) com erro serão ignoradas.` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={confirmImport}
+                disabled={importing || parsing || loading || stats.valid === 0}
+                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {importing ? 'A importar...' : `Importar ${stats.valid} contactos`}
+              </button>
+            </div>
           </div>
         )}
       </section>
