@@ -753,32 +753,63 @@ export function HomePage() {
               });
             }}
             aria-label="Consultar os horários de treino da época 2026/27"
-            className="group relative mt-8 block overflow-hidden rounded-2xl border border-[#e4d8cd] bg-[linear-gradient(135deg,#ffffff_0%,#faf6f1_58%,#f2e6dc_100%)] p-5 shadow-[0_24px_70px_-50px_rgba(59,37,24,0.65)] transition hover:-translate-y-1 hover:border-red-200 hover:shadow-[0_30px_78px_-48px_rgba(59,37,24,0.72)] md:mt-10 md:rounded-[1.6rem] md:p-8"
+            className="group relative mt-8 block overflow-hidden rounded-2xl border border-[#dfd0c4] bg-[linear-gradient(135deg,#ffffff_0%,#fbf7f2_58%,#f5e8e1_100%)] shadow-[0_24px_70px_-46px_rgba(59,37,24,0.58)] transition duration-300 hover:-translate-y-1 hover:border-red-200 hover:shadow-[0_32px_82px_-48px_rgba(59,37,24,0.7)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-200 active:scale-[0.995] md:mt-10 md:rounded-[1.6rem]"
           >
-            <div className="pointer-events-none absolute -right-14 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full border border-red-900/[0.07] md:right-10 md:h-72 md:w-72" />
-            <div className="pointer-events-none absolute right-20 top-0 hidden h-full w-px bg-red-900/[0.07] md:block" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,rgba(185,28,28,0.09),transparent_64%)]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-800 via-red-600 to-[#24180f]" />
+            <div className="pointer-events-none absolute -right-20 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full border border-red-900/[0.08] md:right-44 md:h-80 md:w-80" />
+            <div className="pointer-events-none absolute -right-4 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full border border-red-900/[0.06] md:right-56 md:h-52 md:w-52" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,rgba(185,28,28,0.1),transparent_66%)]" />
 
-            <div className="relative grid gap-5 md:grid-cols-[auto_1fr_auto] md:items-center md:gap-7">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#24180f] text-white shadow-[0_16px_34px_-22px_rgba(36,24,15,0.85)] transition group-hover:bg-red-700 md:h-16 md:w-16">
+            <div className="relative grid gap-5 p-5 sm:p-6 md:grid-cols-[auto_minmax(0,1fr)_minmax(235px,0.34fr)] md:items-center md:gap-7 md:p-8">
+              <span className="relative flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#24180f] text-white shadow-[0_18px_38px_-22px_rgba(36,24,15,0.9)] transition duration-300 group-hover:bg-red-700 md:h-[4.5rem] md:w-[4.5rem]">
                 <CalendarDays size={27} />
+                <span className="mt-1 text-[8px] font-black uppercase tracking-[0.18em] text-red-200">
+                  26/27
+                </span>
               </span>
 
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-700 md:text-xs">
-                  Horários de treino · Época 2026/27
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-red-700 md:text-[11px] md:tracking-[0.32em]">
+                  Agenda oficial · Época 2026/27
                 </p>
-                <h2 className="mt-2 font-serif text-3xl font-light leading-tight text-[#24180f] md:text-4xl">
-                  Todos os horários. Um só lugar.
+                <h2 className="mt-2 font-serif text-3xl font-light leading-[1.02] text-[#24180f] md:text-[2.65rem]">
+                  Horários de treino
                 </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-600 md:text-base">
-                  Consulta os dias e horários de todos os escalões do GDR Boavista.
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 md:text-base md:leading-7">
+                  Encontra o teu escalão e consulta os respetivos dias e horários, do ABC aos Seniores.
                 </p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {['14 escalões', 'Segunda a sábado', 'Formação + Futebol 11'].map((item) => (
+                    <span
+                      key={item}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#e7d9ce] bg-white/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#493427] shadow-sm"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-700" />
+                      {item}
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              <span className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3.5 text-sm font-black uppercase tracking-wide text-white transition group-hover:bg-[#24180f] md:w-auto">
-                Consultar horários
-                <ChevronRight size={17} />
+              <span className="relative flex min-h-[112px] flex-col justify-between overflow-hidden rounded-2xl bg-[#24180f] p-5 text-white shadow-[0_22px_42px_-28px_rgba(36,24,15,0.95)] transition duration-300 group-hover:bg-[#341f14] md:min-h-[132px] md:p-6">
+                <span className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-red-700/25 blur-2xl transition duration-500 group-hover:scale-125" />
+                <span className="relative text-[9px] font-black uppercase tracking-[0.24em] text-red-300">
+                  Consulta rápida
+                </span>
+                <span className="relative mt-5 flex items-end justify-between gap-4">
+                  <span>
+                    <span className="block text-sm font-black uppercase tracking-wide md:text-base">
+                      Consultar horários
+                    </span>
+                    <span className="mt-1 block text-xs font-medium text-zinc-300">
+                      Ver agenda completa
+                    </span>
+                  </span>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-700 text-white transition duration-300 group-hover:translate-x-1 group-hover:bg-white group-hover:text-[#24180f]">
+                    <ChevronRight size={18} />
+                  </span>
+                </span>
               </span>
             </div>
           </Link>
