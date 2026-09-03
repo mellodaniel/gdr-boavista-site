@@ -268,6 +268,7 @@ export function SeniorRosterPage() {
   }, [players]);
 
   useEffect(() => {
+    const previousTitle = document.title;
     document.title = 'Plantel Sénior 2026/2027 · GDR Boavista';
 
     const robotsMeta = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
@@ -283,6 +284,8 @@ export function SeniorRosterPage() {
     }
 
     return () => {
+      document.title = previousTitle;
+
       if (robotsMeta && previousRobotsContent !== undefined) {
         robotsMeta.content = previousRobotsContent;
       }

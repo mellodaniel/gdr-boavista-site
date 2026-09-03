@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 function getSupabaseConfig() {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -35,50 +37,109 @@ function renderBodyHtml(body) {
     .join('<br />');
 }
 
+function getSiteUrl() {
+  return (process.env.PUBLIC_SITE_URL || 'https://gdrboavista.pt').replace(/\/$/, '');
+}
+
+function getUnsubscribeUrl(subscriber) {
+  if (!subscriber?.unsubscribe_token) return null;
+  return `${getSiteUrl()}/newsletter/cancelar/${encodeURIComponent(subscriber.unsubscribe_token)}`;
+}
+
 function buildNewsletterHtml({ communication, subscriber }) {
-  const siteUrl = (process.env.PUBLIC_SITE_URL || 'https://gdrboavista.pt').replace(/\/$/, '');
-  const unsubscribeUrl = subscriber?.unsubscribe_token
-    ? `${siteUrl}/newsletter/cancelar/${encodeURIComponent(subscriber.unsubscribe_token)}`
-    : `${siteUrl}/`;
+  const unsubscribeUrl = getUnsubscribeUrl(subscriber);
+
+  if (!unsubscribeUrl) {
+    throw new Error('Destinatário sem token de cancelamento de subscrição.');
+  }
 
   const title = escapeHtml(communication.subject || communication.title || 'Comunicação GDR Boavista');
+  const preview = escapeHtml(
+    communication.preview_text || communication.subject || communication.title || 'Comunicação GDR Boavista',
+  );
   const previewText = communication.preview_text
-    ? `<p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6; color: #6b7280;">${escapeHtml(communication.preview_text)}</p>`
+    ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#52525b;">${escapeHtml(communication.preview_text)}</p>`
     : '';
   const bodyHtml = renderBodyHtml(communication.body || '');
 
-  return `
-    <div style="font-family: Arial, sans-serif; background: #f6f2ec; padding: 32px; color: #1f2937;">
-      <div style="display:none; visibility:hidden; opacity:0; color:transparent; height:0; width:0; overflow:hidden;">
-        ${escapeHtml(communication.preview_text || communication.subject || communication.title || 'Comunicação GDR Boavista')}
-      </div>
-
-      <div style="max-width: 720px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb;">
-        <div style="background: linear-gradient(135deg, #24180f, #7f1d1d); padding: 30px 34px; color: #ffffff;">
-          <p style="margin: 0 0 8px; letter-spacing: 0.28em; text-transform: uppercase; font-size: 12px; color: #fecaca; font-weight: 700;">GDR Boavista</p>
-          <h1 style="margin: 0; font-size: 30px; line-height: 1.22;">${title}</h1>
-        </div>
-
-        <div style="padding: 30px 34px;">
-          ${previewText}
-
-          <div style="font-size: 16px; line-height: 1.75; color: #374151;">
-            ${bodyHtml}
-          </div>
-
-          <div style="margin-top: 30px; padding-top: 22px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.6; color: #6b7280;">
-            <p style="margin: 0 0 10px;">
-              Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.
-            </p>
-            <p style="margin: 0;">
-              Podes cancelar a subscrição a qualquer momento aqui:
-              <a href="${unsubscribeUrl}" style="color: #b91c1c; font-weight: 700;">Cancelar subscrição</a>
-            </p>
-          </div>
-        </div>
-      </div>
+  return `<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>${title}</title>
+    <style>
+      html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+      table { border-collapse: collapse !important; border-spacing: 0 !important; }
+      img { border: 0; display: block; }
+      a { text-decoration: underline; }
+      .email-shell { width: 100%; background: #f4f4f5; }
+      .email-card { width: 100%; max-width: 640px; background: #ffffff; }
+      .email-pad { padding: 34px 38px; }
+      .email-footer { padding: 24px 38px 30px; }
+      @media screen and (max-width: 640px) {
+        .email-outer { padding: 10px !important; }
+        .email-pad { padding: 26px 22px !important; }
+        .email-footer { padding: 20px 22px 26px !important; }
+        .email-title { font-size: 27px !important; line-height: 1.2 !important; }
+        .email-body { font-size: 16px !important; line-height: 1.7 !important; }
+      }
+    </style>
+  </head>
+  <body style="margin:0;padding:0;background:#f4f4f5;color:#18181b;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:none;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;max-height:0;max-width:0;">
+      ${preview}
     </div>
-  `;
+
+    <table role="presentation" width="100%" class="email-shell" bgcolor="#f4f4f5" style="width:100%;background:#f4f4f5;margin:0;padding:0;">
+      <tr>
+        <td align="center" class="email-outer" style="padding:24px 14px;">
+          <table role="presentation" width="100%" class="email-card" bgcolor="#ffffff" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #e4e4e7;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="height:5px;line-height:5px;font-size:0;background:#b91c1c;" bgcolor="#b91c1c">&nbsp;</td>
+            </tr>
+            <tr>
+              <td class="email-pad" bgcolor="#ffffff" style="background:#ffffff;padding:34px 38px;">
+                <p style="margin:0 0 12px;font-size:12px;line-height:1.4;letter-spacing:0.22em;text-transform:uppercase;font-weight:700;color:#b91c1c;">
+                  GDR Boavista
+                </p>
+                <h1 class="email-title" style="margin:0;color:#18181b;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.18;font-weight:400;letter-spacing:-0.02em;">
+                  ${title}
+                </h1>
+
+                <table role="presentation" width="100%" style="width:100%;margin-top:26px;">
+                  <tr>
+                    <td style="height:1px;line-height:1px;font-size:0;background:#e4e4e7;" bgcolor="#e4e4e7">&nbsp;</td>
+                  </tr>
+                </table>
+
+                <div style="padding-top:26px;">
+                  ${previewText}
+                  <div class="email-body" style="font-size:16px;line-height:1.75;color:#27272a;">
+                    ${bodyHtml}
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="email-footer" bgcolor="#fafafa" style="background:#fafafa;padding:24px 38px 30px;border-top:1px solid #e4e4e7;">
+                <p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:#52525b;">
+                  Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.
+                </p>
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
+                  Se não pretendes receber mais comunicações,
+                  <a href="${unsubscribeUrl}" style="color:#991b1b;font-weight:700;text-decoration:underline;">Cancelar subscrição</a>.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 async function supabaseRequest(path, options = {}) {
@@ -153,6 +214,26 @@ async function getAllSubscribers() {
   );
 
   return Array.isArray(data) ? data : [];
+}
+
+
+async function ensureUnsubscribeToken(subscriber) {
+  if (subscriber?.unsubscribe_token) return subscriber;
+
+  const unsubscribeToken = randomUUID();
+
+  await supabaseRequest(`gdrb_subscribers?id=eq.${encodeURIComponent(subscriber.id)}`, {
+    method: 'PATCH',
+    headers: {
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ unsubscribe_token: unsubscribeToken }),
+  });
+
+  return {
+    ...subscriber,
+    unsubscribe_token: unsubscribeToken,
+  };
 }
 
 function subscriberHasConsent(subscriber, communicationType) {
@@ -300,6 +381,11 @@ async function sendEmail({ communication, subscriber, recipientEmail }) {
   const subject = communication.subject || communication.title;
   const fromName = communication.from_name || 'GDR Boavista';
   const fromEmail = communication.from_email || 'notificacoes@send.gdrboavista.pt';
+  const unsubscribeUrl = getUnsubscribeUrl(subscriber);
+
+  if (!unsubscribeUrl) {
+    throw new Error('Destinatário sem token de cancelamento de subscrição.');
+  }
 
   const resendResponse = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -312,6 +398,10 @@ async function sendEmail({ communication, subscriber, recipientEmail }) {
       to: [recipientEmail],
       subject,
       html: buildNewsletterHtml({ communication, subscriber }),
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     }),
   });
 
@@ -395,7 +485,8 @@ export default async function handler(request, response) {
     let lastError = null;
 
     for (const subscriber of audience.recipients) {
-      const recipientEmail = normalizeEmail(subscriber.email);
+      const subscriberWithToken = await ensureUnsubscribeToken(subscriber);
+      const recipientEmail = normalizeEmail(subscriberWithToken.email);
 
       const delivery = await createDelivery({
         communication_id: communicationId,
@@ -406,7 +497,7 @@ export default async function handler(request, response) {
       });
 
       try {
-        const result = await sendEmail({ communication, subscriber, recipientEmail });
+        const result = await sendEmail({ communication, subscriber: subscriberWithToken, recipientEmail });
         sentCount += 1;
 
         await updateDelivery(delivery?.id, {
