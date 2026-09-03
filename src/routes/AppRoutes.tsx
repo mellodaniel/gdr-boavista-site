@@ -19,6 +19,7 @@ import { NewsletterUnsubscribePage } from '../pages/public/NewsletterUnsubscribe
 import { ResultsPage } from '../pages/public/ResultsPage';
 import { ShopPage } from '../pages/public/ShopPage';
 import { AppInstallPage } from '../pages/public/AppInstallPage';
+import { TrainingSchedulePage } from '../pages/public/TrainingSchedulePage';
 
 import { AdminLoginPage } from '../pages/admin/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
@@ -72,6 +73,7 @@ export function AppRoutes() {
         <Route path="resultados" element={<ResultsPage />} />
         <Route path="loja" element={<ShopPage />} />
         <Route path="app" element={<AppInstallPage />} />
+        <Route path="horarios-de-treino" element={<TrainingSchedulePage />} />
         <Route path="torneios/:slug" element={<PublicTournamentPage />} />
       </Route>
 

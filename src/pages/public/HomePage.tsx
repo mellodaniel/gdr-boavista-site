@@ -741,6 +741,47 @@ export function HomePage() {
               );
             })}
           </div>
+
+          <Link
+            to="/horarios-de-treino"
+            onClick={() => {
+              void trackAnalyticsEvent({
+                eventName: 'training_schedule_click',
+                entityType: 'training_schedule',
+                entityName: 'Horários de treino 2026/27',
+                metadata: { position: 'homepage_banner' },
+              });
+            }}
+            aria-label="Consultar os horários de treino da época 2026/27"
+            className="group relative mt-8 block overflow-hidden rounded-2xl border border-[#e4d8cd] bg-[linear-gradient(135deg,#ffffff_0%,#faf6f1_58%,#f2e6dc_100%)] p-5 shadow-[0_24px_70px_-50px_rgba(59,37,24,0.65)] transition hover:-translate-y-1 hover:border-red-200 hover:shadow-[0_30px_78px_-48px_rgba(59,37,24,0.72)] md:mt-10 md:rounded-[1.6rem] md:p-8"
+          >
+            <div className="pointer-events-none absolute -right-14 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full border border-red-900/[0.07] md:right-10 md:h-72 md:w-72" />
+            <div className="pointer-events-none absolute right-20 top-0 hidden h-full w-px bg-red-900/[0.07] md:block" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,rgba(185,28,28,0.09),transparent_64%)]" />
+
+            <div className="relative grid gap-5 md:grid-cols-[auto_1fr_auto] md:items-center md:gap-7">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#24180f] text-white shadow-[0_16px_34px_-22px_rgba(36,24,15,0.85)] transition group-hover:bg-red-700 md:h-16 md:w-16">
+                <CalendarDays size={27} />
+              </span>
+
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-700 md:text-xs">
+                  Horários de treino · Época 2026/27
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-light leading-tight text-[#24180f] md:text-4xl">
+                  Todos os horários. Um só lugar.
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-600 md:text-base">
+                  Consulta os dias e horários de todos os escalões do GDR Boavista.
+                </p>
+              </div>
+
+              <span className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3.5 text-sm font-black uppercase tracking-wide text-white transition group-hover:bg-[#24180f] md:w-auto">
+                Consultar horários
+                <ChevronRight size={17} />
+              </span>
+            </div>
+          </Link>
         </div>
       </section>
 
