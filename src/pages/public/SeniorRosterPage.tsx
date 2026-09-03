@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Flag, Shield, Shirt, Sparkles, Trophy, Users } from 'lucide-react';
+import { Flag, Sparkles, Trophy } from 'lucide-react';
 
 import { supabase } from '../../lib/supabase';
 import type { GdrbRosterGroup, GdrbRosterPlayer } from '../../types/database';
@@ -127,31 +127,6 @@ function getGroupShortLabel(group: GdrbRosterGroup) {
   if (group === 'Guarda-redes') return 'GR';
   if (group === 'Equipa técnica') return 'Staff';
   return group;
-}
-
-function RosterStatCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string | number;
-  icon: typeof Users;
-}) {
-  return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-      <div className="flex items-center justify-between gap-3">
-        <Icon className="text-red-300" size={22} />
-        <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-300">
-          GDRB
-        </span>
-      </div>
-      <p className="mt-4 text-3xl font-black leading-none text-white">{value}</p>
-      <p className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-zinc-300">
-        {label}
-      </p>
-    </div>
-  );
 }
 
 function PlayerCard({ player }: { player: GdrbRosterPlayer }) {
@@ -331,7 +306,7 @@ export function SeniorRosterPage() {
         />
 
         <div className="relative mx-auto max-w-7xl px-5 md:px-4 py-16 md:py-24">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+          <div className="max-w-4xl">
             <div>
               <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-red-200 backdrop-blur">
                 <Sparkles size={16} />
@@ -362,35 +337,6 @@ export function SeniorRosterPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5 shadow-lg md:shadow-2xl shadow-black/20 backdrop-blur md:p-6">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.28em] text-red-200">
-                    Resumo
-                  </p>
-                  <h2 className="mt-2 text-2xl font-black text-white">
-                    Plantel configurado
-                  </h2>
-                </div>
-                <img
-                  src="/logo-gdr-boavista-header-256.png"
-                  alt="GDR Boavista"
-                  className="h-14 w-14 rounded-2xl bg-white p-2 shadow-md md:shadow-xl"
-                />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <RosterStatCard label="Elementos" value={players.length} icon={Users} />
-                <RosterStatCard label="Setores" value={rosterGroups.length} icon={Shield} />
-                <RosterStatCard label="Futebol" value="F11" icon={Shirt} />
-              </div>
-
-              <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-300">
-                <strong className="text-white">Compromisso, respeito e união.</strong>{' '}
-                Um grupo preparado para competir, crescer e representar a
-                Boavista com orgulho.
-              </div>
-            </div>
           </div>
         </div>
       </section>
