@@ -67,6 +67,11 @@ type ManualRecipient = {
   subscriber_id: string;
 };
 
+type ExternalRecipientDraft = {
+  name: string;
+  email: string;
+};
+
 type SubscriberGroup = {
   subscriber_id: string;
   group_id: string;
@@ -111,18 +116,22 @@ type FormState = {
   communication_type: CommunicationKind;
   audience_mode: AudienceMode;
   groupIds: string[];
-  manualRecipientId: string;
+  manualRecipientIds: string[];
+  externalRecipients: ExternalRecipientDraft[];
+  manualRecipientId?: string;
   email_template: EmailTemplate;
 };
 
 type AudienceSummary = {
   recipients: number;
+  existingRecipients: number;
+  externalRecipients: number;
   excludedNoConsent: number;
   excludedInactive: number;
   excludedNoEmail: number;
   needsGroups: boolean;
   isManual: boolean;
-}
+};
 
 const emptyForm: FormState = {
   id: null,
@@ -137,6 +146,8 @@ const emptyForm: FormState = {
   communication_type: 'newsletter',
   audience_mode: 'selected_groups',
   groupIds: [],
+  manualRecipientIds: [],
+  externalRecipients: [],
   manualRecipientId: '',
   email_template: 'standard',
 };
@@ -178,7 +189,7 @@ const communicationTypeLabels: Record<CommunicationKind, string> = {
   socios: 'Comunicação para sócios',
   parceiros: 'Comunicação para parceiros',
   geral: 'Comunicação geral do clube',
-  individual: 'Contacto individual',
+  individual: 'Destinatários específicos',
 };
 
 const communicationTypeDescriptions: Record<CommunicationKind, string> = {
@@ -188,7 +199,7 @@ const communicationTypeDescriptions: Record<CommunicationKind, string> = {
   socios: 'Contactos classificados como sócios.',
   parceiros: 'Contactos classificados como parceiros/patrocinadores.',
   geral: 'Comunicação institucional para todos os contactos ativos com consentimento aplicável.',
-  individual: 'Envio único para uma pessoa/contacto específico pesquisado na base de contactos.',
+  individual: 'Seleciona vários contactos da base ou adiciona endereços externos para um envio direto.',
 };
 
 function formatDate(value: string | null | undefined) {
@@ -209,6 +220,37 @@ function formatDate(value: string | null | undefined) {
 
 function normalizeEmail(email: string | null | undefined) {
   return String(email || '').trim().toLowerCase();
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function uniqueValues(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function getManualRecipientIds(formState: FormState) {
+  const currentIds = Array.isArray(formState.manualRecipientIds)
+    ? formState.manualRecipientIds
+    : [];
+  const legacyIds = formState.manualRecipientId ? [formState.manualRecipientId] : [];
+
+  return uniqueValues([...currentIds, ...legacyIds]);
+}
+
+function getExternalRecipients(formState: FormState) {
+  return Array.isArray(formState.externalRecipients)
+    ? formState.externalRecipients
+    : [];
+}
+
+function generateRecipientToken() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 }
 
 function statusClass(status: Communication['status']) {
@@ -269,43 +311,89 @@ function calculateAudienceSummary({
   subscriberGroups,
   communicationType,
   groupIds,
-  manualRecipientId,
+  manualRecipientIds,
+  externalRecipients,
 }: {
   subscribers: Subscriber[];
   subscriberGroups: SubscriberGroup[];
   communicationType: CommunicationKind;
   groupIds: string[];
-  manualRecipientId: string;
+  manualRecipientIds: string[];
+  externalRecipients: ExternalRecipientDraft[];
 }): AudienceSummary {
   const isManual = communicationType === 'individual';
-  const needsGroups = !isManual && ['escalao', 'interno', 'socios', 'parceiros'].includes(communicationType) && groupIds.length === 0;
+  const needsGroups =
+    !isManual &&
+    ['escalao', 'interno', 'socios', 'parceiros'].includes(communicationType) &&
+    groupIds.length === 0;
 
   if (isManual) {
-    const subscriber = subscribers.find((item) => item.id === manualRecipientId);
+    const selectedIds = new Set(manualRecipientIds);
+    const usedEmails = new Set<string>();
+    let recipients = 0;
+    let existingRecipients = 0;
+    let externalRecipientCount = 0;
+    let excludedNoConsent = 0;
+    let excludedInactive = 0;
+    let excludedNoEmail = 0;
 
-    if (!subscriber) {
-      return { recipients: 0, excludedNoConsent: 0, excludedInactive: 0, excludedNoEmail: 0, needsGroups: false, isManual: true };
-    }
+    subscribers.forEach((subscriber) => {
+      if (!selectedIds.has(subscriber.id)) return;
 
-    if (!subscriber.is_active || subscriber.unsubscribed_at) {
-      return { recipients: 0, excludedNoConsent: 0, excludedInactive: 1, excludedNoEmail: 0, needsGroups: false, isManual: true };
-    }
+      if (!subscriber.is_active || subscriber.unsubscribed_at) {
+        excludedInactive += 1;
+        return;
+      }
 
-    if (!normalizeEmail(subscriber.email)) {
-      return { recipients: 0, excludedNoConsent: 0, excludedInactive: 0, excludedNoEmail: 1, needsGroups: false, isManual: true };
-    }
+      const email = normalizeEmail(subscriber.email);
+
+      if (!email || !isValidEmail(email)) {
+        excludedNoEmail += 1;
+        return;
+      }
+
+      if (usedEmails.has(email)) return;
+      usedEmails.add(email);
+
+      if (!subscriberHasConsent(subscriber, 'geral')) {
+        excludedNoConsent += 1;
+      }
+
+      recipients += 1;
+      existingRecipients += 1;
+    });
+
+    externalRecipients.forEach((recipient) => {
+      const email = normalizeEmail(recipient.email);
+
+      if (!email || !isValidEmail(email)) {
+        excludedNoEmail += 1;
+        return;
+      }
+
+      if (usedEmails.has(email)) return;
+      usedEmails.add(email);
+
+      recipients += 1;
+      externalRecipientCount += 1;
+      excludedNoConsent += 1;
+    });
 
     return {
-      recipients: 1,
-      excludedNoConsent: subscriberHasConsent(subscriber, 'geral') ? 0 : 1,
-      excludedInactive: 0,
-      excludedNoEmail: 0,
+      recipients,
+      existingRecipients,
+      externalRecipients: externalRecipientCount,
+      excludedNoConsent,
+      excludedInactive,
+      excludedNoEmail,
       needsGroups: false,
       isManual: true,
     };
   }
+
   const selectedGroups = new Set(groupIds);
   const subscriberGroupsMap = new Map<string, Set<string>>();
+  const usedEmails = new Set<string>();
 
   subscriberGroups.forEach((entry) => {
     if (!subscriberGroupsMap.has(entry.subscriber_id)) {
@@ -337,7 +425,9 @@ function calculateAudienceSummary({
       return;
     }
 
-    if (!normalizeEmail(subscriber.email)) {
+    const email = normalizeEmail(subscriber.email);
+
+    if (!email || !isValidEmail(email)) {
       excludedNoEmail += 1;
       return;
     }
@@ -347,11 +437,15 @@ function calculateAudienceSummary({
       return;
     }
 
+    if (usedEmails.has(email)) return;
+    usedEmails.add(email);
     recipients += 1;
   });
 
   return {
     recipients,
+    existingRecipients: recipients,
+    externalRecipients: 0,
     excludedNoConsent,
     excludedInactive,
     excludedNoEmail,
@@ -382,6 +476,10 @@ export function AdminCommunicationsPage() {
   const [showHistoryMobileFilters, setShowHistoryMobileFilters] = useState(false);
   const [expandedCommunicationId, setExpandedCommunicationId] = useState<string | null>(null);
   const [recipientSearchTerm, setRecipientSearchTerm] = useState('');
+  const [recipientSourceMode, setRecipientSourceMode] = useState<'contacts' | 'external'>('contacts');
+  const [externalRecipientName, setExternalRecipientName] = useState('');
+  const [externalRecipientEmails, setExternalRecipientEmails] = useState('');
+  const [recipientEntryMessage, setRecipientEntryMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -488,11 +586,15 @@ export function AdminCommunicationsPage() {
     return groups.filter((group) => groupMatchesCommunicationType(group, form.communication_type));
   }, [groups, form.communication_type]);
 
-  const hasCommunicationContent = form.subject.trim().length > 0 || form.body.trim().length > 0;
+  const selectedManualRecipientIds = getManualRecipientIds(form);
+  const externalRecipientDrafts = getExternalRecipients(form);
+
+  const hasCommunicationContent =
+    form.subject.trim().length > 0 || form.body.trim().length > 0;
 
   const hasAudienceSelection =
     form.communication_type === 'individual'
-      ? Boolean(form.manualRecipientId)
+      ? selectedManualRecipientIds.length + externalRecipientDrafts.length > 0
       : form.communication_type === 'newsletter' || form.communication_type === 'geral'
         ? hasCommunicationContent
         : form.groupIds.length > 0;
@@ -501,6 +603,8 @@ export function AdminCommunicationsPage() {
     if (!hasCommunicationContent || !hasAudienceSelection) {
       return {
         recipients: 0,
+        existingRecipients: 0,
+        externalRecipients: 0,
         excludedNoConsent: 0,
         excludedInactive: 0,
         excludedNoEmail: 0,
@@ -514,14 +618,16 @@ export function AdminCommunicationsPage() {
       subscriberGroups,
       communicationType: form.communication_type,
       groupIds: form.groupIds,
-      manualRecipientId: form.manualRecipientId,
+      manualRecipientIds: selectedManualRecipientIds,
+      externalRecipients: externalRecipientDrafts,
     });
   }, [
     subscribers,
     subscriberGroups,
     form.communication_type,
     form.groupIds,
-    form.manualRecipientId,
+    selectedManualRecipientIds,
+    externalRecipientDrafts,
     hasCommunicationContent,
     hasAudienceSelection,
   ]);
@@ -573,16 +679,18 @@ export function AdminCommunicationsPage() {
   }, [communications, historySearchTerm, historyStatusFilter, historyTypeFilter, historyDateFrom, historyDateTo, targets, groups, manualRecipients, subscribers]);
 
 
-  const selectedManualSubscriber = useMemo(() => {
-    if (!form.manualRecipientId) return null;
-    return subscribers.find((subscriber) => subscriber.id === form.manualRecipientId) || null;
-  }, [subscribers, form.manualRecipientId]);
+  const selectedManualSubscribers = useMemo(() => {
+    const selectedIds = new Set(selectedManualRecipientIds);
+    return subscribers.filter((subscriber) => selectedIds.has(subscriber.id));
+  }, [subscribers, selectedManualRecipientIds]);
 
   const filteredRecipientOptions = useMemo(() => {
     const term = recipientSearchTerm.trim().toLowerCase();
+    const selectedIds = new Set(selectedManualRecipientIds);
 
     return subscribers
       .filter((subscriber) => normalizeEmail(subscriber.email))
+      .filter((subscriber) => !selectedIds.has(subscriber.id))
       .filter((subscriber) => {
         if (!term) return true;
         return [subscriber.name, subscriber.email, subscriber.phone, subscriber.athlete_name, subscriber.contact_type]
@@ -592,12 +700,164 @@ export function AdminCommunicationsPage() {
           .includes(term);
       })
       .slice(0, 12);
-  }, [subscribers, recipientSearchTerm]);
+  }, [subscribers, recipientSearchTerm, selectedManualRecipientIds]);
+
+  function clearRecipientComposer() {
+    setRecipientSearchTerm('');
+    setRecipientSourceMode('contacts');
+    setExternalRecipientName('');
+    setExternalRecipientEmails('');
+    setRecipientEntryMessage(null);
+  }
+
+  function addManualRecipient(subscriber: Subscriber) {
+    if (!subscriber.is_active || subscriber.unsubscribed_at) {
+      setRecipientEntryMessage({
+        type: 'error',
+        text: 'Este contacto está inativo ou cancelou as comunicações e não pode ser adicionado.',
+      });
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      manualRecipientIds: uniqueValues([
+        ...getManualRecipientIds(current),
+        subscriber.id,
+      ]),
+      manualRecipientId: '',
+    }));
+    setRecipientSearchTerm('');
+    setRecipientEntryMessage(null);
+  }
+
+  function removeManualRecipient(subscriberId: string) {
+    setForm((current) => ({
+      ...current,
+      manualRecipientIds: getManualRecipientIds(current).filter(
+        (id) => id !== subscriberId,
+      ),
+      manualRecipientId: '',
+    }));
+  }
+
+  function removeExternalRecipient(email: string) {
+    const normalizedEmail = normalizeEmail(email);
+    setForm((current) => ({
+      ...current,
+      externalRecipients: getExternalRecipients(current).filter(
+        (recipient) => normalizeEmail(recipient.email) !== normalizedEmail,
+      ),
+    }));
+  }
+
+  function clearManualRecipients() {
+    setForm((current) => ({
+      ...current,
+      manualRecipientIds: [],
+      externalRecipients: [],
+      manualRecipientId: '',
+    }));
+    clearRecipientComposer();
+  }
+
+  function addExternalRecipients() {
+    const rawEmails = externalRecipientEmails
+      .split(/[;,\n\r\t ]+/)
+      .map((value) => normalizeEmail(value))
+      .filter(Boolean);
+    const emails = uniqueValues(rawEmails);
+
+    if (emails.length === 0) {
+      setRecipientEntryMessage({
+        type: 'error',
+        text: 'Indica pelo menos um endereço de email.',
+      });
+      return;
+    }
+
+    const invalidEmails = emails.filter((email) => !isValidEmail(email));
+    if (invalidEmails.length > 0) {
+      setRecipientEntryMessage({
+        type: 'error',
+        text: `Revê os endereços inválidos: ${invalidEmails.join(', ')}.`,
+      });
+      return;
+    }
+
+    const selectedIds = new Set(selectedManualRecipientIds);
+    const selectedExternalEmails = new Set(
+      externalRecipientDrafts.map((recipient) => normalizeEmail(recipient.email)),
+    );
+    const idsToAdd: string[] = [];
+    const externalToAdd: ExternalRecipientDraft[] = [];
+    const blockedEmails: string[] = [];
+
+    emails.forEach((email) => {
+      const existing = subscribers.find(
+        (subscriber) => normalizeEmail(subscriber.email) === email,
+      );
+
+      if (existing) {
+        if (!existing.is_active || existing.unsubscribed_at) {
+          blockedEmails.push(email);
+          return;
+        }
+
+        if (!selectedIds.has(existing.id)) {
+          idsToAdd.push(existing.id);
+          selectedIds.add(existing.id);
+        }
+        return;
+      }
+
+      if (!selectedExternalEmails.has(email)) {
+        externalToAdd.push({
+          name: emails.length === 1 ? externalRecipientName.trim() : '',
+          email,
+        });
+        selectedExternalEmails.add(email);
+      }
+    });
+
+    setForm((current) => ({
+      ...current,
+      manualRecipientIds: uniqueValues([
+        ...getManualRecipientIds(current),
+        ...idsToAdd,
+      ]),
+      externalRecipients: [
+        ...getExternalRecipients(current),
+        ...externalToAdd,
+      ],
+      manualRecipientId: '',
+    }));
+
+    setExternalRecipientName('');
+    setExternalRecipientEmails('');
+
+    if (blockedEmails.length > 0) {
+      setRecipientEntryMessage({
+        type: 'error',
+        text: `Não foram adicionados porque estão inativos ou cancelados: ${blockedEmails.join(', ')}.`,
+      });
+      return;
+    }
+
+    const totalAdded = idsToAdd.length + externalToAdd.length;
+    setRecipientEntryMessage({
+      type: 'success',
+      text:
+        totalAdded > 0
+          ? `${totalAdded} destinatário(s) adicionado(s).`
+          : 'Os endereços indicados já estavam selecionados.',
+    });
+  }
 
   function resetForm() {
     setForm(emptyForm);
     setSelectedCommunicationId(null);
-    setRecipientSearchTerm('');
+    clearRecipientComposer();
     setMessage(null);
   }
 
@@ -605,7 +865,9 @@ export function AdminCommunicationsPage() {
     const groupIds = targets
       .filter((target) => target.communication_id === communication.id)
       .map((target) => target.group_id);
-    const manualRecipientId = manualRecipients.find((recipient) => recipient.communication_id === communication.id)?.subscriber_id || '';
+    const manualRecipientIds = manualRecipients
+      .filter((recipient) => recipient.communication_id === communication.id)
+      .map((recipient) => recipient.subscriber_id);
 
     setSelectedCommunicationId(communication.id);
     setForm({
@@ -621,11 +883,12 @@ export function AdminCommunicationsPage() {
       communication_type: communication.audience_mode === 'manual' ? 'individual' : communication.communication_type || 'newsletter',
       audience_mode: communication.audience_mode || 'selected_groups',
       groupIds,
-      manualRecipientId,
+      manualRecipientIds,
+      externalRecipients: [],
+      manualRecipientId: '',
       email_template: inferEmailTemplate(communication),
     });
-    const selected = subscribers.find((subscriber) => subscriber.id === manualRecipientId);
-    setRecipientSearchTerm(selected ? `${selected.name || 'Sem nome'} — ${selected.email || ''}` : '');
+    clearRecipientComposer();
     setMessage(null);
   }
 
@@ -635,8 +898,11 @@ export function AdminCommunicationsPage() {
       communication_type: type,
       audience_mode: type === 'individual' ? 'manual' : type === 'geral' ? 'all_active' : 'selected_groups',
       groupIds: [],
+      manualRecipientIds: [],
+      externalRecipients: [],
       manualRecipientId: '',
     }));
+    clearRecipientComposer();
   }
 
   function applySeasonOpeningPreset() {
@@ -696,7 +962,10 @@ export function AdminCommunicationsPage() {
     if (insertError) throw insertError;
   }
 
-  async function saveManualRecipients(communicationId: string, subscriberId: string) {
+  async function saveManualRecipients(
+    communicationId: string,
+    subscriberIds: string[],
+  ) {
     const { error: deleteError } = await supabase
       .from('gdrb_communication_manual_recipients')
       .delete()
@@ -704,16 +973,116 @@ export function AdminCommunicationsPage() {
 
     if (deleteError) throw deleteError;
 
-    if (!subscriberId) return;
+    const uniqueSubscriberIds = uniqueValues(subscriberIds);
+    if (uniqueSubscriberIds.length === 0) return;
 
     const { error: insertError } = await supabase
       .from('gdrb_communication_manual_recipients')
-      .insert({
-        communication_id: communicationId,
-        subscriber_id: subscriberId,
-      });
+      .insert(
+        uniqueSubscriberIds.map((subscriberId) => ({
+          communication_id: communicationId,
+          subscriber_id: subscriberId,
+        })),
+      );
 
     if (insertError) throw insertError;
+  }
+
+  async function resolveExternalRecipientIds(
+    recipients: ExternalRecipientDraft[],
+  ) {
+    const resolvedIds: string[] = [];
+    const now = new Date().toISOString();
+
+    for (const recipient of recipients) {
+      const email = normalizeEmail(recipient.email);
+      if (!email || !isValidEmail(email)) {
+        throw new Error(`O email externo “${recipient.email}” não é válido.`);
+      }
+
+      let existing = subscribers.find(
+        (subscriber) => normalizeEmail(subscriber.email) === email,
+      );
+
+      if (!existing) {
+        const { data: existingRows, error: lookupError } = await supabase
+          .from('gdrb_subscribers')
+          .select('id,name,email,phone,athlete_name,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at')
+          .ilike('email', email)
+          .limit(1);
+
+        if (lookupError) throw lookupError;
+        existing = (existingRows?.[0] as Subscriber | undefined) || undefined;
+      }
+
+      if (existing) {
+        if (!existing.is_active || existing.unsubscribed_at) {
+          throw new Error(
+            `O contacto ${email} está inativo ou cancelou as comunicações.`,
+          );
+        }
+
+        resolvedIds.push(existing.id);
+        continue;
+      }
+
+      const payload = {
+        name: recipient.name.trim() || null,
+        email,
+        phone: null,
+        source: 'admin',
+        contact_type: 'outro',
+        communication_scope: 'geral',
+        relationship: null,
+        athlete_name: null,
+        notes: 'Contacto avulso adicionado no módulo de Comunicações.',
+        consent_email: false,
+        consent_email_newsletter: false,
+        consent_email_club: false,
+        consent_email_at: null,
+        consent_whatsapp: false,
+        consent_whatsapp_at: null,
+        is_active: true,
+        unsubscribed_at: null,
+        unsubscribe_reason: null,
+        unsubscribe_token: generateRecipientToken(),
+        privacy_policy_accepted: false,
+        privacy_policy_accepted_at: null,
+        updated_at: now,
+      };
+
+      const { data: created, error: createError } = await supabase
+        .from('gdrb_subscribers')
+        .insert(payload)
+        .select('id')
+        .single();
+
+      if (createError || !created?.id) {
+        const { data: fallbackRows, error: fallbackError } = await supabase
+          .from('gdrb_subscribers')
+          .select('id,is_active,unsubscribed_at')
+          .ilike('email', email)
+          .limit(1);
+
+        if (fallbackError || !fallbackRows?.[0]?.id) {
+          throw createError || fallbackError || new Error(`Não foi possível adicionar ${email}.`);
+        }
+
+        const fallback = fallbackRows[0] as Pick<Subscriber, 'id' | 'is_active' | 'unsubscribed_at'>;
+        if (!fallback.is_active || fallback.unsubscribed_at) {
+          throw new Error(
+            `O contacto ${email} está inativo ou cancelou as comunicações.`,
+          );
+        }
+
+        resolvedIds.push(fallback.id);
+        continue;
+      }
+
+      resolvedIds.push(created.id as string);
+    }
+
+    return uniqueValues(resolvedIds);
   }
 
   async function persistCommunication() {
@@ -729,9 +1098,24 @@ export function AdminCommunicationsPage() {
       throw new Error('Seleciona pelo menos um grupo compatível com este tipo de comunicação.');
     }
 
-    if (form.communication_type === 'individual' && !form.manualRecipientId) {
-      throw new Error('Seleciona o contacto individual que vai receber esta comunicação.');
+    const manualRecipientIds = getManualRecipientIds(form);
+    const externalRecipients = getExternalRecipients(form);
+
+    if (
+      form.communication_type === 'individual' &&
+      manualRecipientIds.length + externalRecipients.length === 0
+    ) {
+      throw new Error('Seleciona pelo menos um destinatário específico.');
     }
+
+    const resolvedExternalRecipientIds =
+      form.communication_type === 'individual'
+        ? await resolveExternalRecipientIds(externalRecipients)
+        : [];
+    const resolvedManualRecipientIds = uniqueValues([
+      ...manualRecipientIds,
+      ...resolvedExternalRecipientIds,
+    ]);
 
     const payload = {
       title: title || subject,
@@ -779,7 +1163,10 @@ export function AdminCommunicationsPage() {
     }
 
     await saveTargets(communicationId, form.communication_type === 'individual' ? [] : form.groupIds);
-    await saveManualRecipients(communicationId, form.communication_type === 'individual' ? form.manualRecipientId : '');
+    await saveManualRecipients(
+      communicationId,
+      form.communication_type === 'individual' ? resolvedManualRecipientIds : [],
+    );
 
     return communicationId;
   }
@@ -790,19 +1177,28 @@ export function AdminCommunicationsPage() {
       return;
     }
 
-    if (form.communication_type === 'individual' && !form.manualRecipientId) {
-      setMessage({ type: 'error', text: 'Seleciona o contacto individual antes do envio definitivo.' });
+    if (
+      form.communication_type === 'individual' &&
+      selectedManualRecipientIds.length + externalRecipientDrafts.length === 0
+    ) {
+      setMessage({ type: 'error', text: 'Seleciona pelo menos um destinatário específico antes do envio.' });
       return;
     }
 
     if (audienceSummary.recipients === 0) {
-      setMessage({ type: 'error', text: 'Não existem destinatários ativos com consentimento para esta comunicação.' });
+      setMessage({
+        type: 'error',
+        text:
+          form.communication_type === 'individual'
+            ? 'Não existem destinatários específicos válidos para esta comunicação.'
+            : 'Não existem destinatários ativos com consentimento para esta comunicação.',
+      });
       return;
     }
 
     const confirmed = window.confirm(
       form.communication_type === 'individual'
-        ? `Confirmas o envio desta comunicação para ${selectedManualSubscriber?.name || selectedManualSubscriber?.email || '1 destinatário'}?\n\nEsta ação não pode ser desfeita.`
+        ? `Confirmas o envio desta comunicação para ${audienceSummary.recipients} destinatário(s) específico(s)?\n\n${audienceSummary.existingRecipients} da base de contactos · ${audienceSummary.externalRecipients} externo(s).\n\nEsta ação não pode ser desfeita.`
         : `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
     );
 
@@ -836,7 +1232,7 @@ export function AdminCommunicationsPage() {
       setForm(emptyForm);
       setSelectedCommunicationId(null);
       setExpandedCommunicationId(null);
-      setRecipientSearchTerm('');
+      clearRecipientComposer();
 
       await loadData();
 
@@ -859,10 +1255,20 @@ export function AdminCommunicationsPage() {
   }
 
   function groupsLabel(communicationId: string) {
-    const manualRecipientId = manualRecipients.find((recipient) => recipient.communication_id === communicationId)?.subscriber_id;
-    if (manualRecipientId) {
-      const subscriber = subscribers.find((item) => item.id === manualRecipientId);
-      return subscriber ? `${subscriber.name || 'Sem nome'} — ${subscriber.email || 'sem email'}` : 'Contacto individual';
+    const manualRecipientIds = manualRecipients
+      .filter((recipient) => recipient.communication_id === communicationId)
+      .map((recipient) => recipient.subscriber_id);
+
+    if (manualRecipientIds.length > 0) {
+      const selectedSubscribers = subscribers.filter((subscriber) =>
+        manualRecipientIds.includes(subscriber.id),
+      );
+      const labels = selectedSubscribers
+        .slice(0, 2)
+        .map((subscriber) => subscriber.name || subscriber.email || 'Sem nome');
+      const suffix = manualRecipientIds.length > 2 ? ` +${manualRecipientIds.length - 2}` : '';
+
+      return `${manualRecipientIds.length} destinatário(s) específico(s)${labels.length ? ` — ${labels.join(', ')}${suffix}` : ''}`;
     }
 
     const groupIds = targets
@@ -913,7 +1319,9 @@ export function AdminCommunicationsPage() {
       const groupIds = targets
         .filter((target) => target.communication_id === communication.id)
         .map((target) => target.group_id);
-      const manualRecipientId = manualRecipients.find((recipient) => recipient.communication_id === communication.id)?.subscriber_id || '';
+      const manualRecipientIds = manualRecipients
+        .filter((recipient) => recipient.communication_id === communication.id)
+        .map((recipient) => recipient.subscriber_id);
 
       const { data, error } = await supabase
         .from('gdrb_communications')
@@ -945,7 +1353,7 @@ export function AdminCommunicationsPage() {
       if (!newCommunicationId) throw new Error('Não foi possível criar a cópia.');
 
       await saveTargets(newCommunicationId, groupIds);
-      await saveManualRecipients(newCommunicationId, manualRecipientId);
+      await saveManualRecipients(newCommunicationId, manualRecipientIds);
       await loadData();
 
       const { data: duplicated } = await supabase
@@ -1067,7 +1475,7 @@ export function AdminCommunicationsPage() {
               <option value="socios">Sócios</option>
               <option value="parceiros">Parceiros</option>
               <option value="geral">Geral</option>
-              <option value="individual">Contacto individual</option>
+              <option value="individual">Destinatários específicos</option>
             </select>
 
             <input
@@ -1399,92 +1807,274 @@ export function AdminCommunicationsPage() {
                 <p className="text-sm font-black text-zinc-900">2. Destinatários compatíveis</p>
                 <p className="text-xs text-zinc-500">
                   {form.communication_type === 'individual'
-                    ? 'Pesquisa e seleciona uma pessoa/contacto específico.'
+                    ? 'Seleciona vários contactos existentes ou adiciona endereços externos.'
                     : 'Os grupos abaixo mudam conforme o tipo de comunicação selecionado.'}
                 </p>
               </div>
             </div>
 
             {form.communication_type === 'individual' ? (
-              <div className="space-y-3">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                  <input
-                    value={recipientSearchTerm}
-                    onChange={(event) => {
-                      setRecipientSearchTerm(event.target.value);
-                      setForm((current) => ({ ...current, manualRecipientId: '' }));
-                    }}
-                    placeholder="Pesquisar por nome, email, telefone ou atleta..."
-                    className="w-full rounded-xl border border-zinc-200 bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
-                  />
-                </div>
-
-                {selectedManualSubscriber ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="font-black text-emerald-900">{selectedManualSubscriber.name || 'Sem nome'}</p>
-                        <p className="mt-1 text-sm font-semibold text-emerald-800">{selectedManualSubscriber.email}</p>
-                        <p className="mt-1 text-xs text-emerald-700">
-                          Tipo: {selectedManualSubscriber.contact_type || '—'} · Escopo: {selectedManualSubscriber.communication_scope || '—'}
-                        </p>
-                        {selectedManualSubscriber.athlete_name && (
-                          <p className="mt-1 text-xs text-emerald-700">Atleta: {selectedManualSubscriber.athlete_name}</p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setForm((current) => ({ ...current, manualRecipientId: '' }));
-                          setRecipientSearchTerm('');
-                        }}
-                        className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
-                      >
-                        Trocar contacto
-                      </button>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-black text-zinc-900">
+                        {selectedManualRecipientIds.length + externalRecipientDrafts.length} destinatário(s) selecionado(s)
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">
+                        Podes combinar contactos existentes e endereços externos no mesmo envio.
+                      </p>
                     </div>
 
-                    {audienceSummary.excludedNoConsent > 0 && (
-                      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
-                        Este contacto não tem consentimento registado para comunicações gerais. Usa apenas para comunicação operacional/administrativa justificada.
-                      </p>
+                    {selectedManualRecipientIds.length + externalRecipientDrafts.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearManualRecipients}
+                        className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-black text-zinc-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                      >
+                        Remover todos
+                      </button>
                     )}
+                  </div>
+
+                  {selectedManualRecipientIds.length + externalRecipientDrafts.length === 0 ? (
+                    <div className="mt-4 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center text-sm font-semibold text-zinc-500">
+                      Ainda não selecionaste destinatários.
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      {selectedManualSubscribers.map((subscriber) => (
+                        <div
+                          key={subscriber.id}
+                          className={`rounded-xl border p-3 ${
+                            subscriber.is_active && !subscriber.unsubscribed_at
+                              ? 'border-emerald-200 bg-emerald-50'
+                              : 'border-red-200 bg-red-50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-sm font-black text-zinc-900">
+                                  {subscriber.name || 'Sem nome'}
+                                </p>
+                                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-zinc-500">
+                                  Base de contactos
+                                </span>
+                              </div>
+                              <p className="mt-1 truncate text-xs font-semibold text-zinc-600">
+                                {subscriber.email}
+                              </p>
+                              {subscriber.athlete_name && (
+                                <p className="mt-1 text-xs text-zinc-500">
+                                  Atleta: {subscriber.athlete_name}
+                                </p>
+                              )}
+                              {!subscriberHasConsent(subscriber, 'geral') && (
+                                <p className="mt-2 text-xs font-semibold text-amber-700">
+                                  Sem consentimento geral registado
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeManualRecipient(subscriber.id)}
+                              aria-label={`Remover ${subscriber.name || subscriber.email || 'contacto'}`}
+                              className="shrink-0 rounded-lg border border-zinc-200 bg-white p-2 text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {externalRecipientDrafts.map((recipient) => (
+                        <div
+                          key={normalizeEmail(recipient.email)}
+                          className="rounded-xl border border-blue-200 bg-blue-50 p-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-sm font-black text-zinc-900">
+                                  {recipient.name || 'Contacto externo'}
+                                </p>
+                                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-blue-600">
+                                  Externo
+                                </span>
+                              </div>
+                              <p className="mt-1 truncate text-xs font-semibold text-zinc-600">
+                                {recipient.email}
+                              </p>
+                              <p className="mt-2 text-xs text-blue-700">
+                                Será guardado como contacto avulso, sem subscrição automática da newsletter.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeExternalRecipient(recipient.email)}
+                              aria-label={`Remover ${recipient.email}`}
+                              className="shrink-0 rounded-lg border border-blue-200 bg-white p-2 text-blue-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecipientSourceMode('contacts');
+                      setRecipientEntryMessage(null);
+                    }}
+                    className={`rounded-xl border px-4 py-3 text-left transition ${
+                      recipientSourceMode === 'contacts'
+                        ? 'border-red-300 bg-red-50 text-red-800'
+                        : 'border-zinc-200 bg-white text-zinc-700 hover:border-red-200'
+                    }`}
+                  >
+                    <span className="block text-sm font-black">Contactos existentes</span>
+                    <span className="mt-1 block text-xs text-zinc-500">
+                      Pesquisa e adiciona várias pessoas da base.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecipientSourceMode('external');
+                      setRecipientEntryMessage(null);
+                    }}
+                    className={`rounded-xl border px-4 py-3 text-left transition ${
+                      recipientSourceMode === 'external'
+                        ? 'border-red-300 bg-red-50 text-red-800'
+                        : 'border-zinc-200 bg-white text-zinc-700 hover:border-red-200'
+                    }`}
+                  >
+                    <span className="block text-sm font-black">Adicionar email externo</span>
+                    <span className="mt-1 block text-xs text-zinc-500">
+                      Para destinatários que ainda não estão na base.
+                    </span>
+                  </button>
+                </div>
+
+                {recipientSourceMode === 'contacts' ? (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        value={recipientSearchTerm}
+                        onChange={(event) => setRecipientSearchTerm(event.target.value)}
+                        placeholder="Pesquisar por nome, email, telefone ou atleta..."
+                        className="w-full rounded-xl border border-zinc-200 bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                      />
+                    </div>
+
+                    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                      {filteredRecipientOptions.length === 0 ? (
+                        <div className="p-4 text-sm font-semibold text-zinc-500">
+                          Nenhum contacto disponível para a pesquisa atual.
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-zinc-100">
+                          {filteredRecipientOptions.map((subscriber) => {
+                            const isBlocked = !subscriber.is_active || Boolean(subscriber.unsubscribed_at);
+
+                            return (
+                              <button
+                                key={subscriber.id}
+                                type="button"
+                                onClick={() => addManualRecipient(subscriber)}
+                                disabled={isBlocked}
+                                className="flex w-full flex-col gap-2 px-4 py-3 text-left transition hover:bg-red-50 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:opacity-60 sm:flex-row sm:items-center sm:justify-between"
+                              >
+                                <span>
+                                  <span className="block text-sm font-black text-zinc-900">
+                                    {subscriber.name || 'Sem nome'}
+                                  </span>
+                                  <span className="block text-xs font-semibold text-zinc-500">
+                                    {subscriber.email}
+                                    {subscriber.phone ? ` · ${subscriber.phone}` : ''}
+                                    {subscriber.athlete_name ? ` · Atleta: ${subscriber.athlete_name}` : ''}
+                                  </span>
+                                </span>
+                                <span className={`text-xs font-black uppercase tracking-[0.12em] ${
+                                  isBlocked ? 'text-red-500' : 'text-red-600'
+                                }`}>
+                                  {isBlocked ? 'Bloqueado' : 'Adicionar'}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-                    {filteredRecipientOptions.length === 0 ? (
-                      <div className="p-4 text-sm font-semibold text-zinc-500">
-                        Nenhum contacto com email encontrado para a pesquisa atual.
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-zinc-100">
-                        {filteredRecipientOptions.map((subscriber) => (
-                          <button
-                            key={subscriber.id}
-                            type="button"
-                            onClick={() => {
-                              setForm((current) => ({ ...current, manualRecipientId: subscriber.id }));
-                              setRecipientSearchTerm(`${subscriber.name || 'Sem nome'} — ${subscriber.email || ''}`);
-                            }}
-                            className="flex w-full flex-col gap-1 px-4 py-3 text-left transition hover:bg-red-50 sm:flex-row sm:items-center sm:justify-between"
-                          >
-                            <span>
-                              <span className="block text-sm font-black text-zinc-900">{subscriber.name || 'Sem nome'}</span>
-                              <span className="block text-xs font-semibold text-zinc-500">
-                                {subscriber.email}
-                                {subscriber.phone ? ` · ${subscriber.phone}` : ''}
-                                {subscriber.athlete_name ? ` · Atleta: ${subscriber.athlete_name}` : ''}
-                              </span>
-                            </span>
-                            <span className="text-xs font-black uppercase tracking-[0.12em] text-zinc-400">
-                              {subscriber.is_active && !subscriber.unsubscribed_at ? 'Ativo' : 'Inativo'}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                    <div className="grid gap-4 md:grid-cols-[0.7fr_1.3fr_auto] md:items-end">
+                      <label className="space-y-2">
+                        <span className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">
+                          Nome — opcional
+                        </span>
+                        <input
+                          value={externalRecipientName}
+                          onChange={(event) => setExternalRecipientName(event.target.value)}
+                          placeholder="Ex.: Luís Silva"
+                          className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                        />
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">
+                          Email(s) *
+                        </span>
+                        <input
+                          value={externalRecipientEmails}
+                          onChange={(event) => setExternalRecipientEmails(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              addExternalRecipients();
+                            }
+                          }}
+                          placeholder="email@exemplo.pt; outro@exemplo.pt"
+                          className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={addExternalRecipients}
+                        className="rounded-xl bg-zinc-900 px-5 py-3 text-sm font-black text-white transition hover:bg-zinc-700"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-zinc-500">
+                      Podes separar vários endereços por vírgula, ponto e vírgula ou espaço. O nome é aplicado apenas quando adicionas um único email. Estes endereços ficam como contactos avulsos e não são inscritos automaticamente na newsletter.
+                    </p>
                   </div>
+                )}
+
+                {recipientEntryMessage && (
+                  <div
+                    className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+                      recipientEntryMessage.type === 'success'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-red-200 bg-red-50 text-red-700'
+                    }`}
+                  >
+                    {recipientEntryMessage.text}
+                  </div>
+                )}
+
+                {audienceSummary.excludedNoConsent > 0 && (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800">
+                    {audienceSummary.excludedNoConsent} destinatário(s) não têm consentimento geral registado. Usa esta opção apenas para comunicações diretas, operacionais ou administrativas com fundamento adequado. O envio não os inscreve na newsletter.
+                  </p>
                 )}
               </div>
             ) : compatibleGroups.length === 0 ? (
@@ -1529,13 +2119,19 @@ export function AdminCommunicationsPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className={`grid gap-3 ${form.communication_type === 'individual' ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
               <div className="rounded-xl bg-white p-3">
                 <p className="text-xs font-black uppercase text-zinc-400">Receberão</p>
                 <p className="mt-1 text-2xl font-black text-emerald-700">{audienceSummary.recipients}</p>
               </div>
+              {form.communication_type === 'individual' && (
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-xs font-black uppercase text-zinc-400">Externos</p>
+                  <p className="mt-1 text-2xl font-black text-blue-700">{audienceSummary.externalRecipients}</p>
+                </div>
+              )}
               <div className="rounded-xl bg-white p-3">
-                <p className="text-xs font-black uppercase text-zinc-400">Sem consent.</p>
+                <p className="text-xs font-black uppercase text-zinc-400">Sem consent. registado</p>
                 <p className="mt-1 text-2xl font-black text-amber-700">{audienceSummary.excludedNoConsent}</p>
               </div>
               <div className="rounded-xl bg-white p-3">
@@ -1566,7 +2162,7 @@ export function AdminCommunicationsPage() {
               {sendingFinal
                 ? 'A enviar comunicação...'
                 : form.communication_type === 'individual'
-                  ? 'Enviar comunicação para contacto selecionado'
+                  ? `Enviar comunicação para ${audienceSummary.recipients} destinatário(s)`
                   : `Enviar comunicação para ${audienceSummary.recipients} destinatário(s)`}
             </button>
           </div>

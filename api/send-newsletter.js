@@ -74,6 +74,10 @@ function buildStandardNewsletterHtml({ communication, subscriber }) {
     throw new Error('Destinatário sem token de cancelamento de subscrição.');
   }
 
+  const recipientNotice =
+    communication.audience_mode === 'manual'
+      ? 'Recebeste este e-mail no âmbito de uma comunicação direta do GDR Boavista.'
+      : 'Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.';
   const title = escapeHtml(communication.subject || communication.title || 'Comunicação GDR Boavista');
   const preview = escapeHtml(
     communication.preview_text || communication.subject || communication.title || 'Comunicação GDR Boavista',
@@ -147,7 +151,7 @@ function buildStandardNewsletterHtml({ communication, subscriber }) {
             <tr>
               <td class="email-footer" bgcolor="#fafafa" style="background:#fafafa;padding:24px 38px 30px;border-top:1px solid #e4e4e7;">
                 <p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:#52525b;">
-                  Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.
+                  ${recipientNotice}
                 </p>
                 <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
                   Se não pretendes receber mais comunicações,
@@ -171,6 +175,10 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
     throw new Error('Destinatário sem token de cancelamento de subscrição.');
   }
 
+  const recipientNotice =
+    communication.audience_mode === 'manual'
+      ? 'Recebeste este e-mail no âmbito de uma comunicação direta do GDR Boavista.'
+      : 'Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.';
   const siteUrl = getSiteUrl();
   const campaignQuery = 'utm_source=newsletter&utm_medium=email&utm_campaign=inicio_epoca_2026_27';
   const homeUrl = `${siteUrl}/?${campaignQuery}`;
@@ -351,7 +359,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
                 </table>
 
                 <p style="margin:18px 0 7px;font-size:12px;line-height:1.6;color:#52525b;">
-                  Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.
+                  ${recipientNotice}
                 </p>
                 <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
                   Se não pretendes receber mais comunicações,
@@ -511,6 +519,7 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
   const selectedGroups = new Set(targetGroupIds);
   const manualRecipients = new Set(manualRecipientIds);
   const subscriberGroupsMap = new Map();
+  const usedEmails = new Set();
   const communicationType = communication.communication_type || 'newsletter';
   const isManual = communication.audience_mode === 'manual';
 
@@ -553,10 +562,13 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
       return;
     }
 
-    if (!isManual && !subscriberHasConsent(subscriber, communicationType)) {
+    if (!subscriberHasConsent(subscriber, communicationType)) {
       excludedNoConsent += 1;
-      return;
+      if (!isManual) return;
     }
+
+    if (usedEmails.has(recipientEmail)) return;
+    usedEmails.add(recipientEmail);
 
     recipients.push({
       ...subscriber,
@@ -694,7 +706,7 @@ export default async function handler(request, response) {
     }
 
     if (communication.audience_mode === 'manual' && manualRecipientIds.length === 0) {
-      return response.status(400).json({ error: 'Seleciona um contacto individual para esta comunicação.' });
+      return response.status(400).json({ error: 'Seleciona pelo menos um destinatário específico para esta comunicação.' });
     }
 
     const audience = filterRecipients({
@@ -713,7 +725,7 @@ export default async function handler(request, response) {
         excluded_no_email: audience.excludedNoEmail,
       });
 
-      return response.status(400).json({ error: 'Não existem destinatários ativos com consentimento para esta comunicação.' });
+      return response.status(400).json({ error: communication.audience_mode === 'manual' ? 'Não existem destinatários específicos válidos para esta comunicação.' : 'Não existem destinatários ativos com consentimento para esta comunicação.' });
     }
 
     let sentCount = 0;
