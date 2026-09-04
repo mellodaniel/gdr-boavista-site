@@ -74,10 +74,6 @@ function buildStandardNewsletterHtml({ communication, subscriber }) {
     throw new Error('Destinatário sem token de cancelamento de subscrição.');
   }
 
-  const recipientNotice =
-    communication.audience_mode === 'manual'
-      ? 'Recebeste este e-mail no âmbito de uma comunicação direta do GDR Boavista.'
-      : 'Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.';
   const title = escapeHtml(communication.subject || communication.title || 'Comunicação GDR Boavista');
   const preview = escapeHtml(
     communication.preview_text || communication.subject || communication.title || 'Comunicação GDR Boavista',
@@ -151,7 +147,7 @@ function buildStandardNewsletterHtml({ communication, subscriber }) {
             <tr>
               <td class="email-footer" bgcolor="#fafafa" style="background:#fafafa;padding:24px 38px 30px;border-top:1px solid #e4e4e7;">
                 <p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:#52525b;">
-                  ${recipientNotice}
+                  Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.
                 </p>
                 <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
                   Se não pretendes receber mais comunicações,
@@ -175,17 +171,13 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
     throw new Error('Destinatário sem token de cancelamento de subscrição.');
   }
 
-  const recipientNotice =
-    communication.audience_mode === 'manual'
-      ? 'Recebeste este e-mail no âmbito de uma comunicação direta do GDR Boavista.'
-      : 'Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.';
   const siteUrl = getSiteUrl();
   const campaignQuery = 'utm_source=newsletter&utm_medium=email&utm_campaign=inicio_epoca_2026_27';
   const homeUrl = `${siteUrl}/?${campaignQuery}`;
   const scheduleUrl = `${siteUrl}/horarios-de-treino?${campaignQuery}`;
   const logoUrl = `${siteUrl}/logo-gdr-boavista-header-256.png`;
-  // Fotografia de Eric MASENGESHO via Pexels (Licença Pexels).
-  const heroImageUrl = 'https://images.pexels.com/photos/33471345/pexels-photo-33471345/free-photo-of-sprinklers-watering-soccer-stadium-field-at-night.jpeg?auto=compress&dpr=1&h=750&w=1260';
+  // Imagem oficial da campanha, alojada no próprio domínio do GDR Boavista.
+  const heroImageUrl = `${siteUrl}/newsletter/inicio-epoca-2026-27.jpg?v=20260904-3`;
   const homeUrlHtml = escapeHtml(homeUrl);
   const scheduleUrlHtml = escapeHtml(scheduleUrl);
   const logoUrlHtml = escapeHtml(logoUrl);
@@ -261,7 +253,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
             <tr>
               <td style="padding:0;background:#17120f;" bgcolor="#17120f">
                 <a href="${scheduleUrlHtml}" target="_blank" style="display:block;">
-                  <img src="${heroImageUrlHtml}" width="640" alt="Campo de futebol iluminado no início de uma nova época" style="width:100%;max-width:640px;height:auto;display:block;" />
+                  <img src="${heroImageUrlHtml}" width="640" alt="Campo do GDR Boavista preparado para o início da época 2026/27" style="width:100%;max-width:640px;height:auto;display:block;" />
                 </a>
               </td>
             </tr>
@@ -359,7 +351,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
                 </table>
 
                 <p style="margin:18px 0 7px;font-size:12px;line-height:1.6;color:#52525b;">
-                  ${recipientNotice}
+                  Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.
                 </p>
                 <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
                   Se não pretendes receber mais comunicações,
@@ -452,7 +444,7 @@ async function getSubscriberGroups() {
 
 async function getAllSubscribers() {
   const data = await supabaseRequest(
-    'gdrb_subscribers?select=id,name,email,unsubscribe_token,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at',
+    'gdrb_subscribers?select=id,name,email,unsubscribe_token,source,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at',
     { method: 'GET' },
   );
 
@@ -491,9 +483,14 @@ function subscriberHasConsent(subscriber, communicationType) {
   return Boolean(subscriber.consent_email_club || subscriber.consent_email);
 }
 
+function subscriberHasEnjogoConsent(subscriber) {
+  const source = String(subscriber?.source || '').trim().toLowerCase();
+  return source === 'importacao' || source === 'enjogo';
+}
+
 function subscriberMatchesType(subscriber, communicationType) {
   if (communicationType === 'newsletter') {
-    return subscriber.communication_scope === 'newsletter' || subscriber.contact_type === 'newsletter';
+    return true;
   }
 
   if (communicationType === 'escalao') {
@@ -519,9 +516,10 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
   const selectedGroups = new Set(targetGroupIds);
   const manualRecipients = new Set(manualRecipientIds);
   const subscriberGroupsMap = new Map();
-  const usedEmails = new Set();
   const communicationType = communication.communication_type || 'newsletter';
   const isManual = communication.audience_mode === 'manual';
+  const usesAllActiveAudience =
+    communicationType === 'newsletter' || communicationType === 'geral';
 
   subscriberGroups.forEach((entry) => {
     if (!subscriberGroupsMap.has(entry.subscriber_id)) {
@@ -532,6 +530,8 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
   });
 
   const recipients = [];
+  const usedEmails = new Set();
+  let includedWithoutConsent = 0;
   let excludedNoConsent = 0;
   let excludedInactive = 0;
   let excludedNoEmail = 0;
@@ -541,7 +541,7 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
       if (!manualRecipients.has(subscriber.id)) return;
     } else if (!subscriberMatchesType(subscriber, communicationType)) return;
 
-    if (!isManual && selectedGroups.size > 0) {
+    if (!isManual && !usesAllActiveAudience && selectedGroups.size > 0) {
       const groupsForSubscriber = subscriberGroupsMap.get(subscriber.id);
       const inSelectedGroup = groupsForSubscriber
         ? Array.from(selectedGroups).some((groupId) => groupsForSubscriber.has(groupId))
@@ -562,13 +562,17 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
       return;
     }
 
-    if (!subscriberHasConsent(subscriber, communicationType)) {
-      excludedNoConsent += 1;
-      if (!isManual) return;
-    }
-
     if (usedEmails.has(recipientEmail)) return;
     usedEmails.add(recipientEmail);
+
+    if (!isManual && !subscriberHasConsent(subscriber, communicationType)) {
+      if (communicationType === 'newsletter' && subscriberHasEnjogoConsent(subscriber)) {
+        includedWithoutConsent += 1;
+      } else {
+        excludedNoConsent += 1;
+        return;
+      }
+    }
 
     recipients.push({
       ...subscriber,
@@ -578,6 +582,7 @@ function filterRecipients({ communication, subscribers, subscriberGroups, target
 
   return {
     recipients,
+    includedWithoutConsent,
     excludedNoConsent,
     excludedInactive,
     excludedNoEmail,
@@ -725,7 +730,14 @@ export default async function handler(request, response) {
         excluded_no_email: audience.excludedNoEmail,
       });
 
-      return response.status(400).json({ error: communication.audience_mode === 'manual' ? 'Não existem destinatários específicos válidos para esta comunicação.' : 'Não existem destinatários ativos com consentimento para esta comunicação.' });
+      return response.status(400).json({
+        error:
+          communication.audience_mode === 'manual'
+            ? 'Não existem destinatários específicos válidos para esta comunicação.'
+            : (communication.communication_type || 'newsletter') === 'newsletter'
+              ? 'Não existem contactos ativos com um endereço de email válido para esta newsletter.'
+              : 'Não existem destinatários ativos com consentimento para esta comunicação.',
+      });
     }
 
     let sentCount = 0;

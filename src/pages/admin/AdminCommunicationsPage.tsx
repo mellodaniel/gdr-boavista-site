@@ -83,6 +83,7 @@ type Subscriber = {
   email: string | null;
   phone: string | null;
   athlete_name: string | null;
+  source: string | null;
   contact_type: string;
   communication_scope: string;
   consent_email: boolean;
@@ -126,6 +127,8 @@ type AudienceSummary = {
   recipients: number;
   existingRecipients: number;
   externalRecipients: number;
+  manualNoConsent: number;
+  includedWithoutConsent: number;
   excludedNoConsent: number;
   excludedInactive: number;
   excludedNoEmail: number;
@@ -144,7 +147,7 @@ const emptyForm: FormState = {
   from_name: 'GDR Boavista',
   from_email: 'notificacoes@send.gdrboavista.pt',
   communication_type: 'newsletter',
-  audience_mode: 'selected_groups',
+  audience_mode: 'all_active',
   groupIds: [],
   manualRecipientIds: [],
   externalRecipients: [],
@@ -193,7 +196,7 @@ const communicationTypeLabels: Record<CommunicationKind, string> = {
 };
 
 const communicationTypeDescriptions: Record<CommunicationKind, string> = {
-  newsletter: 'Apenas pessoas que subscreveram voluntariamente a newsletter pública do site.',
+  newsletter: 'Todos os contactos ativos importados do Enjogo e contactos com consentimento registado. Cancelados e inativos ficam sempre excluídos.',
   escalao: 'Pais, encarregados, atletas e contactos associados a escalões/equipas específicas.',
   interno: 'Direção, treinadores, equipa técnica e contactos internos do clube.',
   socios: 'Contactos classificados como sócios.',
@@ -282,9 +285,14 @@ function subscriberHasConsent(subscriber: Subscriber, type: CommunicationType) {
   return subscriber.consent_email_club || subscriber.consent_email;
 }
 
+function subscriberHasEnjogoConsent(subscriber: Subscriber) {
+  const source = String(subscriber.source || '').trim().toLowerCase();
+  return source === 'importacao' || source === 'enjogo';
+}
+
 function subscriberMatchesType(subscriber: Subscriber, type: CommunicationType) {
   if (type === 'newsletter') {
-    return subscriber.communication_scope === 'newsletter' || subscriber.contact_type === 'newsletter';
+    return true;
   }
 
   if (type === 'escalao') {
@@ -333,7 +341,7 @@ function calculateAudienceSummary({
     let recipients = 0;
     let existingRecipients = 0;
     let externalRecipientCount = 0;
-    let excludedNoConsent = 0;
+    let manualNoConsent = 0;
     let excludedInactive = 0;
     let excludedNoEmail = 0;
 
@@ -356,7 +364,7 @@ function calculateAudienceSummary({
       usedEmails.add(email);
 
       if (!subscriberHasConsent(subscriber, 'geral')) {
-        excludedNoConsent += 1;
+        manualNoConsent += 1;
       }
 
       recipients += 1;
@@ -376,14 +384,16 @@ function calculateAudienceSummary({
 
       recipients += 1;
       externalRecipientCount += 1;
-      excludedNoConsent += 1;
+      manualNoConsent += 1;
     });
 
     return {
       recipients,
       existingRecipients,
       externalRecipients: externalRecipientCount,
-      excludedNoConsent,
+      manualNoConsent,
+      includedWithoutConsent: 0,
+      excludedNoConsent: 0,
       excludedInactive,
       excludedNoEmail,
       needsGroups: false,
@@ -394,6 +404,8 @@ function calculateAudienceSummary({
   const selectedGroups = new Set(groupIds);
   const subscriberGroupsMap = new Map<string, Set<string>>();
   const usedEmails = new Set<string>();
+  const usesAllActiveAudience =
+    communicationType === 'newsletter' || communicationType === 'geral';
 
   subscriberGroups.forEach((entry) => {
     if (!subscriberGroupsMap.has(entry.subscriber_id)) {
@@ -404,6 +416,7 @@ function calculateAudienceSummary({
   });
 
   let recipients = 0;
+  let includedWithoutConsent = 0;
   let excludedNoConsent = 0;
   let excludedInactive = 0;
   let excludedNoEmail = 0;
@@ -411,7 +424,7 @@ function calculateAudienceSummary({
   subscribers.forEach((subscriber) => {
     if (!subscriberMatchesType(subscriber, communicationType as CommunicationType)) return;
 
-    if (selectedGroups.size > 0) {
+    if (!usesAllActiveAudience && selectedGroups.size > 0) {
       const groupsForSubscriber = subscriberGroupsMap.get(subscriber.id);
       const inSelectedGroup = groupsForSubscriber
         ? Array.from(selectedGroups).some((groupId) => groupsForSubscriber.has(groupId))
@@ -432,13 +445,18 @@ function calculateAudienceSummary({
       return;
     }
 
-    if (!subscriberHasConsent(subscriber, communicationType as CommunicationType)) {
-      excludedNoConsent += 1;
-      return;
-    }
-
     if (usedEmails.has(email)) return;
     usedEmails.add(email);
+
+    if (!subscriberHasConsent(subscriber, communicationType as CommunicationType)) {
+      if (communicationType === 'newsletter' && subscriberHasEnjogoConsent(subscriber)) {
+        includedWithoutConsent += 1;
+      } else {
+        excludedNoConsent += 1;
+        return;
+      }
+    }
+
     recipients += 1;
   });
 
@@ -446,11 +464,13 @@ function calculateAudienceSummary({
     recipients,
     existingRecipients: recipients,
     externalRecipients: 0,
+    manualNoConsent: 0,
+    includedWithoutConsent,
     excludedNoConsent,
     excludedInactive,
     excludedNoEmail,
     needsGroups,
-    isManual,
+    isManual: false,
   };
 }
 
@@ -479,7 +499,10 @@ export function AdminCommunicationsPage() {
   const [recipientSourceMode, setRecipientSourceMode] = useState<'contacts' | 'external'>('contacts');
   const [externalRecipientName, setExternalRecipientName] = useState('');
   const [externalRecipientEmails, setExternalRecipientEmails] = useState('');
-  const [recipientEntryMessage, setRecipientEntryMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [recipientEntryMessage, setRecipientEntryMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -506,7 +529,7 @@ export function AdminCommunicationsPage() {
         .select('subscriber_id,group_id'),
       supabase
         .from('gdrb_subscribers')
-        .select('id,name,email,phone,athlete_name,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at'),
+        .select('id,name,email,phone,athlete_name,source,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at'),
       supabase
         .from('gdrb_communication_deliveries')
         .select('id,communication_id,recipient_email,recipient_name,status,error_message,sent_at,created_at')
@@ -582,15 +605,13 @@ export function AdminCommunicationsPage() {
   }, [deliveries, selectedCommunicationId]);
 
   const compatibleGroups = useMemo(() => {
-    if (form.communication_type === 'individual') return [];
+    if (form.communication_type === 'individual' || form.communication_type === 'newsletter') return [];
     return groups.filter((group) => groupMatchesCommunicationType(group, form.communication_type));
   }, [groups, form.communication_type]);
 
   const selectedManualRecipientIds = getManualRecipientIds(form);
   const externalRecipientDrafts = getExternalRecipients(form);
-
-  const hasCommunicationContent =
-    form.subject.trim().length > 0 || form.body.trim().length > 0;
+  const hasCommunicationContent = form.subject.trim().length > 0 || form.body.trim().length > 0;
 
   const hasAudienceSelection =
     form.communication_type === 'individual'
@@ -605,6 +626,8 @@ export function AdminCommunicationsPage() {
         recipients: 0,
         existingRecipients: 0,
         externalRecipients: 0,
+        manualNoConsent: 0,
+        includedWithoutConsent: 0,
         excludedNoConsent: 0,
         excludedInactive: 0,
         excludedNoEmail: 0,
@@ -868,6 +891,16 @@ export function AdminCommunicationsPage() {
     const manualRecipientIds = manualRecipients
       .filter((recipient) => recipient.communication_id === communication.id)
       .map((recipient) => recipient.subscriber_id);
+    const communicationKind: CommunicationKind =
+      communication.audience_mode === 'manual'
+        ? 'individual'
+        : communication.communication_type || 'newsletter';
+    const audienceMode: AudienceMode =
+      communicationKind === 'individual'
+        ? 'manual'
+        : communicationKind === 'newsletter' || communicationKind === 'geral'
+          ? 'all_active'
+          : 'selected_groups';
 
     setSelectedCommunicationId(communication.id);
     setForm({
@@ -880,9 +913,9 @@ export function AdminCommunicationsPage() {
       status: communication.status || 'draft',
       from_name: communication.from_name || 'GDR Boavista',
       from_email: communication.from_email || 'notificacoes@send.gdrboavista.pt',
-      communication_type: communication.audience_mode === 'manual' ? 'individual' : communication.communication_type || 'newsletter',
-      audience_mode: communication.audience_mode || 'selected_groups',
-      groupIds,
+      communication_type: communicationKind,
+      audience_mode: audienceMode,
+      groupIds: audienceMode === 'selected_groups' ? groupIds : [],
       manualRecipientIds,
       externalRecipients: [],
       manualRecipientId: '',
@@ -893,10 +926,17 @@ export function AdminCommunicationsPage() {
   }
 
   function changeCommunicationType(type: CommunicationKind) {
+    const audienceMode: AudienceMode =
+      type === 'individual'
+        ? 'manual'
+        : type === 'newsletter' || type === 'geral'
+          ? 'all_active'
+          : 'selected_groups';
+
     setForm((current) => ({
       ...current,
       communication_type: type,
-      audience_mode: type === 'individual' ? 'manual' : type === 'geral' ? 'all_active' : 'selected_groups',
+      audience_mode: audienceMode,
       groupIds: [],
       manualRecipientIds: [],
       externalRecipients: [],
@@ -1007,12 +1047,14 @@ export function AdminCommunicationsPage() {
       if (!existing) {
         const { data: existingRows, error: lookupError } = await supabase
           .from('gdrb_subscribers')
-          .select('id,name,email,phone,athlete_name,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at')
+          .select('id,name,email,phone,athlete_name,source,contact_type,communication_scope,consent_email,consent_email_newsletter,consent_email_club,is_active,unsubscribed_at')
           .ilike('email', email)
-          .limit(1);
+          .limit(20);
 
         if (lookupError) throw lookupError;
-        existing = (existingRows?.[0] as Subscriber | undefined) || undefined;
+        existing = (existingRows || []).find(
+          (subscriber) => normalizeEmail(subscriber.email) === email,
+        ) as Subscriber | undefined;
       }
 
       if (existing) {
@@ -1060,15 +1102,17 @@ export function AdminCommunicationsPage() {
       if (createError || !created?.id) {
         const { data: fallbackRows, error: fallbackError } = await supabase
           .from('gdrb_subscribers')
-          .select('id,is_active,unsubscribed_at')
+          .select('id,email,is_active,unsubscribed_at')
           .ilike('email', email)
-          .limit(1);
+          .limit(20);
+        const fallback = (fallbackRows || []).find(
+          (subscriber) => normalizeEmail(subscriber.email) === email,
+        ) as Pick<Subscriber, 'id' | 'email' | 'is_active' | 'unsubscribed_at'> | undefined;
 
-        if (fallbackError || !fallbackRows?.[0]?.id) {
+        if (fallbackError || !fallback?.id) {
           throw createError || fallbackError || new Error(`Não foi possível adicionar ${email}.`);
         }
 
-        const fallback = fallbackRows[0] as Pick<Subscriber, 'id' | 'is_active' | 'unsubscribed_at'>;
         if (!fallback.is_active || fallback.unsubscribed_at) {
           throw new Error(
             `O contacto ${email} está inativo ou cancelou as comunicações.`,
@@ -1117,6 +1161,15 @@ export function AdminCommunicationsPage() {
       ...resolvedExternalRecipientIds,
     ]);
 
+    const usesAllActiveAudience =
+      form.communication_type === 'newsletter' || form.communication_type === 'geral';
+    const resolvedAudienceMode: AudienceMode =
+      form.communication_type === 'individual'
+        ? 'manual'
+        : usesAllActiveAudience
+          ? 'all_active'
+          : 'selected_groups';
+
     const payload = {
       title: title || subject,
       subject,
@@ -1127,7 +1180,7 @@ export function AdminCommunicationsPage() {
       from_name: form.from_name.trim() || 'GDR Boavista',
       from_email: form.from_email.trim() || 'notificacoes@send.gdrboavista.pt',
       communication_type: form.communication_type === 'individual' ? 'geral' : form.communication_type,
-      audience_mode: form.communication_type === 'individual' ? 'manual' : form.audience_mode,
+      audience_mode: resolvedAudienceMode,
       estimated_recipients: audienceSummary.recipients,
       excluded_no_consent: audienceSummary.excludedNoConsent,
       excluded_inactive: audienceSummary.excludedInactive,
@@ -1162,7 +1215,10 @@ export function AdminCommunicationsPage() {
       throw new Error('Não foi possível identificar a comunicação.');
     }
 
-    await saveTargets(communicationId, form.communication_type === 'individual' ? [] : form.groupIds);
+    await saveTargets(
+      communicationId,
+      form.communication_type === 'individual' || usesAllActiveAudience ? [] : form.groupIds,
+    );
     await saveManualRecipients(
       communicationId,
       form.communication_type === 'individual' ? resolvedManualRecipientIds : [],
@@ -1191,7 +1247,9 @@ export function AdminCommunicationsPage() {
         text:
           form.communication_type === 'individual'
             ? 'Não existem destinatários específicos válidos para esta comunicação.'
-            : 'Não existem destinatários ativos com consentimento para esta comunicação.',
+            : form.communication_type === 'newsletter'
+              ? 'Não existem contactos ativos com um endereço de email válido para esta newsletter.'
+              : 'Não existem destinatários ativos com consentimento para esta comunicação.',
       });
       return;
     }
@@ -1199,7 +1257,9 @@ export function AdminCommunicationsPage() {
     const confirmed = window.confirm(
       form.communication_type === 'individual'
         ? `Confirmas o envio desta comunicação para ${audienceSummary.recipients} destinatário(s) específico(s)?\n\n${audienceSummary.existingRecipients} da base de contactos · ${audienceSummary.externalRecipients} externo(s).\n\nEsta ação não pode ser desfeita.`
-        : `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
+        : form.communication_type === 'newsletter'
+          ? `Confirmas o envio da Newsletter geral para ${audienceSummary.recipients} contacto(s) ativo(s)?\n\nSerão incluídos os contactos importados do Enjogo e os contactos com consentimento registado. ${audienceSummary.includedWithoutConsent} contacto(s) importado(s) do Enjogo não têm a flag local preenchida, mas serão incluídos. Contactos inativos, cancelados ou sem base de consentimento aplicável permanecem excluídos.\n\nEsta ação não pode ser desfeita.`
+          : `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
     );
 
     if (!confirmed) return;
@@ -1255,6 +1315,7 @@ export function AdminCommunicationsPage() {
   }
 
   function groupsLabel(communicationId: string) {
+    const communication = communications.find((item) => item.id === communicationId);
     const manualRecipientIds = manualRecipients
       .filter((recipient) => recipient.communication_id === communicationId)
       .map((recipient) => recipient.subscriber_id);
@@ -1269,6 +1330,10 @@ export function AdminCommunicationsPage() {
       const suffix = manualRecipientIds.length > 2 ? ` +${manualRecipientIds.length - 2}` : '';
 
       return `${manualRecipientIds.length} destinatário(s) específico(s)${labels.length ? ` — ${labels.join(', ')}${suffix}` : ''}`;
+    }
+
+    if (communication?.communication_type === 'newsletter') {
+      return 'Todos os contactos ativos com email';
     }
 
     const groupIds = targets
@@ -1335,7 +1400,12 @@ export function AdminCommunicationsPage() {
           from_name: communication.from_name || 'GDR Boavista',
           from_email: communication.from_email || 'notificacoes@send.gdrboavista.pt',
           communication_type: communication.communication_type || 'newsletter',
-          audience_mode: communication.audience_mode || 'selected_groups',
+          audience_mode:
+            communication.audience_mode === 'manual'
+              ? 'manual'
+              : ['newsletter', 'geral'].includes(communication.communication_type || 'newsletter')
+                ? 'all_active'
+                : 'selected_groups',
           estimated_recipients: 0,
           excluded_no_consent: 0,
           excluded_inactive: 0,
@@ -1352,7 +1422,12 @@ export function AdminCommunicationsPage() {
       const newCommunicationId = data?.id;
       if (!newCommunicationId) throw new Error('Não foi possível criar a cópia.');
 
-      await saveTargets(newCommunicationId, groupIds);
+      await saveTargets(
+        newCommunicationId,
+        ['newsletter', 'geral'].includes(communication.communication_type || 'newsletter')
+          ? []
+          : groupIds,
+      );
       await saveManualRecipients(newCommunicationId, manualRecipientIds);
       await loadData();
 
@@ -1729,8 +1804,8 @@ export function AdminCommunicationsPage() {
               >
                 <div className="relative h-32 overflow-hidden bg-[#21150f]">
                   <img
-                    src="https://images.pexels.com/photos/33471345/pexels-photo-33471345/free-photo-of-sprinklers-watering-soccer-stadium-field-at-night.jpeg?auto=compress&dpr=1&h=750&w=1260"
-                    alt="Campo de futebol iluminado"
+                    src="/newsletter/inicio-epoca-2026-27.jpg?v=20260904-3"
+                    alt="Campo do GDR Boavista preparado para o início da época 2026/27"
                     className="h-full w-full object-cover opacity-75 transition duration-500 group-hover:scale-[1.03]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-[#21150f]/90 via-[#21150f]/45 to-red-950/30" />
@@ -1804,127 +1879,23 @@ export function AdminCommunicationsPage() {
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-red-600" />
               <div>
-                <p className="text-sm font-black text-zinc-900">2. Destinatários compatíveis</p>
+                <p className="text-sm font-black text-zinc-900">
+                  {form.communication_type === 'individual'
+                    ? '2. Destinatários específicos'
+                    : '2. Destinatários compatíveis'}
+                </p>
                 <p className="text-xs text-zinc-500">
                   {form.communication_type === 'individual'
                     ? 'Seleciona vários contactos existentes ou adiciona endereços externos.'
-                    : 'Os grupos abaixo mudam conforme o tipo de comunicação selecionado.'}
+                    : form.communication_type === 'newsletter'
+                      ? 'A Newsletter geral inclui automaticamente a base importada do Enjogo e os contactos com consentimento registado.'
+                      : 'Os grupos abaixo mudam conforme o tipo de comunicação selecionado.'}
                 </p>
               </div>
             </div>
 
             {form.communication_type === 'individual' ? (
               <div className="space-y-4">
-                <div className="rounded-xl border border-zinc-200 bg-white p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-black text-zinc-900">
-                        {selectedManualRecipientIds.length + externalRecipientDrafts.length} destinatário(s) selecionado(s)
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-zinc-500">
-                        Podes combinar contactos existentes e endereços externos no mesmo envio.
-                      </p>
-                    </div>
-
-                    {selectedManualRecipientIds.length + externalRecipientDrafts.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={clearManualRecipients}
-                        className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-black text-zinc-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
-                      >
-                        Remover todos
-                      </button>
-                    )}
-                  </div>
-
-                  {selectedManualRecipientIds.length + externalRecipientDrafts.length === 0 ? (
-                    <div className="mt-4 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center text-sm font-semibold text-zinc-500">
-                      Ainda não selecionaste destinatários.
-                    </div>
-                  ) : (
-                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                      {selectedManualSubscribers.map((subscriber) => (
-                        <div
-                          key={subscriber.id}
-                          className={`rounded-xl border p-3 ${
-                            subscriber.is_active && !subscriber.unsubscribed_at
-                              ? 'border-emerald-200 bg-emerald-50'
-                              : 'border-red-200 bg-red-50'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="truncate text-sm font-black text-zinc-900">
-                                  {subscriber.name || 'Sem nome'}
-                                </p>
-                                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-zinc-500">
-                                  Base de contactos
-                                </span>
-                              </div>
-                              <p className="mt-1 truncate text-xs font-semibold text-zinc-600">
-                                {subscriber.email}
-                              </p>
-                              {subscriber.athlete_name && (
-                                <p className="mt-1 text-xs text-zinc-500">
-                                  Atleta: {subscriber.athlete_name}
-                                </p>
-                              )}
-                              {!subscriberHasConsent(subscriber, 'geral') && (
-                                <p className="mt-2 text-xs font-semibold text-amber-700">
-                                  Sem consentimento geral registado
-                                </p>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeManualRecipient(subscriber.id)}
-                              aria-label={`Remover ${subscriber.name || subscriber.email || 'contacto'}`}
-                              className="shrink-0 rounded-lg border border-zinc-200 bg-white p-2 text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-
-                      {externalRecipientDrafts.map((recipient) => (
-                        <div
-                          key={normalizeEmail(recipient.email)}
-                          className="rounded-xl border border-blue-200 bg-blue-50 p-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="truncate text-sm font-black text-zinc-900">
-                                  {recipient.name || 'Contacto externo'}
-                                </p>
-                                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-blue-600">
-                                  Externo
-                                </span>
-                              </div>
-                              <p className="mt-1 truncate text-xs font-semibold text-zinc-600">
-                                {recipient.email}
-                              </p>
-                              <p className="mt-2 text-xs text-blue-700">
-                                Será guardado como contacto avulso, sem subscrição automática da newsletter.
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeExternalRecipient(recipient.email)}
-                              aria-label={`Remover ${recipient.email}`}
-                              className="shrink-0 rounded-lg border border-blue-200 bg-white p-2 text-blue-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
@@ -1943,6 +1914,7 @@ export function AdminCommunicationsPage() {
                       Pesquisa e adiciona várias pessoas da base.
                     </span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -1974,7 +1946,7 @@ export function AdminCommunicationsPage() {
                       />
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                    <div className="max-h-80 overflow-y-auto rounded-xl border border-zinc-200 bg-white">
                       {filteredRecipientOptions.length === 0 ? (
                         <div className="p-4 text-sm font-semibold text-zinc-500">
                           Nenhum contacto disponível para a pesquisa atual.
@@ -2002,9 +1974,7 @@ export function AdminCommunicationsPage() {
                                     {subscriber.athlete_name ? ` · Atleta: ${subscriber.athlete_name}` : ''}
                                   </span>
                                 </span>
-                                <span className={`text-xs font-black uppercase tracking-[0.12em] ${
-                                  isBlocked ? 'text-red-500' : 'text-red-600'
-                                }`}>
+                                <span className={`text-xs font-black uppercase tracking-[0.12em] ${isBlocked ? 'text-red-500' : 'text-red-700'}`}>
                                   {isBlocked ? 'Bloqueado' : 'Adicionar'}
                                 </span>
                               </button>
@@ -2016,10 +1986,10 @@ export function AdminCommunicationsPage() {
                   </div>
                 ) : (
                   <div className="rounded-xl border border-zinc-200 bg-white p-4">
-                    <div className="grid gap-4 md:grid-cols-[0.7fr_1.3fr_auto] md:items-end">
+                    <div className="grid gap-3 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto] md:items-end">
                       <label className="space-y-2">
-                        <span className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">
-                          Nome — opcional
+                        <span className="text-xs font-black uppercase tracking-[0.14em] text-zinc-600">
+                          Nome — opcional (1 email)
                         </span>
                         <input
                           value={externalRecipientName}
@@ -2028,33 +1998,31 @@ export function AdminCommunicationsPage() {
                           className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
                         />
                       </label>
+
                       <label className="space-y-2">
-                        <span className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">
-                          Email(s) *
+                        <span className="text-xs font-black uppercase tracking-[0.14em] text-zinc-600">
+                          Email ou vários emails
                         </span>
-                        <input
+                        <textarea
                           value={externalRecipientEmails}
                           onChange={(event) => setExternalRecipientEmails(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                              event.preventDefault();
-                              addExternalRecipients();
-                            }
-                          }}
+                          rows={2}
                           placeholder="email@exemplo.pt; outro@exemplo.pt"
-                          className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                          className="w-full resize-y rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
                         />
                       </label>
+
                       <button
                         type="button"
                         onClick={addExternalRecipients}
-                        className="rounded-xl bg-zinc-900 px-5 py-3 text-sm font-black text-white transition hover:bg-zinc-700"
+                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#24180f] px-5 py-3 text-sm font-black text-white transition hover:bg-red-800"
                       >
                         Adicionar
                       </button>
                     </div>
+
                     <p className="mt-3 text-xs leading-5 text-zinc-500">
-                      Podes separar vários endereços por vírgula, ponto e vírgula ou espaço. O nome é aplicado apenas quando adicionas um único email. Estes endereços ficam como contactos avulsos e não são inscritos automaticamente na newsletter.
+                      Podes separar os endereços por vírgula, ponto e vírgula, espaço ou mudança de linha. Um endereço novo fica guardado como contacto avulso e não é inscrito automaticamente na newsletter.
                     </p>
                   </div>
                 )}
@@ -2071,11 +2039,105 @@ export function AdminCommunicationsPage() {
                   </div>
                 )}
 
-                {audienceSummary.excludedNoConsent > 0 && (
+                <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                  <div className="flex flex-col gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-black text-zinc-900">
+                        Destinatários selecionados ({selectedManualSubscribers.length + externalRecipientDrafts.length})
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        Cada endereço receberá uma mensagem individual; os destinatários não veem os restantes emails.
+                      </p>
+                    </div>
+
+                    {selectedManualSubscribers.length + externalRecipientDrafts.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearManualRecipients}
+                        className="self-start text-xs font-black uppercase tracking-[0.12em] text-red-700 hover:text-red-900 sm:self-auto"
+                      >
+                        Limpar todos
+                      </button>
+                    )}
+                  </div>
+
+                  {selectedManualSubscribers.length + externalRecipientDrafts.length === 0 ? (
+                    <div className="p-5 text-sm font-semibold text-zinc-500">
+                      Ainda não selecionaste nenhum destinatário.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-zinc-100">
+                      {selectedManualSubscribers.map((subscriber) => (
+                        <div key={subscriber.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-zinc-900">
+                              {subscriber.name || 'Sem nome'}
+                            </p>
+                            <p className="truncate text-xs font-semibold text-zinc-500">{subscriber.email}</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
+                                Base de contactos
+                              </span>
+                              {!subscriberHasConsent(subscriber, 'geral') && (
+                                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-700">
+                                  Sem consentimento registado
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeManualRecipient(subscriber.id)}
+                            aria-label={`Remover ${subscriber.name || subscriber.email || 'contacto'}`}
+                            className="rounded-lg border border-zinc-200 p-2 text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {externalRecipientDrafts.map((recipient) => (
+                        <div key={normalizeEmail(recipient.email)} className="flex items-start justify-between gap-3 px-4 py-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-zinc-900">
+                              {recipient.name || 'Contacto externo'}
+                            </p>
+                            <p className="truncate text-xs font-semibold text-zinc-500">{recipient.email}</p>
+                            <span className="mt-2 inline-flex rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-sky-700">
+                              Externo · não inscrito na newsletter
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeExternalRecipient(recipient.email)}
+                            aria-label={`Remover ${recipient.email}`}
+                            className="rounded-lg border border-zinc-200 p-2 text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {audienceSummary.manualNoConsent > 0 && (
                   <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800">
-                    {audienceSummary.excludedNoConsent} destinatário(s) não têm consentimento geral registado. Usa esta opção apenas para comunicações diretas, operacionais ou administrativas com fundamento adequado. O envio não os inscreve na newsletter.
+                    {audienceSummary.manualNoConsent} destinatário(s) não têm consentimento de marketing registado. Usa o envio específico apenas para comunicações diretas, operacionais ou administrativas com fundamento válido; não os inscreve automaticamente na newsletter.
                   </p>
                 )}
+              </div>
+            ) : form.communication_type === 'newsletter' ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
+                  <div>
+                    <p className="text-sm font-black text-emerald-950">Base elegível completa</p>
+                    <p className="mt-1 text-xs font-semibold leading-5 text-emerald-800">
+                      Não é necessário selecionar grupos. Serão considerados todos os contactos ativos importados do Enjogo e todos os contactos com consentimento de email registado. Contactos avulsos sem consentimento, inativos ou que cancelaram comunicações continuam excluídos.
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : compatibleGroups.length === 0 ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">
@@ -2119,30 +2181,70 @@ export function AdminCommunicationsPage() {
               </div>
             </div>
 
-            <div className={`grid gap-3 ${form.communication_type === 'individual' ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
-              <div className="rounded-xl bg-white p-3">
-                <p className="text-xs font-black uppercase text-zinc-400">Receberão</p>
-                <p className="mt-1 text-2xl font-black text-emerald-700">{audienceSummary.recipients}</p>
-              </div>
-              {form.communication_type === 'individual' && (
+            {audienceSummary.isManual ? (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-xs font-black uppercase text-zinc-400">Receberão</p>
+                  <p className="mt-1 text-2xl font-black text-emerald-700">{audienceSummary.recipients}</p>
+                </div>
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-xs font-black uppercase text-zinc-400">Da base</p>
+                  <p className="mt-1 text-2xl font-black text-slate-700">{audienceSummary.existingRecipients}</p>
+                </div>
                 <div className="rounded-xl bg-white p-3">
                   <p className="text-xs font-black uppercase text-zinc-400">Externos</p>
-                  <p className="mt-1 text-2xl font-black text-blue-700">{audienceSummary.externalRecipients}</p>
+                  <p className="mt-1 text-2xl font-black text-sky-700">{audienceSummary.externalRecipients}</p>
                 </div>
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-xs font-black uppercase text-zinc-400">Sem registo</p>
+                  <p className="mt-1 text-2xl font-black text-amber-700">{audienceSummary.manualNoConsent}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-xs font-black uppercase text-zinc-400">Receberão</p>
+                  <p className="mt-1 text-2xl font-black text-emerald-700">{audienceSummary.recipients}</p>
+                </div>
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-xs font-black uppercase text-zinc-400">
+                    {form.communication_type === 'newsletter' ? 'Consent. Enjogo' : 'Sem consent.'}
+                  </p>
+                  <p className="mt-1 text-2xl font-black text-amber-700">
+                    {form.communication_type === 'newsletter'
+                      ? audienceSummary.includedWithoutConsent
+                      : audienceSummary.excludedNoConsent}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-xs font-black uppercase text-zinc-400">Inativos</p>
+                  <p className="mt-1 text-2xl font-black text-slate-700">{audienceSummary.excludedInactive}</p>
+                </div>
+                <div className="rounded-xl bg-white p-3">
+                  <p className="text-xs font-black uppercase text-zinc-400">Sem email</p>
+                  <p className="mt-1 text-2xl font-black text-red-700">{audienceSummary.excludedNoEmail}</p>
+                </div>
+              </div>
+            )}
+
+            {form.communication_type === 'newsletter' && audienceSummary.includedWithoutConsent > 0 && (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">
+                {audienceSummary.includedWithoutConsent} contacto(s) importado(s) do Enjogo serão incluídos apesar de a flag local ainda não estar preenchida. Os cancelamentos e contactos inativos continuam excluídos.
+              </p>
+            )}
+
+            {form.communication_type === 'newsletter' && audienceSummary.excludedNoConsent > 0 && (
+              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-6 text-red-800">
+                {audienceSummary.excludedNoConsent} contacto(s) ativo(s) não foram importados do Enjogo e não têm consentimento registado; por segurança, não serão incluídos nesta newsletter.
+              </p>
+            )}
+
+            {audienceSummary.isManual &&
+              (audienceSummary.excludedInactive > 0 || audienceSummary.excludedNoEmail > 0) && (
+                <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  Existem {audienceSummary.excludedInactive} contacto(s) inativo(s) e {audienceSummary.excludedNoEmail} endereço(s) inválido(s), que não serão enviados.
+                </p>
               )}
-              <div className="rounded-xl bg-white p-3">
-                <p className="text-xs font-black uppercase text-zinc-400">Sem consent. registado</p>
-                <p className="mt-1 text-2xl font-black text-amber-700">{audienceSummary.excludedNoConsent}</p>
-              </div>
-              <div className="rounded-xl bg-white p-3">
-                <p className="text-xs font-black uppercase text-zinc-400">Inativos</p>
-                <p className="mt-1 text-2xl font-black text-slate-700">{audienceSummary.excludedInactive}</p>
-              </div>
-              <div className="rounded-xl bg-white p-3">
-                <p className="text-xs font-black uppercase text-zinc-400">Sem email</p>
-                <p className="mt-1 text-2xl font-black text-red-700">{audienceSummary.excludedNoEmail}</p>
-              </div>
-            </div>
 
             {audienceSummary.needsGroups && (
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
@@ -2161,9 +2263,7 @@ export function AdminCommunicationsPage() {
               <Send className="h-4 w-4" />
               {sendingFinal
                 ? 'A enviar comunicação...'
-                : form.communication_type === 'individual'
-                  ? `Enviar comunicação para ${audienceSummary.recipients} destinatário(s)`
-                  : `Enviar comunicação para ${audienceSummary.recipients} destinatário(s)`}
+                : `Enviar comunicação para ${audienceSummary.recipients} destinatário(s)`}
             </button>
           </div>
 
