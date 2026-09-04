@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Sparkles,
   Users,
   XCircle,
 } from 'lucide-react';
@@ -19,6 +20,7 @@ import { useSessionState } from '../../hooks/useSessionState';
 type CommunicationType = 'newsletter' | 'escalao' | 'interno' | 'socios' | 'parceiros' | 'geral';
 type CommunicationKind = CommunicationType | 'individual';
 type AudienceMode = 'all_active' | 'selected_groups' | 'manual';
+type EmailTemplate = 'standard' | 'season_opening_2026_27';
 
 type Communication = {
   id: string;
@@ -110,6 +112,7 @@ type FormState = {
   audience_mode: AudienceMode;
   groupIds: string[];
   manualRecipientId: string;
+  email_template: EmailTemplate;
 };
 
 type AudienceSummary = {
@@ -135,7 +138,30 @@ const emptyForm: FormState = {
   audience_mode: 'selected_groups',
   groupIds: [],
   manualRecipientId: '',
+  email_template: 'standard',
 };
+
+const seasonOpeningPreset = {
+  subject: 'A época 2026/27 começa agora no GDR Boavista',
+  previewText: 'Novos desafios, a mesma paixão. Consulta os horários de treino de todos os escalões.',
+  body: `Uma nova época começa no GDR Boavista.
+
+Regressamos ao campo com energia renovada, novos desafios e a mesma paixão que une atletas, treinadores, famílias, sócios e amigos do clube.
+
+Em 2026/27 queremos continuar a formar atletas, construir equipas e representar o Boavista com trabalho, ambição, respeito e união.
+
+Os dias e horários de treino de todos os escalões já estão disponíveis. Consulta o teu escalão e acompanha também todas as novidades no nosso site.
+
+Contamos contigo para escrever mais um capítulo da nossa história.`,
+};
+
+function inferEmailTemplate(communication: Communication): EmailTemplate {
+  const subject = communication.subject?.trim().toLowerCase() || '';
+
+  return subject === seasonOpeningPreset.subject.toLowerCase()
+    ? 'season_opening_2026_27'
+    : 'standard';
+}
 
 const statusLabels: Record<Communication['status'], string> = {
   draft: 'Rascunho',
@@ -596,6 +622,7 @@ export function AdminCommunicationsPage() {
       audience_mode: communication.audience_mode || 'selected_groups',
       groupIds,
       manualRecipientId,
+      email_template: inferEmailTemplate(communication),
     });
     const selected = subscribers.find((subscriber) => subscriber.id === manualRecipientId);
     setRecipientSearchTerm(selected ? `${selected.name || 'Sem nome'} — ${selected.email || ''}` : '');
@@ -610,6 +637,34 @@ export function AdminCommunicationsPage() {
       groupIds: [],
       manualRecipientId: '',
     }));
+  }
+
+  function applySeasonOpeningPreset() {
+    const hasExistingContent = Boolean(
+      form.subject.trim() || form.preview_text.trim() || form.body.trim(),
+    );
+
+    if (hasExistingContent) {
+      const confirmed = window.confirm(
+        'Aplicar o modelo vai substituir o assunto, o texto de pré-visualização e a mensagem atuais. Continuar?',
+      );
+
+      if (!confirmed) return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      subject: seasonOpeningPreset.subject,
+      preview_text: seasonOpeningPreset.previewText,
+      body: seasonOpeningPreset.body,
+      channel: 'email',
+      email_template: 'season_opening_2026_27',
+    }));
+
+    setMessage({
+      type: 'success',
+      text: 'Modelo “Início da época 2026/27” aplicado. Revê o conteúdo e escolhe os destinatários antes do envio.',
+    });
   }
 
   function toggleGroup(groupId: string) {
@@ -768,6 +823,7 @@ export function AdminCommunicationsPage() {
         body: JSON.stringify({
           communicationId,
           mode: 'send',
+          emailTemplate: form.email_template || 'standard',
         }),
       });
 
@@ -1222,6 +1278,87 @@ export function AdminCommunicationsPage() {
             </div>
           </div>
 
+          <div className="mb-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="mb-4 flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700">
+                <Sparkles className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-black text-zinc-900">Modelo visual do email</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-500">
+                  Escolhe o formato simples ou a campanha visual preparada para o início da época.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setForm((current) => ({ ...current, email_template: 'standard' }))}
+                className={`rounded-2xl border p-4 text-left transition ${
+                  (form.email_template || 'standard') === 'standard'
+                    ? 'border-red-300 bg-white shadow-sm ring-2 ring-red-100'
+                    : 'border-zinc-200 bg-white hover:border-red-200'
+                }`}
+              >
+                <span className="block text-xs font-black uppercase tracking-[0.18em] text-zinc-400">
+                  Modelo simples
+                </span>
+                <span className="mt-2 block text-base font-black text-zinc-900">Comunicação editorial</span>
+                <span className="mt-1 block text-xs leading-5 text-zinc-500">
+                  Assunto e mensagem num formato neutro, leve e compatível com todos os clientes de email.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setForm((current) => ({ ...current, email_template: 'season_opening_2026_27' }))}
+                className={`group overflow-hidden rounded-2xl border text-left transition ${
+                  (form.email_template || 'standard') === 'season_opening_2026_27'
+                    ? 'border-red-300 bg-white shadow-sm ring-2 ring-red-100'
+                    : 'border-zinc-200 bg-white hover:border-red-200'
+                }`}
+              >
+                <div className="relative h-32 overflow-hidden bg-[#21150f]">
+                  <img
+                    src="https://images.pexels.com/photos/33471345/pexels-photo-33471345/free-photo-of-sprinklers-watering-soccer-stadium-field-at-night.jpeg?auto=compress&dpr=1&h=750&w=1260"
+                    alt="Campo de futebol iluminado"
+                    className="h-full w-full object-cover opacity-75 transition duration-500 group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#21150f]/90 via-[#21150f]/45 to-red-950/30" />
+                  <div className="absolute inset-x-4 bottom-4">
+                    <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-red-200">
+                      Campanha visual
+                    </span>
+                    <span className="mt-1 block text-lg font-black text-white">Início da época 2026/27</span>
+                  </div>
+                </div>
+                <span className="block p-4 text-xs leading-5 text-zinc-500">
+                  Imagem de futebol, saudação personalizada, horários, ligação para o site e cancelamento de subscrição.
+                </span>
+              </button>
+            </div>
+
+            {(form.email_template || 'standard') === 'season_opening_2026_27' && (
+              <div className="mt-4 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-red-900">Campanha pronta para personalizar</p>
+                  <p className="mt-1 text-xs leading-5 text-red-700">
+                    O banner, os botões e a saudação serão adicionados automaticamente no email final.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={applySeasonOpeningPreset}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-red-800"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Preencher campanha
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="grid gap-4">
             <label className="space-y-2">
               <span className="text-sm font-black text-zinc-800">Assunto do email *</span>
@@ -1229,6 +1366,16 @@ export function AdminCommunicationsPage() {
                 value={form.subject}
                 onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
                 placeholder="Ex.: Agenda GDR Boavista para este fim de semana"
+                className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-black text-zinc-800">Texto de pré-visualização</span>
+              <input
+                value={form.preview_text}
+                onChange={(event) => setForm((current) => ({ ...current, preview_text: event.target.value }))}
+                placeholder="Texto curto que aparece junto ao assunto na caixa de entrada"
                 className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
               />
             </label>

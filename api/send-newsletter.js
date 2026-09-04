@@ -37,6 +37,27 @@ function renderBodyHtml(body) {
     .join('<br />');
 }
 
+function renderBodyParagraphs(body) {
+  return escapeHtml(body)
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) =>
+      `<p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:#27272a;">${paragraph.replace(/\n/g, '<br />')}</p>`,
+    )
+    .join('');
+}
+
+function normalizeEmailTemplate(value) {
+  return value === 'season_opening_2026_27' ? value : 'standard';
+}
+
+function getSubscriberFirstName(subscriber) {
+  const name = String(subscriber?.name || '').trim();
+  return name ? name.split(/\s+/)[0] : '';
+}
+
 function getSiteUrl() {
   return (process.env.PUBLIC_SITE_URL || 'https://gdrboavista.pt').replace(/\/$/, '');
 }
@@ -46,7 +67,7 @@ function getUnsubscribeUrl(subscriber) {
   return `${getSiteUrl()}/newsletter/cancelar/${encodeURIComponent(subscriber.unsubscribe_token)}`;
 }
 
-function buildNewsletterHtml({ communication, subscriber }) {
+function buildStandardNewsletterHtml({ communication, subscriber }) {
   const unsubscribeUrl = getUnsubscribeUrl(subscriber);
 
   if (!unsubscribeUrl) {
@@ -140,6 +161,220 @@ function buildNewsletterHtml({ communication, subscriber }) {
     </table>
   </body>
 </html>`;
+}
+
+
+function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
+  const unsubscribeUrl = getUnsubscribeUrl(subscriber);
+
+  if (!unsubscribeUrl) {
+    throw new Error('Destinatário sem token de cancelamento de subscrição.');
+  }
+
+  const siteUrl = getSiteUrl();
+  const campaignQuery = 'utm_source=newsletter&utm_medium=email&utm_campaign=inicio_epoca_2026_27';
+  const homeUrl = `${siteUrl}/?${campaignQuery}`;
+  const scheduleUrl = `${siteUrl}/horarios-de-treino?${campaignQuery}`;
+  const logoUrl = `${siteUrl}/logo-gdr-boavista-header-256.png`;
+  // Fotografia de Eric MASENGESHO via Pexels (Licença Pexels).
+  const heroImageUrl = 'https://images.pexels.com/photos/33471345/pexels-photo-33471345/free-photo-of-sprinklers-watering-soccer-stadium-field-at-night.jpeg?auto=compress&dpr=1&h=750&w=1260';
+  const homeUrlHtml = escapeHtml(homeUrl);
+  const scheduleUrlHtml = escapeHtml(scheduleUrl);
+  const logoUrlHtml = escapeHtml(logoUrl);
+  const heroImageUrlHtml = escapeHtml(heroImageUrl);
+  const title = escapeHtml(communication.subject || communication.title || 'A época 2026/27 começa agora');
+  const preview = escapeHtml(
+    communication.preview_text ||
+      'Novos desafios, a mesma paixão. Consulta os horários de treino de todos os escalões.',
+  );
+  const firstName = escapeHtml(getSubscriberFirstName(subscriber));
+  const greeting = firstName ? `Olá, ${firstName}!` : 'Olá!';
+  const bodyHtml = renderBodyParagraphs(communication.body || '');
+
+  return `<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>${title}</title>
+    <style>
+      html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+      table { border-collapse: collapse !important; border-spacing: 0 !important; }
+      img { border: 0; display: block; height: auto; }
+      a { text-decoration: none; }
+      .email-shell { width: 100%; background: #f3f0eb; }
+      .email-card { width: 100%; max-width: 640px; background: #ffffff; }
+      .content-pad { padding: 34px 42px; }
+      .footer-pad { padding: 24px 42px 30px; }
+      .button-cell { display: inline-block; }
+      @media screen and (max-width: 640px) {
+        .outer-pad { padding: 10px !important; }
+        .content-pad { padding: 28px 22px !important; }
+        .footer-pad { padding: 22px !important; }
+        .brand-pad { padding: 18px 20px !important; }
+        .email-title { font-size: 28px !important; line-height: 1.16 !important; }
+        .email-greeting { font-size: 27px !important; }
+        .stat-cell { display: block !important; width: 100% !important; padding: 0 0 8px !important; }
+        .button-row, .button-cell { display: block !important; width: 100% !important; }
+        .button-cell { padding: 0 0 10px !important; }
+        .button-link { display: block !important; text-align: center !important; }
+      }
+    </style>
+  </head>
+  <body style="margin:0;padding:0;background:#f3f0eb;color:#18181b;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:none;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;max-height:0;max-width:0;">
+      ${preview}
+    </div>
+
+    <table role="presentation" width="100%" class="email-shell" bgcolor="#f3f0eb" style="width:100%;background:#f3f0eb;margin:0;padding:0;">
+      <tr>
+        <td align="center" class="outer-pad" style="padding:24px 14px;">
+          <table role="presentation" width="100%" class="email-card" bgcolor="#ffffff" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #e7e2dc;border-radius:18px;overflow:hidden;">
+            <tr>
+              <td class="brand-pad" bgcolor="#ffffff" style="background:#ffffff;padding:20px 28px;border-bottom:4px solid #c90012;">
+                <table role="presentation" width="100%" style="width:100%;">
+                  <tr>
+                    <td width="58" valign="middle" style="width:58px;">
+                      <a href="${homeUrlHtml}" target="_blank" aria-label="Visitar o site do GDR Boavista">
+                        <img src="${logoUrlHtml}" width="46" alt="GDR Boavista" style="width:46px;max-width:46px;height:auto;" />
+                      </a>
+                    </td>
+                    <td valign="middle" style="padding-left:12px;">
+                      <p style="margin:0;color:#17120f;font-size:16px;line-height:1.2;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">GDR Boavista</p>
+                      <p style="margin:5px 0 0;color:#c90012;font-size:11px;line-height:1.2;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;">Época 2026/27</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:0;background:#17120f;" bgcolor="#17120f">
+                <a href="${scheduleUrlHtml}" target="_blank" style="display:block;">
+                  <img src="${heroImageUrlHtml}" width="640" alt="Campo de futebol iluminado no início de uma nova época" style="width:100%;max-width:640px;height:auto;display:block;" />
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td bgcolor="#21150f" style="background:#21150f;padding:26px 42px 28px;border-top:4px solid #c90012;">
+                <p style="margin:0 0 8px;color:#ffb4bb;font-size:11px;line-height:1.3;font-weight:800;letter-spacing:0.24em;text-transform:uppercase;">Início da época</p>
+                <h1 class="email-title" style="margin:0;color:#ffffff;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.12;font-weight:400;letter-spacing:-0.02em;">
+                  Uma nova época.<br />A mesma paixão.
+                </h1>
+                <p style="margin:14px 0 0;color:#f6d6d8;font-size:14px;line-height:1.6;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Juntos, mais fortes.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="content-pad" bgcolor="#ffffff" style="background:#ffffff;padding:34px 42px;">
+                <h2 class="email-greeting" style="margin:0 0 22px;color:#17120f;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;font-weight:400;">
+                  ${greeting}
+                </h2>
+
+                <div style="color:#27272a;">
+                  ${bodyHtml}
+                </div>
+
+                <table role="presentation" width="100%" style="width:100%;margin:26px 0 22px;">
+                  <tr>
+                    <td class="stat-cell" width="33.33%" style="width:33.33%;padding-right:6px;" valign="top">
+                      <div style="border:1px solid #e7e2dc;border-radius:12px;background:#faf8f5;padding:15px 12px;text-align:center;">
+                        <p style="margin:0;color:#c90012;font-size:21px;line-height:1;font-weight:800;">14</p>
+                        <p style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Escalões</p>
+                      </div>
+                    </td>
+                    <td class="stat-cell" width="33.33%" style="width:33.33%;padding:0 3px;" valign="top">
+                      <div style="border:1px solid #e7e2dc;border-radius:12px;background:#faf8f5;padding:15px 12px;text-align:center;">
+                        <p style="margin:0;color:#17120f;font-size:15px;line-height:1;font-weight:800;">SEG–SÁB</p>
+                        <p style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Treinos</p>
+                      </div>
+                    </td>
+                    <td class="stat-cell" width="33.33%" style="width:33.33%;padding-left:6px;" valign="top">
+                      <div style="border:1px solid #e7e2dc;border-radius:12px;background:#faf8f5;padding:15px 12px;text-align:center;">
+                        <p style="margin:0;color:#17120f;font-size:15px;line-height:1;font-weight:800;">F5–F11</p>
+                        <p style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Formação</p>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <table role="presentation" class="button-row" style="margin:0;">
+                  <tr>
+                    <td class="button-cell" style="padding-right:10px;">
+                      <table role="presentation" width="100%" style="width:100%;">
+                        <tr>
+                          <td align="center" bgcolor="#c90012" style="background:#c90012;border-radius:10px;">
+                            <a class="button-link" href="${scheduleUrlHtml}" target="_blank" style="display:inline-block;padding:15px 20px;color:#ffffff;font-size:13px;line-height:1.2;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
+                              Consultar horários de treino
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                    <td class="button-cell">
+                      <table role="presentation" width="100%" style="width:100%;">
+                        <tr>
+                          <td align="center" bgcolor="#ffffff" style="background:#ffffff;border:1px solid #d6d3d1;border-radius:10px;">
+                            <a class="button-link" href="${homeUrlHtml}" target="_blank" style="display:inline-block;padding:14px 20px;color:#17120f;font-size:13px;line-height:1.2;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
+                              Visitar o site
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:26px 0 0;padding-top:22px;border-top:1px solid #e7e2dc;color:#991b1b;font-size:12px;line-height:1.6;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;text-align:center;">
+                  Trabalho · Ambição · Respeito · União
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="footer-pad" bgcolor="#f8f5f1" style="background:#f8f5f1;padding:24px 42px 30px;border-top:1px solid #e7e2dc;">
+                <table role="presentation" width="100%" style="width:100%;">
+                  <tr>
+                    <td width="44" valign="top" style="width:44px;">
+                      <img src="${logoUrlHtml}" width="34" alt="" style="width:34px;max-width:34px;height:auto;" />
+                    </td>
+                    <td valign="top" style="padding-left:10px;">
+                      <p style="margin:0;color:#17120f;font-size:12px;line-height:1.5;font-weight:800;">Grupo Desportivo e Recreativo Boavista</p>
+                      <p style="margin:4px 0 0;font-size:12px;line-height:1.6;">
+                        <a href="${homeUrlHtml}" style="color:#991b1b;font-weight:700;text-decoration:underline;">gdrboavista.pt</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:18px 0 7px;font-size:12px;line-height:1.6;color:#52525b;">
+                  Recebeste este e-mail porque autorizaste comunicações do GDR Boavista.
+                </p>
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
+                  Se não pretendes receber mais comunicações,
+                  <a href="${unsubscribeUrl}" style="color:#991b1b;font-weight:800;text-decoration:underline;">Cancelar subscrição</a>.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+function buildNewsletterHtml({ communication, subscriber, emailTemplate = 'standard' }) {
+  const normalizedTemplate = normalizeEmailTemplate(emailTemplate);
+
+  if (normalizedTemplate === 'season_opening_2026_27') {
+    return buildSeasonOpeningNewsletterHtml({ communication, subscriber });
+  }
+
+  return buildStandardNewsletterHtml({ communication, subscriber });
 }
 
 async function supabaseRequest(path, options = {}) {
@@ -371,7 +606,7 @@ async function updateCommunication(communicationId, payload) {
   });
 }
 
-async function sendEmail({ communication, subscriber, recipientEmail }) {
+async function sendEmail({ communication, subscriber, recipientEmail, emailTemplate }) {
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
@@ -397,7 +632,7 @@ async function sendEmail({ communication, subscriber, recipientEmail }) {
       from: `${fromName} <${fromEmail}>`,
       to: [recipientEmail],
       subject,
-      html: buildNewsletterHtml({ communication, subscriber }),
+      html: buildNewsletterHtml({ communication, subscriber, emailTemplate }),
       headers: {
         'List-Unsubscribe': `<${unsubscribeUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
@@ -428,6 +663,7 @@ export default async function handler(request, response) {
 
   const mode = 'send';
   const communicationId = String(request.body?.communicationId ?? '').trim();
+  const emailTemplate = normalizeEmailTemplate(request.body?.emailTemplate);
 
   if (!communicationId) {
     return response.status(400).json({ error: 'Comunicação inválida.' });
@@ -497,7 +733,7 @@ export default async function handler(request, response) {
       });
 
       try {
-        const result = await sendEmail({ communication, subscriber: subscriberWithToken, recipientEmail });
+        const result = await sendEmail({ communication, subscriber: subscriberWithToken, recipientEmail, emailTemplate });
         sentCount += 1;
 
         await updateDelivery(delivery?.id, {
