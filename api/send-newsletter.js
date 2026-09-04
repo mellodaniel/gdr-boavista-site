@@ -182,6 +182,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
   const scheduleUrlHtml = escapeHtml(scheduleUrl);
   const logoUrlHtml = escapeHtml(logoUrl);
   const heroImageUrlHtml = escapeHtml(heroImageUrl);
+  const unsubscribeUrlHtml = escapeHtml(unsubscribeUrl);
   const title = escapeHtml(communication.subject || communication.title || 'A época 2026/27 começa agora');
   const preview = escapeHtml(
     communication.preview_text ||
@@ -200,26 +201,50 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
     <meta name="supported-color-schemes" content="light dark" />
     <title>${title}</title>
     <style>
-      html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
-      table { border-collapse: collapse !important; border-spacing: 0 !important; }
-      img { border: 0; display: block; height: auto; }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        -webkit-text-size-adjust: 100% !important;
+        -ms-text-size-adjust: 100% !important;
+      }
+      table {
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
+        mso-table-lspace: 0pt !important;
+        mso-table-rspace: 0pt !important;
+      }
+      img {
+        border: 0;
+        display: block;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+      }
       a { text-decoration: none; }
       .email-shell { width: 100%; background: #f3f0eb; }
-      .email-card { width: 100%; max-width: 640px; background: #ffffff; }
-      .content-pad { padding: 34px 42px; }
-      .footer-pad { padding: 24px 42px 30px; }
-      .button-cell { display: inline-block; }
+      .email-card {
+        width: 100%;
+        max-width: 640px;
+        background: #ffffff;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+      }
+      .content-pad { padding: 34px 42px 30px; }
+      .footer-pad { padding: 22px 42px 52px; }
+      .cta-link { display: block !important; }
       @media screen and (max-width: 640px) {
-        .outer-pad { padding: 10px !important; }
-        .content-pad { padding: 28px 22px !important; }
-        .footer-pad { padding: 22px !important; }
-        .brand-pad { padding: 18px 20px !important; }
+        .outer-pad { padding: 10px 10px 76px !important; }
+        .content-pad { padding: 27px 22px 24px !important; }
+        .footer-pad { padding: 21px 22px 68px !important; }
+        .brand-pad { padding: 17px 20px !important; }
+        .campaign-pad { padding: 23px 22px 25px !important; }
         .email-title { font-size: 28px !important; line-height: 1.16 !important; }
         .email-greeting { font-size: 27px !important; }
-        .stat-cell { display: block !important; width: 100% !important; padding: 0 0 8px !important; }
-        .button-row, .button-cell { display: block !important; width: 100% !important; }
-        .button-cell { padding: 0 0 10px !important; }
-        .button-link { display: block !important; text-align: center !important; }
+        .stat-value { font-size: 17px !important; }
+        .stat-label { font-size: 9px !important; letter-spacing: 0.08em !important; }
+        .cta-link { padding-left: 14px !important; padding-right: 14px !important; }
       }
     </style>
   </head>
@@ -228,13 +253,13 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
       ${preview}
     </div>
 
-    <table role="presentation" width="100%" class="email-shell" bgcolor="#f3f0eb" style="width:100%;background:#f3f0eb;margin:0;padding:0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-shell" bgcolor="#f3f0eb" style="width:100%;background:#f3f0eb;margin:0;padding:0;">
       <tr>
-        <td align="center" class="outer-pad" style="padding:24px 14px;">
-          <table role="presentation" width="100%" class="email-card" bgcolor="#ffffff" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #e7e2dc;border-radius:18px;overflow:hidden;">
+        <td align="center" class="outer-pad" style="padding:24px 14px 72px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-card" bgcolor="#ffffff" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #e7e2dc;border-radius:18px;border-collapse:separate !important;border-spacing:0 !important;">
             <tr>
-              <td class="brand-pad" bgcolor="#ffffff" style="background:#ffffff;padding:20px 28px;border-bottom:4px solid #c90012;">
-                <table role="presentation" width="100%" style="width:100%;">
+              <td class="brand-pad" bgcolor="#ffffff" style="background:#ffffff;padding:20px 28px;border-bottom:4px solid #c90012;border-radius:18px 18px 0 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
                   <tr>
                     <td width="58" valign="middle" style="width:58px;">
                       <a href="${homeUrlHtml}" target="_blank" aria-label="Visitar o site do GDR Boavista">
@@ -251,7 +276,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
             </tr>
 
             <tr>
-              <td style="padding:0;background:#17120f;" bgcolor="#17120f">
+              <td bgcolor="#17120f" style="padding:0;background:#17120f;">
                 <a href="${scheduleUrlHtml}" target="_blank" style="display:block;">
                   <img src="${heroImageUrlHtml}" width="640" alt="Campo do GDR Boavista preparado para o início da época 2026/27" style="width:100%;max-width:640px;height:auto;display:block;" />
                 </a>
@@ -259,7 +284,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
             </tr>
 
             <tr>
-              <td bgcolor="#21150f" style="background:#21150f;padding:26px 42px 28px;border-top:4px solid #c90012;">
+              <td class="campaign-pad" bgcolor="#21150f" style="background:#21150f;padding:26px 42px 28px;border-top:4px solid #c90012;">
                 <p style="margin:0 0 8px;color:#ffb4bb;font-size:11px;line-height:1.3;font-weight:800;letter-spacing:0.24em;text-transform:uppercase;">Início da época</p>
                 <h1 class="email-title" style="margin:0;color:#ffffff;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.12;font-weight:400;letter-spacing:-0.02em;">
                   Uma nova época.<br />A mesma paixão.
@@ -269,7 +294,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
             </tr>
 
             <tr>
-              <td class="content-pad" bgcolor="#ffffff" style="background:#ffffff;padding:34px 42px;">
+              <td class="content-pad" bgcolor="#ffffff" style="background:#ffffff;padding:34px 42px 30px;">
                 <h2 class="email-greeting" style="margin:0 0 22px;color:#17120f;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;font-weight:400;">
                   ${greeting}
                 </h2>
@@ -278,65 +303,52 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
                   ${bodyHtml}
                 </div>
 
-                <table role="presentation" width="100%" style="width:100%;margin:26px 0 22px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:24px 0 22px;border:1px solid #e7e2dc;border-radius:12px;border-collapse:separate !important;border-spacing:0 !important;background:#faf8f5;">
                   <tr>
-                    <td class="stat-cell" width="33.33%" style="width:33.33%;padding-right:6px;" valign="top">
-                      <div style="border:1px solid #e7e2dc;border-radius:12px;background:#faf8f5;padding:15px 12px;text-align:center;">
-                        <p style="margin:0;color:#c90012;font-size:21px;line-height:1;font-weight:800;">14</p>
-                        <p style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Escalões</p>
-                      </div>
+                    <td width="33.33%" align="center" valign="middle" style="width:33.33%;padding:14px 6px;border-right:1px solid #e7e2dc;">
+                      <p class="stat-value" style="margin:0;color:#c90012;font-size:20px;line-height:1;font-weight:800;">14</p>
+                      <p class="stat-label" style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Escalões</p>
                     </td>
-                    <td class="stat-cell" width="33.33%" style="width:33.33%;padding:0 3px;" valign="top">
-                      <div style="border:1px solid #e7e2dc;border-radius:12px;background:#faf8f5;padding:15px 12px;text-align:center;">
-                        <p style="margin:0;color:#17120f;font-size:15px;line-height:1;font-weight:800;">SEG–SÁB</p>
-                        <p style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Treinos</p>
-                      </div>
+                    <td width="33.33%" align="center" valign="middle" style="width:33.33%;padding:14px 6px;border-right:1px solid #e7e2dc;">
+                      <p class="stat-value" style="margin:0;color:#17120f;font-size:15px;line-height:1;font-weight:800;">SEG–SÁB</p>
+                      <p class="stat-label" style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Treinos</p>
                     </td>
-                    <td class="stat-cell" width="33.33%" style="width:33.33%;padding-left:6px;" valign="top">
-                      <div style="border:1px solid #e7e2dc;border-radius:12px;background:#faf8f5;padding:15px 12px;text-align:center;">
-                        <p style="margin:0;color:#17120f;font-size:15px;line-height:1;font-weight:800;">F5–F11</p>
-                        <p style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Formação</p>
-                      </div>
+                    <td width="33.33%" align="center" valign="middle" style="width:33.33%;padding:14px 6px;">
+                      <p class="stat-value" style="margin:0;color:#17120f;font-size:15px;line-height:1;font-weight:800;">F5–F11</p>
+                      <p class="stat-label" style="margin:7px 0 0;color:#52525b;font-size:10px;line-height:1.3;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Formação</p>
                     </td>
                   </tr>
                 </table>
 
-                <table role="presentation" class="button-row" style="margin:0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
                   <tr>
-                    <td class="button-cell" style="padding-right:10px;">
-                      <table role="presentation" width="100%" style="width:100%;">
-                        <tr>
-                          <td align="center" bgcolor="#c90012" style="background:#c90012;border-radius:10px;">
-                            <a class="button-link" href="${scheduleUrlHtml}" target="_blank" style="display:inline-block;padding:15px 20px;color:#ffffff;font-size:13px;line-height:1.2;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
-                              Consultar horários de treino
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
+                    <td align="center" bgcolor="#c90012" style="background:#c90012;border-radius:10px;mso-padding-alt:15px 18px;">
+                      <a class="cta-link" href="${scheduleUrlHtml}" target="_blank" style="display:block;padding:15px 18px;color:#ffffff;font-size:13px;line-height:1.2;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;text-align:center;">
+                        Consultar horários de treino
+                      </a>
                     </td>
-                    <td class="button-cell">
-                      <table role="presentation" width="100%" style="width:100%;">
-                        <tr>
-                          <td align="center" bgcolor="#ffffff" style="background:#ffffff;border:1px solid #d6d3d1;border-radius:10px;">
-                            <a class="button-link" href="${homeUrlHtml}" target="_blank" style="display:inline-block;padding:14px 20px;color:#17120f;font-size:13px;line-height:1.2;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
-                              Visitar o site
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
+                  </tr>
+                  <tr>
+                    <td height="10" style="height:10px;line-height:10px;font-size:0;">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td align="center" bgcolor="#ffffff" style="background:#ffffff;border:1px solid #d6d3d1;border-radius:10px;mso-padding-alt:14px 18px;">
+                      <a class="cta-link" href="${homeUrlHtml}" target="_blank" style="display:block;padding:14px 18px;color:#17120f;font-size:13px;line-height:1.2;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;text-align:center;">
+                        Visitar o site
+                      </a>
                     </td>
                   </tr>
                 </table>
-
-                <p style="margin:26px 0 0;padding-top:22px;border-top:1px solid #e7e2dc;color:#991b1b;font-size:12px;line-height:1.6;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;text-align:center;">
-                  Trabalho · Ambição · Respeito · União
-                </p>
               </td>
             </tr>
 
             <tr>
-              <td class="footer-pad" bgcolor="#f8f5f1" style="background:#f8f5f1;padding:24px 42px 30px;border-top:1px solid #e7e2dc;">
-                <table role="presentation" width="100%" style="width:100%;">
+              <td class="footer-pad" bgcolor="#f8f5f1" style="background:#f8f5f1;padding:22px 42px 52px;border-top:1px solid #e7e2dc;border-radius:0 0 18px 18px;">
+                <p style="margin:0 0 18px;color:#991b1b;font-size:11px;line-height:1.5;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;text-align:center;">
+                  Trabalho · Ambição · Respeito · União
+                </p>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
                   <tr>
                     <td width="44" valign="top" style="width:44px;">
                       <img src="${logoUrlHtml}" width="34" alt="" style="width:34px;max-width:34px;height:auto;" />
@@ -355,7 +367,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber }) {
                 </p>
                 <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
                   Se não pretendes receber mais comunicações,
-                  <a href="${unsubscribeUrl}" style="color:#991b1b;font-weight:800;text-decoration:underline;">Cancelar subscrição</a>.
+                  <a href="${unsubscribeUrlHtml}" style="color:#991b1b;font-weight:800;text-decoration:underline;">Cancelar subscrição</a>.
                 </p>
               </td>
             </tr>
