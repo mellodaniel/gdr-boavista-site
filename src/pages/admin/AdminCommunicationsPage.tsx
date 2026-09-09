@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Copy,
   Filter,
+  Eye,
   Mail,
   RefreshCw,
   Search,
@@ -14,6 +15,7 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
+import { buildNewsletterHtml, getUnsubscribeUrl, escapeHtml } from '../../lib/newsletterTemplate.js';
 import { supabase } from '../../lib/supabase';
 import { useSessionState } from '../../hooks/useSessionState';
 
@@ -156,23 +158,21 @@ const emptyForm: FormState = {
 };
 
 const seasonOpeningPreset = {
-  subject: 'A época 2026/27 começa agora no GDR Boavista',
-  previewText: 'Novos desafios, a mesma paixão. Consulta os horários de treino de todos os escalões.',
-  body: `Uma nova época começa no GDR Boavista.
+  subject: 'Novidades do GDR Boavista',
+  previewText: 'O nosso clube. A nossa paixão. Juntos, mais fortes!',
+  body: `Caros sócios, adeptos e amigos do Boavista,
 
-Regressamos ao campo com energia renovada, novos desafios e a mesma paixão que une atletas, treinadores, famílias, sócios e amigos do clube.
+O apoio de cada um faz a diferença na vida do nosso clube. Dentro e fora de campo, contamos contigo para continuar a construir a história do Boavista.
 
-Em 2026/27 queremos continuar a formar atletas, construir equipas e representar o Boavista com trabalho, ambição, respeito e união.
+Acompanha as novidades, participa nas atividades e vem apoiar as nossas equipas.
 
-Os dias e horários de treino de todos os escalões já estão disponíveis. Consulta o teu escalão e acompanha também todas as novidades no nosso site.
-
-Contamos contigo para escrever mais um capítulo da nossa história.`,
+Juntos, mais fortes. Força, Boavista!`,
 };
 
 function inferEmailTemplate(communication: Communication): EmailTemplate {
   const subject = communication.subject?.trim().toLowerCase() || '';
 
-  return subject === seasonOpeningPreset.subject.toLowerCase()
+  return [seasonOpeningPreset.subject.toLowerCase(), 'a época 2026/27 começa agora no gdr boavista'].includes(subject)
     ? 'season_opening_2026_27'
     : 'standard';
 }
@@ -196,12 +196,12 @@ const communicationTypeLabels: Record<CommunicationKind, string> = {
 };
 
 const communicationTypeDescriptions: Record<CommunicationKind, string> = {
-  newsletter: 'Todos os contactos ativos importados do Enjogo e contactos com consentimento registado. Cancelados e inativos ficam sempre excluídos.',
+  newsletter: 'Todos os contactos com email válido, exceto quem cancelou a newsletter.',
   escalao: 'Pais, encarregados, atletas e contactos associados a escalões/equipas específicas.',
   interno: 'Direção, treinadores, equipa técnica e contactos internos do clube.',
   socios: 'Contactos classificados como sócios.',
   parceiros: 'Contactos classificados como parceiros/patrocinadores.',
-  geral: 'Comunicação institucional para todos os contactos ativos com consentimento aplicável.',
+  geral: 'Comunicação institucional para todos os contactos com email válido que não cancelaram.',
   individual: 'Seleciona vários contactos da base ou adiciona endereços externos para um envio direto.',
 };
 
@@ -285,11 +285,6 @@ function subscriberHasConsent(subscriber: Subscriber, type: CommunicationType) {
   return subscriber.consent_email_club || subscriber.consent_email;
 }
 
-function subscriberHasEnjogoConsent(subscriber: Subscriber) {
-  const source = String(subscriber.source || '').trim().toLowerCase();
-  return source === 'importacao' || source === 'enjogo';
-}
-
 function subscriberMatchesType(subscriber: Subscriber, type: CommunicationType) {
   if (type === 'newsletter') {
     return true;
@@ -329,6 +324,7 @@ function calculateAudienceSummary({
   manualRecipientIds: string[];
   externalRecipients: ExternalRecipientDraft[];
 }): AudienceSummary {
+  const optedOutEmails = new Set(subscribers.filter((item) => item.unsubscribed_at).map((item) => normalizeEmail(item.email)));
   const isManual = communicationType === 'individual';
   const needsGroups =
     !isManual &&
@@ -348,7 +344,7 @@ function calculateAudienceSummary({
     subscribers.forEach((subscriber) => {
       if (!selectedIds.has(subscriber.id)) return;
 
-      if (!subscriber.is_active || subscriber.unsubscribed_at) {
+      if (subscriber.unsubscribed_at || optedOutEmails.has(normalizeEmail(subscriber.email))) {
         excludedInactive += 1;
         return;
       }
@@ -360,6 +356,7 @@ function calculateAudienceSummary({
         return;
       }
 
+      if (optedOutEmails.has(email)) { excludedInactive += 1; return; }
       if (usedEmails.has(email)) return;
       usedEmails.add(email);
 
@@ -379,6 +376,7 @@ function calculateAudienceSummary({
         return;
       }
 
+      if (optedOutEmails.has(email)) { excludedInactive += 1; return; }
       if (usedEmails.has(email)) return;
       usedEmails.add(email);
 
@@ -433,7 +431,7 @@ function calculateAudienceSummary({
       if (!inSelectedGroup) return;
     }
 
-    if (!subscriber.is_active || subscriber.unsubscribed_at) {
+    if (subscriber.unsubscribed_at || optedOutEmails.has(normalizeEmail(subscriber.email))) {
       excludedInactive += 1;
       return;
     }
@@ -448,14 +446,6 @@ function calculateAudienceSummary({
     if (usedEmails.has(email)) return;
     usedEmails.add(email);
 
-    if (!subscriberHasConsent(subscriber, communicationType as CommunicationType)) {
-      if (communicationType === 'newsletter' && subscriberHasEnjogoConsent(subscriber)) {
-        includedWithoutConsent += 1;
-      } else {
-        excludedNoConsent += 1;
-        return;
-      }
-    }
 
     recipients += 1;
   });
@@ -487,6 +477,12 @@ export function AdminCommunicationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingFinal, setSendingFinal] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [newsletterPreview, setNewsletterPreview] = useState<{ html: string; key: string } | null>(null);
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const previewKey = JSON.stringify([form.subject, form.preview_text, form.body, form.email_template]);
+
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | Communication['status']>('all');
@@ -734,10 +730,10 @@ export function AdminCommunicationsPage() {
   }
 
   function addManualRecipient(subscriber: Subscriber) {
-    if (!subscriber.is_active || subscriber.unsubscribed_at) {
+    if (subscriber.unsubscribed_at) {
       setRecipientEntryMessage({
         type: 'error',
-        text: 'Este contacto está inativo ou cancelou as comunicações e não pode ser adicionado.',
+        text: 'Este contacto cancelou as comunicações e não pode ser adicionado.',
       });
       return;
     }
@@ -822,7 +818,7 @@ export function AdminCommunicationsPage() {
       );
 
       if (existing) {
-        if (!existing.is_active || existing.unsubscribed_at) {
+        if (existing.unsubscribed_at) {
           blockedEmails.push(email);
           return;
         }
@@ -862,7 +858,7 @@ export function AdminCommunicationsPage() {
     if (blockedEmails.length > 0) {
       setRecipientEntryMessage({
         type: 'error',
-        text: `Não foram adicionados porque estão inativos ou cancelados: ${blockedEmails.join(', ')}.`,
+        text: `Não foram adicionados porque cancelaram as comunicações: ${blockedEmails.join(', ')}.`,
       });
       return;
     }
@@ -969,7 +965,7 @@ export function AdminCommunicationsPage() {
 
     setMessage({
       type: 'success',
-      text: 'Modelo “Início da época 2026/27” aplicado. Revê o conteúdo e escolhe os destinatários antes do envio.',
+      text: 'Modelo “Newsletter do clube” aplicado. Revê o conteúdo e escolhe os destinatários antes do envio.',
     });
   }
 
@@ -1058,9 +1054,9 @@ export function AdminCommunicationsPage() {
       }
 
       if (existing) {
-        if (!existing.is_active || existing.unsubscribed_at) {
+        if (existing.unsubscribed_at) {
           throw new Error(
-            `O contacto ${email} está inativo ou cancelou as comunicações.`,
+            `O contacto ${email} está cancelou as comunicações.`,
           );
         }
 
@@ -1113,9 +1109,9 @@ export function AdminCommunicationsPage() {
           throw createError || fallbackError || new Error(`Não foi possível adicionar ${email}.`);
         }
 
-        if (!fallback.is_active || fallback.unsubscribed_at) {
+        if (fallback.unsubscribed_at) {
           throw new Error(
-            `O contacto ${email} está inativo ou cancelou as comunicações.`,
+            `O contacto ${email} está cancelou as comunicações.`,
           );
         }
 
@@ -1227,6 +1223,31 @@ export function AdminCommunicationsPage() {
     return communicationId;
   }
 
+  async function previewNewsletter() {
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setNewsletterPreview(null);
+    const key = previewKey;
+    try {
+      const { data, error } = await supabase.from('gdrb_sponsors')
+        .select('name,logo_url,website_url').eq('is_active', true)
+        .order('sort_order', { ascending: true }).order('name', { ascending: true });
+      if (error) throw new Error(`Não foi possível carregar os parceiros: ${error.message}`);
+      const subscriber = { name: 'Sócio', unsubscribe_token: 'preview-only' };
+      const html = buildNewsletterHtml({
+        communication: { subject: form.subject || 'Pré-visualização da newsletter', preview_text: form.preview_text, body: form.body },
+        subscriber,
+        emailTemplate: form.email_template || 'standard',
+        partners: data || [],
+      }).replaceAll(escapeHtml(getUnsubscribeUrl(subscriber)), '#');
+      setNewsletterPreview({ html, key });
+    } catch (error) {
+      setPreviewError(error instanceof Error ? error.message : 'Não foi possível carregar a pré-visualização.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
   async function sendNewsletter() {
     if (audienceSummary.needsGroups) {
       setMessage({ type: 'error', text: 'Seleciona pelo menos um grupo antes do envio definitivo.' });
@@ -1249,7 +1270,7 @@ export function AdminCommunicationsPage() {
             ? 'Não existem destinatários específicos válidos para esta comunicação.'
             : form.communication_type === 'newsletter'
               ? 'Não existem contactos ativos com um endereço de email válido para esta newsletter.'
-              : 'Não existem destinatários ativos com consentimento para esta comunicação.',
+              : 'Não existem destinatários com email válido e sem cancelamento para esta comunicação.',
       });
       return;
     }
@@ -1258,7 +1279,7 @@ export function AdminCommunicationsPage() {
       form.communication_type === 'individual'
         ? `Confirmas o envio desta comunicação para ${audienceSummary.recipients} destinatário(s) específico(s)?\n\n${audienceSummary.existingRecipients} da base de contactos · ${audienceSummary.externalRecipients} externo(s).\n\nEsta ação não pode ser desfeita.`
         : form.communication_type === 'newsletter'
-          ? `Confirmas o envio da Newsletter geral para ${audienceSummary.recipients} contacto(s) ativo(s)?\n\nSerão incluídos os contactos importados do Enjogo e os contactos com consentimento registado. ${audienceSummary.includedWithoutConsent} contacto(s) importado(s) do Enjogo não têm a flag local preenchida, mas serão incluídos. Contactos inativos, cancelados ou sem base de consentimento aplicável permanecem excluídos.\n\nEsta ação não pode ser desfeita.`
+          ? `Confirmas o envio da Newsletter geral para ${audienceSummary.recipients} contacto(s)?\n\nSerão incluídos todos os contactos com email válido, independentemente da marcação de consentimento. Quem cancelou a newsletter fica excluído.\n\nEsta ação não pode ser desfeita.`
           : `Confirmas o envio definitivo desta comunicação para ${audienceSummary.recipients} destinatário(s)?\n\nEsta ação não pode ser desfeita.`,
     );
 
@@ -1283,6 +1304,9 @@ export function AdminCommunicationsPage() {
         }),
       });
 
+      if (!(response.headers.get('content-type') || '').includes('application/json')) {
+        throw new Error(`O serviço de envio não respondeu em formato válido (HTTP ${response.status}). Se estás no ambiente local com npm run dev, a API de envio não é executada aí. Testa o envio num deployment com a API atualizada.`);
+      }
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok) {
@@ -1769,7 +1793,7 @@ export function AdminCommunicationsPage() {
               <div>
                 <p className="text-sm font-black text-zinc-900">Modelo visual do email</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-500">
-                  Escolhe o formato simples ou a campanha visual preparada para o início da época.
+                  Escolhe o formato simples ou o modelo visual do clube, adequado a qualquer comunicação.
                 </p>
               </div>
             </div>
@@ -1805,19 +1829,19 @@ export function AdminCommunicationsPage() {
                 <div className="relative h-32 overflow-hidden bg-[#21150f]">
                   <img
                     src="/newsletter/inicio-epoca-2026-27.jpg?v=20260904-3"
-                    alt="Campo do GDR Boavista preparado para o início da época 2026/27"
+                    alt="Campo do GDR Boavista"
                     className="h-full w-full object-cover opacity-75 transition duration-500 group-hover:scale-[1.03]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-[#21150f]/90 via-[#21150f]/45 to-red-950/30" />
                   <div className="absolute inset-x-4 bottom-4">
                     <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-red-200">
-                      Campanha visual
+                      Newsletter do clube
                     </span>
-                    <span className="mt-1 block text-lg font-black text-white">Início da época 2026/27</span>
+                    <span className="mt-1 block text-lg font-black text-white">O nosso clube. A nossa paixão.</span>
                   </div>
                 </div>
                 <span className="block p-4 text-xs leading-5 text-zinc-500">
-                  Imagem de futebol, saudação personalizada, horários, ligação para o site e cancelamento de subscrição.
+                  Imagem do clube, saudação personalizada, parceiros, ligação para o site e cancelamento de subscrição.
                 </span>
               </button>
             </div>
@@ -1825,9 +1849,9 @@ export function AdminCommunicationsPage() {
             {(form.email_template || 'standard') === 'season_opening_2026_27' && (
               <div className="mt-4 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-black text-red-900">Campanha pronta para personalizar</p>
+                  <p className="text-sm font-black text-red-900">Newsletter pronta para personalizar</p>
                   <p className="mt-1 text-xs leading-5 text-red-700">
-                    O banner, os botões e a saudação serão adicionados automaticamente no email final.
+                    A frase de apoio, a saudação e a ligação para o site serão adicionadas automaticamente no email final.
                   </p>
                 </div>
                 <button
@@ -1836,11 +1860,17 @@ export function AdminCommunicationsPage() {
                   className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-red-800"
                 >
                   <Sparkles className="h-4 w-4" />
-                  Preencher campanha
+                  Preencher modelo
                 </button>
               </div>
             )}
           </div>
+
+          <p className="mb-5 text-xs leading-5 text-zinc-500">
+            No final de ambos os modelos são incluídos os parceiros ativos com logótipo,
+            pela ordem definida em Parceiros, com ligação ao website quando preenchido.
+            Atualiza os logótipos e os websites nesse módulo antes do envio.
+          </p>
 
           <div className="grid gap-4">
             <label className="space-y-2">
@@ -1875,6 +1905,47 @@ export function AdminCommunicationsPage() {
             />
           </label>
 
+          <section aria-label="Pré-visualização da newsletter" className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-black text-zinc-900">Ver antes de enviar</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-500">
+                  Mostra o texto atual e os parceiros, sem guardar nem enviar emails.
+                </p>
+              </div>
+              <button type="button" onClick={previewNewsletter} disabled={previewLoading}
+                className="inline-flex items-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-black text-white hover:bg-red-800 disabled:opacity-50">
+                <Eye className="h-4 w-4" />
+                {previewLoading ? 'A carregar…' : 'Pré-visualizar newsletter'}
+              </button>
+            </div>
+            {previewError && <p role="alert" className="mt-3 text-sm text-red-700">{previewError}</p>}
+            {newsletterPreview && newsletterPreview.key !== previewKey && (
+              <p role="status" className="mt-3 text-sm text-amber-800">O conteúdo foi alterado. Carrega em Pré-visualizar newsletter para atualizar.</p>
+            )}
+            {newsletterPreview && newsletterPreview.key === previewKey && (
+              <div className="mt-4">
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {(['desktop', 'mobile'] as const).map((device) => (
+                    <button key={device} type="button" aria-pressed={previewDevice === device}
+                      onClick={() => setPreviewDevice(device)}
+                      className={`rounded-lg border px-3 py-2 text-xs font-bold ${previewDevice === device ? 'border-red-600 bg-red-50 text-red-800' : 'border-zinc-300 bg-white text-zinc-700'}`}>
+                      {device === 'desktop' ? 'Computador' : 'Telemóvel'}
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => setNewsletterPreview(null)} className="ml-auto rounded-lg border border-zinc-300 px-3 py-2 text-xs font-bold text-zinc-700">Fechar prévia</button>
+                </div>
+                <p className="mb-3 text-xs leading-5 text-zinc-500">
+                  A saudação usa um nome de exemplo. O cancelamento está desativado nesta prévia.
+                  A apresentação pode variar ligeiramente entre aplicações de email.
+                </p>
+                <iframe title="Pré-visualização do email" sandbox="" srcDoc={newsletterPreview.html}
+                  style={{ width: previewDevice === 'mobile' ? 375 : 700, maxWidth: '100%', height: 640 }}
+                  className="mx-auto block rounded-lg border border-zinc-200 bg-white" />
+              </div>
+            )}
+          </section>
+
           <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-red-600" />
@@ -1888,7 +1959,7 @@ export function AdminCommunicationsPage() {
                   {form.communication_type === 'individual'
                     ? 'Seleciona vários contactos existentes ou adiciona endereços externos.'
                     : form.communication_type === 'newsletter'
-                      ? 'A Newsletter geral inclui automaticamente a base importada do Enjogo e os contactos com consentimento registado.'
+                      ? 'A Newsletter geral inclui todos os contactos com email válido, exceto quem cancelou a newsletter.'
                       : 'Os grupos abaixo mudam conforme o tipo de comunicação selecionado.'}
                 </p>
               </div>
@@ -1954,7 +2025,7 @@ export function AdminCommunicationsPage() {
                       ) : (
                         <div className="divide-y divide-zinc-100">
                           {filteredRecipientOptions.map((subscriber) => {
-                            const isBlocked = !subscriber.is_active || Boolean(subscriber.unsubscribed_at);
+                            const isBlocked = Boolean(subscriber.unsubscribed_at);
 
                             return (
                               <button
@@ -2121,11 +2192,7 @@ export function AdminCommunicationsPage() {
                   )}
                 </div>
 
-                {audienceSummary.manualNoConsent > 0 && (
-                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800">
-                    {audienceSummary.manualNoConsent} destinatário(s) não têm consentimento de marketing registado. Usa o envio específico apenas para comunicações diretas, operacionais ou administrativas com fundamento válido; não os inscreve automaticamente na newsletter.
-                  </p>
-                )}
+
               </div>
             ) : form.communication_type === 'newsletter' ? (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
@@ -2134,7 +2201,7 @@ export function AdminCommunicationsPage() {
                   <div>
                     <p className="text-sm font-black text-emerald-950">Base elegível completa</p>
                     <p className="mt-1 text-xs font-semibold leading-5 text-emerald-800">
-                      Não é necessário selecionar grupos. Serão considerados todos os contactos ativos importados do Enjogo e todos os contactos com consentimento de email registado. Contactos avulsos sem consentimento, inativos ou que cancelaram comunicações continuam excluídos.
+                      Não é necessário selecionar grupos. Serão considerados todos os contactos com email válido, independentemente do consentimento registado. Quem cancelou a newsletter fica excluído.
                     </p>
                   </div>
                 </div>
@@ -2208,7 +2275,7 @@ export function AdminCommunicationsPage() {
                 </div>
                 <div className="rounded-xl bg-white p-3">
                   <p className="text-xs font-black uppercase text-zinc-400">
-                    {form.communication_type === 'newsletter' ? 'Consent. Enjogo' : 'Sem consent.'}
+                    {'Excluídos por consent.'}
                   </p>
                   <p className="mt-1 text-2xl font-black text-amber-700">
                     {form.communication_type === 'newsletter'
@@ -2217,7 +2284,7 @@ export function AdminCommunicationsPage() {
                   </p>
                 </div>
                 <div className="rounded-xl bg-white p-3">
-                  <p className="text-xs font-black uppercase text-zinc-400">Inativos</p>
+                  <p className="text-xs font-black uppercase text-zinc-400">Cancelados</p>
                   <p className="mt-1 text-2xl font-black text-slate-700">{audienceSummary.excludedInactive}</p>
                 </div>
                 <div className="rounded-xl bg-white p-3">
@@ -2227,22 +2294,14 @@ export function AdminCommunicationsPage() {
               </div>
             )}
 
-            {form.communication_type === 'newsletter' && audienceSummary.includedWithoutConsent > 0 && (
-              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">
-                {audienceSummary.includedWithoutConsent} contacto(s) importado(s) do Enjogo serão incluídos apesar de a flag local ainda não estar preenchida. Os cancelamentos e contactos inativos continuam excluídos.
-              </p>
-            )}
 
-            {form.communication_type === 'newsletter' && audienceSummary.excludedNoConsent > 0 && (
-              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-6 text-red-800">
-                {audienceSummary.excludedNoConsent} contacto(s) ativo(s) não foram importados do Enjogo e não têm consentimento registado; por segurança, não serão incluídos nesta newsletter.
-              </p>
-            )}
+
+
 
             {audienceSummary.isManual &&
               (audienceSummary.excludedInactive > 0 || audienceSummary.excludedNoEmail > 0) && (
                 <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                  Existem {audienceSummary.excludedInactive} contacto(s) inativo(s) e {audienceSummary.excludedNoEmail} endereço(s) inválido(s), que não serão enviados.
+                  Existem {audienceSummary.excludedInactive} contacto(s) com cancelamento e {audienceSummary.excludedNoEmail} endereço(s) inválido(s), que não serão enviados.
                 </p>
               )}
 
