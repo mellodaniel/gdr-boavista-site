@@ -9,6 +9,7 @@ import {
   Smartphone,
   X,
 } from 'lucide-react';
+import { PresentationGamesPopup } from '../components/public/PresentationGamesPopup';
 import { AnalyticsTracker } from '../components/public/AnalyticsTracker';
 import { CookieConsentBanner } from '../components/public/CookieConsentBanner';
 import { MobileBottomNavigation } from '../components/public/MobileBottomNavigation';
@@ -474,6 +475,7 @@ export function PublicLayout() {
 
       <MobileBottomNavigation onOpenMenu={() => setIsMenuOpen(true)} />
       <CookieConsentBanner />
+      <PresentationGamesPopup />
     </div>
   );
 }
