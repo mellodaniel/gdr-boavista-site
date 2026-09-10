@@ -4,10 +4,10 @@ import { X } from 'lucide-react';
 
 // Lisbon is UTC+01:00 on this date. Change the campaign ID for a new announcement.
 export const presentationCampaign = {
-  id: 'presentation-games-2026-09-12',
+  id: 'presentation-games-2026-09-12-v3',
   startsAt: '2026-09-09T00:00:00+01:00',
   endsAt: '2026-09-12T16:00:00+01:00',
-  poster: '/announcements/jogos-apresentacao-2026-09-12.png',
+  poster: '/announcements/jogos-apresentacao-2026-09-12-v2.png',
 };
 
 export function isPresentationCampaignActive(now = Date.now()) {
@@ -82,7 +82,7 @@ export function PresentationGamesPopup() {
           </button>
         </div>
         <p id="presentation-games-description" className="sr-only">Sábado, 12 de setembro. Seniores às 16h00: Boavista contra Marinhense. Juniores às 18h30: Boavista contra Ferreira do Zêzere. Traz a família e vem apoiar as nossas equipas.</p>
-        <img src={presentationCampaign.poster} alt="A nossa força começa contigo. Jogos de apresentação do GDR Boavista: seniores às 16h00 e juniores às 18h30."
+        <img src={presentationCampaign.poster} alt="A nossa força começa contigo. Jogos de apresentação do GDR Boavista no sábado, 12 de setembro: seniores às 16h00 e juniores às 18h30."
           className="block h-auto w-full" onError={() => setOpen(false)} />
         <button type="button" onClick={dismiss} className="w-full px-4 py-4 text-sm font-bold underline underline-offset-4 hover:bg-white/10">Continuar para o site</button>
       </div>}
