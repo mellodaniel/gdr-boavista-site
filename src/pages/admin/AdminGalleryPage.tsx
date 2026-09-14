@@ -1,897 +1,209 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { ChangeEvent, FormEvent } from 'react';
-import {
-  Camera,
-  ChevronDown,
-  ChevronUp,
-  Edit3,
-  Eye,
-  EyeOff,
-  Filter,
-  ImagePlus,
-  Plus,
-  RefreshCcw,
-  Save,
-  Search,
-  Trash2,
-  Upload,
-} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
-import { useSessionState } from '../../hooks/useSessionState';
+import { albumSelect, galleryBucket, galleryError, galleryPhotoSelect, uploadAlbumPhoto, type Album, type Photo } from '../../lib/gallery';
+import { GalleryLightbox } from '../../components/GalleryLightbox';
 
-type GalleryItem = {
-  id: string;
-  title: string;
-  description: string | null;
-  image_url: string | null;
-  category: string | null;
-  is_active: boolean;
-  sort_order: number | null;
-  created_at: string;
-  updated_at: string | null;
-};
-
-const initialForm = {
-  title: '',
-  description: '',
-  image_url: '',
-  category: 'GDR Boavista',
-  is_active: true,
-  sort_order: 0,
-};
-
-const statusFilters = [
-  { value: 'active', label: 'Visíveis' },
-  { value: 'all', label: 'Todas' },
-  { value: 'inactive', label: 'Ocultas' },
-] as const;
-
-const pageSizeOptions = [10, 25, 50];
-
-type StatusFilter = (typeof statusFilters)[number]['value'];
-
-function formatDate(value: string | null | undefined) {
-  if (!value) {
-    return '—';
-  }
-
-  return new Intl.DateTimeFormat('pt-PT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(value));
-}
-
-function normalizeCategory(category: string | null | undefined) {
-  return category?.trim() || 'GDR Boavista';
-}
+type Job = { id: string; file: File; order: number; status: 'pending' | 'working' | 'done' | 'failed'; message: string };
+const emptyForm = { title: '', description: '', category: 'GDR Boavista', event_date: '' };
+const button = 'min-h-11 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40';
+const input = 'mt-2 w-full rounded-lg border border-zinc-300 bg-white p-3 font-normal';
 
 export function AdminGalleryPage() {
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
-  const [form, setForm] = useSessionState('admin:gallery:form', initialForm);
-  const [editingId, setEditingId] = useSessionState<string | null>('admin:gallery:editingId', null);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [selected, setSelected] = useState<Album | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [dirty, setDirty] = useState(false);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [savedQueues, setSavedQueues] = useState<Record<string, Job[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [search, setSearch] = useState('');
+  const [index, setIndex] = useState<number | null>(null);
+  const stop = useRef(false);
+  const active = useRef(false);
+  const mounted = useRef(true);
+  const locked = busy || uploading;
+  const pending = jobs.filter(j => j.status === 'pending' || j.status === 'failed');
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [showForm, setShowForm] = useSessionState('admin:gallery:showForm', false);
+  const waitingElsewhere = Object.entries(savedQueues).filter(([id]) => id !== selected?.id).reduce((count, [, queue]) => count + queue.length, 0);
 
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-
-  async function loadGalleryItems() {
-    setIsLoading(true);
-    setErrorMessage('');
-
-    const { data, error } = await supabase
-      .from('gdrb_gallery_items')
-      .select('*')
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Erro ao carregar galeria:', error);
-      setErrorMessage(
-        'Não foi possível carregar a galeria. Confirma se a tabela gdrb_gallery_items já existe no Supabase.',
-      );
-      setGalleryItems([]);
-      setIsLoading(false);
-      return;
+  async function loadAlbums() {
+    const all: Album[] = [];
+    for (let from = 0; ; from += 500) {
+      const result = await supabase.from('gdrb_gallery_albums').select(albumSelect).order('created_at', { ascending: false }).range(from, from + 499);
+      if (result.error) throw result.error;
+      all.push(...result.data as Album[]);
+      if (result.data.length < 500) break;
     }
-
-    setGalleryItems((data ?? []) as GalleryItem[]);
-    setIsLoading(false);
+    if (mounted.current) setAlbums(all);
   }
-
   useEffect(() => {
-    void loadGalleryItems();
+    mounted.current = true;
+    void loadAlbums().catch(e => setError(galleryError(e))).finally(() => setLoading(false));
+    return () => { mounted.current = false; stop.current = true; };
   }, []);
-
-  const counts = useMemo(() => {
-    const active = galleryItems.filter((item) => item.is_active).length;
-    const inactive = galleryItems.length - active;
-
-    return {
-      total: galleryItems.length,
-      active,
-      inactive,
-    };
-  }, [galleryItems]);
-
-  const availableCategories = useMemo(() => {
-    const categories = new Set<string>();
-
-    galleryItems.forEach((item) => {
-      categories.add(normalizeCategory(item.category));
-    });
-
-    return Array.from(categories).sort((a, b) => a.localeCompare(b, 'pt-PT'));
-  }, [galleryItems]);
-
-  const filteredItems = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return galleryItems.filter((item) => {
-      const category = normalizeCategory(item.category);
-
-      if (statusFilter === 'active' && !item.is_active) {
-        return false;
-      }
-
-      if (statusFilter === 'inactive' && item.is_active) {
-        return false;
-      }
-
-      if (categoryFilter !== 'all' && category !== categoryFilter) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      const searchableContent = [
-        item.title,
-        item.description,
-        item.image_url,
-        category,
-        String(item.sort_order ?? ''),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return searchableContent.includes(normalizedSearch);
-    });
-  }, [galleryItems, searchTerm, statusFilter, categoryFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  const safeCurrentPage = Math.min(currentPage, totalPages);
-  const startIndex = (safeCurrentPage - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, filteredItems.length);
-  const paginatedItems = filteredItems.slice(startIndex, endIndex);
-
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, categoryFilter, pageSize]);
-
-  function handleChange(
-    field: keyof typeof initialForm,
-    value: string | boolean | number,
-  ) {
-    setForm((currentForm) => ({
-      ...currentForm,
-      [field]: value,
-    }));
+    if (!dirty && !uploading && !pending.length && !waitingElsewhere) return;
+    const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, [dirty, uploading, pending.length, waitingElsewhere]);
+  async function run(action: () => Promise<void>) {
+    if (active.current) return;
+    active.current = true; setBusy(true); setError(''); setSuccess('');
+    try { await action(); } catch (e) { setError(galleryError(e)); }
+    finally { active.current = false; setBusy(false); }
   }
-
-  function resetForm() {
-    setForm(initialForm);
-    setEditingId(null);
-    setShowForm(false);
+  function canLeave() {
+    if (locked || active.current) return false;
+    if (dirty && !window.confirm('Sair sem guardar as alterações do álbum?')) return false;
+    if (selected) setSavedQueues(current => ({ ...current, [selected.id]: pending }));
+    return true;
   }
-
-  function handleEdit(item: GalleryItem) {
-    setEditingId(item.id);
-    setForm({
-      title: item.title,
-      description: item.description ?? '',
-      image_url: item.image_url ?? '',
-      category: normalizeCategory(item.category),
-      is_active: item.is_active,
-      sort_order: item.sort_order ?? 0,
-    });
-    setShowForm(true);
+  function backToAlbums() {
+    if (!canLeave()) return;
+    setEditing(false); setSelected(null); setPhotos([]); setJobs([]);
+    setForm(emptyForm); setDirty(false); setIndex(null); setError('');
+    setSuccess(pending.length ? 'Podes reabrir o álbum para continuar a fila. Mantém esta página aberta.' : 'Estás na lista de álbuns.');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
-
-  async function handleImageUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    setIsUploadingImage(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${Date.now()}-${crypto.randomUUID()}.${fileExtension}`;
-    const filePath = `galeria/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('gdrb-gallery-images')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('Erro ao carregar imagem:', uploadError);
-      setErrorMessage(
-        'Não foi possível carregar a imagem. Confirma se o bucket gdrb-gallery-images existe e é público.',
-      );
-      setIsUploadingImage(false);
-      return;
-    }
-
-    const { data } = supabase.storage
-      .from('gdrb-gallery-images')
-      .getPublicUrl(filePath);
-
-    handleChange('image_url', data.publicUrl);
-    setSuccessMessage('Imagem carregada com sucesso.');
-    setIsUploadingImage(false);
+  async function openAlbum(album: Album) {
+    if (!canLeave()) return;
+    await run(async () => {
+      const all: Photo[] = [];
+      for (let from = 0; ; from += 500) {
+        const result = await supabase.from('gdrb_gallery_photos').select(galleryPhotoSelect).eq('album_id', album.id).order('sort_order').order('id').range(from, from + 499);
+        if (result.error) throw result.error;
+        all.push(...result.data as Photo[]);
+        if (result.data.length < 500) break;
+      }
+      setSelected(album); setPhotos(all); setJobs(savedQueues[album.id] ?? []); setForm({ title: album.title, description: album.description ?? '', category: album.category, event_date: album.event_date ?? '' }); setDirty(false); setEditing(true); setIndex(null); window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function newAlbum() {
+    if (!canLeave()) return;
+    setSelected(null); setForm(emptyForm); setPhotos([]); setJobs([]); setDirty(false); setEditing(true); setError(''); setSuccess('');
+  }
+  async function save(event: FormEvent) {
     event.preventDefault();
-    setIsSaving(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      image_url: form.image_url.trim() || null,
-      category: form.category.trim() || 'GDR Boavista',
-      is_active: form.is_active,
-      sort_order: Number(form.sort_order) || 0,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (!payload.title) {
-      setErrorMessage('O título é obrigatório.');
-      setIsSaving(false);
-      return;
-    }
-
-    if (!payload.image_url) {
-      setErrorMessage('A imagem é obrigatória.');
-      setIsSaving(false);
-      return;
-    }
-
-    const request = editingId
-      ? supabase.from('gdrb_gallery_items').update(payload).eq('id', editingId)
-      : supabase.from('gdrb_gallery_items').insert(payload);
-
-    const { error } = await request;
-
-    if (error) {
-      console.error('Erro ao guardar imagem da galeria:', error);
-      setErrorMessage('Não foi possível guardar a imagem da galeria.');
-      setIsSaving(false);
-      return;
-    }
-
-    setSuccessMessage(editingId ? 'Imagem atualizada com sucesso.' : 'Imagem criada com sucesso.');
-    resetForm();
-    await loadGalleryItems();
-    setIsSaving(false);
+    await run(async () => {
+      const payload = { title: form.title.trim(), description: form.description.trim() || null, category: form.category.trim() || 'GDR Boavista', event_date: form.event_date || null, updated_at: new Date().toISOString() };
+      if (!payload.title) throw new Error('Indica o título do álbum.');
+      const result = selected ? await supabase.from('gdrb_gallery_albums').update(payload).eq('id', selected.id).select(albumSelect).single() : await supabase.from('gdrb_gallery_albums').insert(payload).select(albumSelect).single();
+      if (result.error) throw result.error;
+      setSelected(result.data as Album); setDirty(false); setSuccess(result.data.is_published ? 'Alterações guardadas. O álbum está visível na galeria pública.' : 'Álbum guardado em rascunho. Clica em Publicar álbum quando estiver pronto para aparecer no site.'); await loadAlbums();
+    });
   }
-
-  async function toggleVisibility(item: GalleryItem) {
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    const { error } = await supabase
-      .from('gdrb_gallery_items')
-      .update({
-        is_active: !item.is_active,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', item.id);
-
-    if (error) {
-      console.error('Erro ao alterar visibilidade da galeria:', error);
-      setErrorMessage('Não foi possível alterar a visibilidade.');
-      return;
-    }
-
-    setSuccessMessage(item.is_active ? 'Imagem ocultada do site público.' : 'Imagem marcada como visível.');
-    await loadGalleryItems();
+  async function updateAlbum(payload: Partial<Album>) {
+    if (!selected) return;
+    const result = await supabase.from('gdrb_gallery_albums').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', selected.id).select(albumSelect).single();
+    if (result.error) throw result.error;
+    setSelected(result.data as Album); await loadAlbums();
   }
-
-  async function deleteItem(item: GalleryItem) {
-    const confirmed = window.confirm(`Apagar definitivamente a imagem “${item.title}”?`);
-
-    if (!confirmed) {
-      return;
+  function addFiles(files: FileList | File[]) {
+    if (!selected || locked) return;
+    const existing = new Set(jobs.map(j => `${j.file.name}:${j.file.size}:${j.file.lastModified}`));
+    let order = Math.max(-1, ...photos.map(p => p.sort_order), ...jobs.map(j => j.order)) + 1;
+    const added: Job[] = [];
+    for (const file of Array.from(files)) {
+      const key = `${file.name}:${file.size}:${file.lastModified}`;
+      if (existing.has(key)) continue;
+      existing.add(key); added.push({ id: crypto.randomUUID(), file, order: order++, status: 'pending', message: 'À espera' });
     }
-
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    const { error } = await supabase
-      .from('gdrb_gallery_items')
-      .delete()
-      .eq('id', item.id);
-
-    if (error) {
-      console.error('Erro ao apagar imagem da galeria:', error);
-      setErrorMessage('Não foi possível apagar a imagem.');
-      return;
-    }
-
-    setSuccessMessage('Imagem apagada com sucesso.');
-    await loadGalleryItems();
+    setJobs(current => [...current, ...added]); setError(''); setSuccess('');
   }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.35em] text-red-700">
-            Administração
-          </p>
-          <h1 className="mt-2 font-serif text-4xl font-light text-[#24180f]">
-            Galeria
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-zinc-500">
-            Gere as fotografias públicas do clube. Imagens ocultas não aparecem no site.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void loadGalleryItems()}
-            className="inline-flex items-center justify-center gap-2 rounded-sm border border-zinc-300 bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-zinc-700 transition hover:border-red-700 hover:text-red-700"
-          >
-            <RefreshCcw size={16} />
-            Atualizar
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (showForm && !editingId) {
-                resetForm();
-                return;
-              }
-
-              setEditingId(null);
-              setForm(initialForm);
-              setShowForm((currentValue) => !currentValue);
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-sm bg-red-700 px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white transition hover:bg-red-800"
-          >
-            <Plus size={16} />
-            Nova imagem
-          </button>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Total</p>
-          <p className="mt-3 text-3xl font-black text-[#24180f]">{counts.total}</p>
-        </div>
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Visíveis</p>
-          <p className="mt-3 text-3xl font-black text-emerald-700">{counts.active}</p>
-        </div>
-        <div className="rounded-sm border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Ocultas</p>
-          <p className="mt-3 text-3xl font-black text-zinc-500">{counts.inactive}</p>
-        </div>
-      </div>
-
-      {successMessage ? (
-        <div className="rounded-sm border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-          {successMessage}
-        </div>
-      ) : null}
-
-      {errorMessage ? (
-        <div className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      {showForm ? (
-        <form onSubmit={handleSubmit} className="rounded-sm border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="font-serif text-3xl font-light text-[#24180f]">
-                {editingId ? 'Editar imagem' : 'Nova imagem'}
-              </h2>
-              <p className="mt-1 text-sm text-zinc-500">
-                Preenche a informação que será usada na galeria pública.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-sm font-bold uppercase tracking-[0.16em] text-zinc-500 transition hover:text-red-700"
-            >
-              Cancelar
-            </button>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <label className="block">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Título</span>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(event) => handleChange('title', event.target.value)}
-                className="mt-2 w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
-                placeholder="Ex.: Torneio Fut7 2026"
-                required
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Categoria</span>
-              <input
-                type="text"
-                value={form.category}
-                onChange={(event) => handleChange('category', event.target.value)}
-                className="mt-2 w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
-                placeholder="Ex.: Jogos, Treinos, Eventos"
-              />
-            </label>
-
-            <label className="block md:col-span-2">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Descrição</span>
-              <textarea
-                value={form.description}
-                onChange={(event) => handleChange('description', event.target.value)}
-                rows={3}
-                className="mt-2 w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
-                placeholder="Pequena descrição do momento."
-              />
-            </label>
-
-            <div className="space-y-3 md:col-span-2">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Imagem</span>
-
-              <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-                <input
-                  type="url"
-                  value={form.image_url}
-                  onChange={(event) => handleChange('image_url', event.target.value)}
-                  className="w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
-                  placeholder="URL da imagem ou faz upload abaixo"
-                  required
-                />
-
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-zinc-300 bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-zinc-700 transition hover:border-red-700 hover:text-red-700">
-                  <Upload size={16} />
-                  {isUploadingImage ? 'A carregar...' : 'Upload'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    disabled={isUploadingImage}
-                  />
-                </label>
-              </div>
-
-              {form.image_url ? (
-                <div className="overflow-hidden rounded-sm border border-zinc-200 bg-zinc-50">
-                  <img
-                    src={form.image_url}
-                    alt="Pré-visualização"
-                    className="h-56 w-full object-cover"
-                  />
-                </div>
-              ) : null}
-            </div>
-
-            <label className="block">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Ordem</span>
-              <input
-                type="number"
-                value={form.sort_order}
-                onChange={(event) => handleChange('sort_order', Number(event.target.value))}
-                className="mt-2 w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
-              />
-            </label>
-
-            <label className="flex items-center gap-3 rounded-sm border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <input
-                type="checkbox"
-                checked={form.is_active}
-                onChange={(event) => handleChange('is_active', event.target.checked)}
-                className="h-4 w-4 accent-red-700"
-              />
-              <span className="text-sm font-semibold text-zinc-700">Visível no site público</span>
-            </label>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button
-              type="submit"
-              disabled={isSaving || isUploadingImage}
-              className="inline-flex items-center justify-center gap-2 rounded-sm bg-[#24180f] px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Save size={16} />
-              {isSaving ? 'A guardar...' : 'Guardar'}
-            </button>
-          </div>
-        </form>
-      ) : null}
-
-      <section className="rounded-sm border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 p-4 md:p-5">
-          <button
-            type="button"
-            onClick={() => setShowMobileFilters((current) => !current)}
-            className="flex w-full items-center justify-between rounded-sm border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-black text-zinc-700 md:hidden"
-            aria-expanded={showMobileFilters}
-          >
-            <span className="inline-flex items-center gap-2">
-              <Filter size={17} />
-              Filtros e pesquisa
-            </span>
-            {showMobileFilters ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
-          </button>
-
-          <div
-            className={`${showMobileFilters ? 'mt-3 grid' : 'hidden'} gap-3 md:grid xl:grid-cols-[1.5fr_0.8fr_0.8fr_0.6fr]`}
-          >
-            <label className="relative block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={17} />
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="w-full rounded-sm border border-zinc-300 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-red-700"
-                placeholder="Pesquisar por título, descrição, categoria ou URL..."
-              />
-            </label>
-
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-              className="w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
-            >
-              {statusFilters.map((filter) => (
-                <option key={filter.value} value={filter.value}>
-                  {filter.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-              className="w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
-            >
-              <option value="all">Todas as categorias</option>
-              {availableCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={pageSize}
-              onChange={(event) => setPageSize(Number(event.target.value))}
-              className="w-full rounded-sm border border-zinc-300 px-4 py-3 text-sm outline-none transition focus:border-red-700"
-            >
-              {pageSizeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option} por página
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="p-3 md:hidden">
-          {isLoading ? (
-            <div className="py-10 text-center text-sm text-zinc-500">A carregar galeria...</div>
-          ) : paginatedItems.length === 0 ? (
-            <div className="py-10 text-center text-sm text-zinc-500">Nenhuma imagem encontrada.</div>
-          ) : (
-            <div className="space-y-3">
-              {paginatedItems.map((item) => {
-                const isExpanded = expandedItemId === item.id;
-
-                return (
-                  <article
-                    key={`${item.id}-mobile`}
-                    className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm"
-                  >
-                    <div className="flex items-start gap-3">
-                      {item.image_url ? (
-                        <img
-                          src={item.image_url}
-                          alt={item.title}
-                          className="h-20 w-24 shrink-0 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-20 w-24 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-zinc-400">
-                          <Camera size={22} />
-                        </div>
-                      )}
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <h3 className="min-w-0 flex-1 font-black leading-5 text-[#24180f]">
-                            {item.title}
-                          </h3>
-                          <span
-                            className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${
-                              item.is_active
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-zinc-100 text-zinc-500'
-                            }`}
-                          >
-                            {item.is_active ? 'Visível' : 'Oculta'}
-                          </span>
-                        </div>
-
-                        <p className="mt-2 text-xs font-semibold text-zinc-500">
-                          {normalizeCategory(item.category)}
-                        </p>
-
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-                          <span>Ordem: <strong className="text-zinc-700">{item.sort_order ?? 0}</strong></span>
-                          <span>Criada: <strong className="text-zinc-700">{formatDate(item.created_at)}</strong></span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {isExpanded ? (
-                      <div className="mt-4 space-y-2 rounded-md bg-zinc-50 p-3 text-xs leading-6 text-zinc-600">
-                        <p>{item.description || 'Sem descrição.'}</p>
-                        <p className="break-all">
-                          <span className="font-bold text-zinc-700">URL:</span>{' '}
-                          {item.image_url || '—'}
-                        </p>
-                        <p>
-                          <span className="font-bold text-zinc-700">Atualizada:</span>{' '}
-                          {formatDate(item.updated_at)}
-                        </p>
-                      </div>
-                    ) : null}
-
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
-                      >
-                        {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                        Detalhes
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(item)}
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
-                      >
-                        <Edit3 size={15} />
-                        Editar
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => void toggleVisibility(item)}
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700"
-                      >
-                        {item.is_active ? <EyeOff size={15} /> : <Eye size={15} />}
-                        {item.is_active ? 'Ocultar' : 'Mostrar'}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => void deleteItem(item)}
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-red-200 px-3 py-2 text-xs font-bold text-red-700"
-                      >
-                        <Trash2 size={15} />
-                        Apagar
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="hidden overflow-x-auto md:block">
-          <table className="min-w-full divide-y divide-zinc-200 text-sm">
-            <thead className="bg-zinc-50 text-left text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
-              <tr>
-                <th className="px-5 py-4">Imagem</th>
-                <th className="px-5 py-4">Título</th>
-                <th className="px-5 py-4">Categoria</th>
-                <th className="px-5 py-4">Estado</th>
-                <th className="px-5 py-4">Ordem</th>
-                <th className="px-5 py-4">Criada</th>
-                <th className="px-5 py-4 text-right">Ações</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-zinc-100">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-zinc-500">
-                    A carregar galeria...
-                  </td>
-                </tr>
-              ) : paginatedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-zinc-500">
-                    Nenhuma imagem encontrada.
-                  </td>
-                </tr>
-              ) : (
-                paginatedItems.map((item) => {
-                  const isExpanded = expandedItemId === item.id;
-
-                  return (
-                    <tr key={item.id} className="align-top transition hover:bg-zinc-50">
-                      <td className="px-5 py-4">
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.title}
-                            className="h-14 w-20 rounded-sm object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-14 w-20 items-center justify-center rounded-sm bg-zinc-100 text-zinc-400">
-                            <Camera size={20} />
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-[#24180f]">{item.title}</p>
-                        {isExpanded ? (
-                          <div className="mt-3 max-w-xl space-y-2 rounded-sm bg-zinc-50 p-3 text-xs leading-6 text-zinc-600">
-                            <p>{item.description || 'Sem descrição.'}</p>
-                            <p>
-                              <span className="font-bold text-zinc-700">URL:</span>{' '}
-                              {item.image_url || '—'}
-                            </p>
-                            <p>
-                              <span className="font-bold text-zinc-700">Atualizada:</span>{' '}
-                              {formatDate(item.updated_at)}
-                            </p>
-                          </div>
-                        ) : null}
-                      </td>
-
-                      <td className="px-5 py-4 text-zinc-600">{normalizeCategory(item.category)}</td>
-
-                      <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.14em] ${
-                            item.is_active
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-zinc-100 text-zinc-500'
-                          }`}
-                        >
-                          {item.is_active ? 'Visível' : 'Oculta'}
-                        </span>
-                      </td>
-
-                      <td className="px-5 py-4 text-zinc-600">{item.sort_order ?? 0}</td>
-                      <td className="px-5 py-4 text-zinc-600">{formatDate(item.created_at)}</td>
-
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-zinc-200 text-zinc-600 transition hover:border-red-700 hover:text-red-700"
-                            title="Detalhes"
-                          >
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(item)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-zinc-200 text-zinc-600 transition hover:border-red-700 hover:text-red-700"
-                            title="Editar"
-                          >
-                            <Edit3 size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => void toggleVisibility(item)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-zinc-200 text-zinc-600 transition hover:border-red-700 hover:text-red-700"
-                            title={item.is_active ? 'Ocultar' : 'Mostrar'}
-                          >
-                            {item.is_active ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => void deleteItem(item)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-zinc-200 text-zinc-600 transition hover:border-red-700 hover:text-red-700"
-                            title="Apagar"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-col gap-3 border-t border-zinc-200 px-5 py-4 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
-          <span>
-            A mostrar {filteredItems.length === 0 ? 0 : startIndex + 1}-{endIndex} de {filteredItems.length}
-          </span>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              disabled={safeCurrentPage === 1}
-              className="rounded-sm border border-zinc-300 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-zinc-600 transition hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Anterior
-            </button>
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-              Página {safeCurrentPage} de {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-              disabled={safeCurrentPage === totalPages}
-              className="rounded-sm border border-zinc-300 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-zinc-600 transition hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Seguinte
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <div className="rounded-sm border border-dashed border-zinc-300 bg-zinc-50 p-5 text-sm leading-7 text-zinc-600">
-        <div className="flex gap-3">
-          <ImagePlus className="mt-1 shrink-0 text-red-700" size={20} />
-          <p>
-            A página pública só carrega imagens com estado <strong>Visível</strong>. Usa <strong>Ocultar</strong> para retirar uma fotografia do site sem apagar o registo.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  async function upload() {
+    if (!selected || active.current || !pending.length) return;
+    active.current = true; stop.current = false; setUploading(true); setError(''); setSuccess('');
+    const albumId = selected.id;
+    let cover = selected.cover_url;
+    const patch = (id: string, value: Partial<Job>) => { if (mounted.current) setJobs(current => current.map(j => j.id === id ? { ...j, ...value } : j)); };
+    try {
+      // One conversion at a time keeps large mobile batches within memory limits.
+      for (const job of pending) {
+        if (stop.current) break;
+        patch(job.id, { status: 'working', message: 'A preparar' });
+        try {
+          const photo = await uploadAlbumPhoto(albumId, job.file, job.id, job.order, stage => patch(job.id, { message: stage }));
+          patch(job.id, { status: 'done', message: 'Concluída' });
+          if (mounted.current) setPhotos(current => [...current.filter(p => p.id !== photo.id), photo].sort((a, b) => a.sort_order - b.sort_order));
+          if (!cover) {
+            const result = await supabase.from('gdrb_gallery_albums').update({ cover_url: photo.thumbnail_url }).eq('id', albumId).is('cover_url', null).select('id');
+            if (result.error) { if (mounted.current) setError('Fotografia guardada, mas não foi possível definir a capa. Usa “Usar como capa”.'); }
+            else { cover = photo.thumbnail_url; if (mounted.current && result.data.length) setSelected(a => a ? { ...a, cover_url: cover } : a); }
+          }
+        } catch (e) { patch(job.id, { status: 'failed', message: galleryError(e) }); }
+      }
+      if (mounted.current) { await loadAlbums(); setSuccess(stop.current ? 'Fila pausada. As fotografias concluídas foram guardadas.' : 'Processamento terminado. Consulta o resultado de cada fotografia abaixo.'); }
+    } catch (e) { if (mounted.current) setError(galleryError(e)); }
+    finally { active.current = false; if (mounted.current) setUploading(false); }
+  }
+  async function discard(job: Job) {
+    if (job.status === 'pending') { setJobs(v => v.filter(j => j.id !== job.id)); return; }
+    await run(async () => {
+      // A lost response may still have committed the photo. Keep it in that case.
+      const result = await supabase.from('gdrb_gallery_photos').select(galleryPhotoSelect).eq('id', job.id).maybeSingle();
+      if (result.error) throw result.error;
+      if (result.data) setPhotos(v => [...v.filter(p => p.id !== job.id), result.data as Photo].sort((a,b) => a.sort_order-b.sort_order));
+      else if (selected) {
+        const base = `galeria/albuns/${selected.id}/${job.id}`;
+        const removed = await supabase.storage.from(galleryBucket).remove([`${base}.jpg`, `${base}-thumb.jpg`]);
+        if (removed.error) throw removed.error;
+      }
+      setJobs(v => v.filter(j => j.id !== job.id)); await loadAlbums();
+    });
+  }
+  async function movePhoto(position: number, offset: number) {
+    await run(async () => {
+      const next = [...photos]; [next[position], next[position + offset]] = [next[position + offset], next[position]];
+      const result = await supabase.rpc('gdrb_gallery_reorder_photos', { target_album: selected!.id, photo_ids: next.map(p => p.id) });
+      if (result.error) throw result.error;
+      setPhotos(next.map((p, i) => ({ ...p, sort_order: i })));
+    });
+  }
+  async function removePhoto(photo: Photo) {
+    if (!window.confirm('Apagar esta fotografia do álbum?')) return;
+    await run(async () => {
+      const remaining = photos.filter(p => p.id !== photo.id);
+      if (selected?.cover_url === photo.thumbnail_url || remaining.length === 0) await updateAlbum({ cover_url: remaining[0]?.thumbnail_url ?? null, ...(remaining.length === 0 ? { is_published: false } : {}) });
+      const result = await supabase.from('gdrb_gallery_photos').delete().eq('id', photo.id).select('id').single();
+      if (result.error) throw result.error;
+      setPhotos(remaining); setJobs(v => v.filter(j => j.id !== photo.id));
+      const paths = [photo.storage_path, photo.thumbnail_path].filter((p): p is string => !!p);
+      if (paths.length) { const removed = await supabase.storage.from(galleryBucket).remove(paths); if (removed.error) throw new Error('Fotografia retirada do álbum, mas a limpeza do armazenamento falhou: ' + removed.error.message); }
+      await loadAlbums(); setSuccess('Fotografia apagada.');
+    });
+  }
+  const visible = albums.filter(a => `${a.title} ${a.category}`.toLowerCase().includes(search.toLowerCase()));
+  return <div className="space-y-6">
+    <header className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.3em] text-red-700">Administração</p><h1 className="mt-2 font-serif text-4xl text-[#24180f]">Galeria · Álbuns</h1><p className="mt-2 text-sm text-zinc-500">Organiza os momentos do clube e carrega várias fotografias de uma só vez.</p></div><button onClick={newAlbum} disabled={locked} className={`${button} border-red-700 bg-red-700! text-white`}>+ Criar álbum</button></header>
+    {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+    {success && <p role="status" className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p>}
+    {editing && <button onClick={backToAlbums} disabled={locked} className={button}>← Voltar aos álbuns</button>}
+    {editing && <section className="space-y-6 rounded-xl border border-zinc-200 bg-white p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">{selected ? 'Editar álbum' : 'Novo álbum'}</h2><span className="rounded-full bg-zinc-100 px-3 py-1 text-sm">{selected?.is_published ? 'Publicado' : 'Rascunho'}</span></div>
+      {selected && <p className={`rounded-lg p-4 text-sm ${selected.is_published ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}>{selected.is_published ? 'Este álbum está visível na galeria pública.' : 'Este álbum está em rascunho e ainda não aparece no site. Guarda as alterações e clica em “Publicar álbum”.'}</p>}
+      <form onSubmit={e => void save(e)}><fieldset disabled={locked} className="grid gap-4 sm:grid-cols-2">
+        <label className="text-sm font-bold sm:col-span-2">Título do álbum *<input required maxLength={160} value={form.title} onChange={e => { setForm({ ...form, title: e.target.value }); setDirty(true); }} className={input} placeholder="Ex.: Apresentação dos seniores 2026/27" /></label>
+        <label className="text-sm font-bold sm:col-span-2">Descrição<textarea rows={3} maxLength={5000} value={form.description} onChange={e => { setForm({ ...form, description: e.target.value }); setDirty(true); }} className={input} placeholder="Uma breve descrição deste momento do clube." /></label>
+        <label className="text-sm font-bold">Data do evento<input type="date" value={form.event_date} onChange={e => { setForm({ ...form, event_date: e.target.value }); setDirty(true); }} className={input} /></label>
+        <label className="text-sm font-bold">Equipa ou categoria<input maxLength={80} value={form.category} onChange={e => { setForm({ ...form, category: e.target.value }); setDirty(true); }} className={input} /></label>
+        <div className="flex flex-wrap gap-3 sm:col-span-2"><button type="submit" className={button}>{selected ? 'Guardar alterações' : 'Criar e adicionar fotografias'}</button>{selected && <button type="button" disabled={dirty || pending.length > 0 || (!selected.is_published && photos.length === 0)} onClick={() => void run(async () => { await updateAlbum({ is_published: !selected.is_published, cover_url: selected.cover_url ?? photos[0]?.thumbnail_url ?? null }); setSuccess(selected.is_published ? 'Álbum retirado da galeria pública.' : 'Álbum publicado.'); })} className={button}>{selected.is_published ? 'Passar a rascunho' : 'Publicar álbum'}</button>}{selected?.is_published && <a className={button} href={`/galeria/${selected.id}`} target="_blank" rel="noreferrer">Ver no site ↗</a>}</div>
+      </fieldset></form>
+      {selected && <>
+        <div onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); addFiles(e.dataTransfer.files); }} className="rounded-xl border-2 border-dashed border-red-200 bg-red-50/40 p-6 text-center"><p className="font-bold">Arrasta as fotografias para aqui</p><p className="mt-2 text-sm text-zinc-600">Seleciona 10, 20, 50 ou mais fotografias de uma vez. JPG, PNG, WebP, GIF e HEIC/HEIF, até 40 MB por ficheiro.</p><label className={`${button} mt-4 inline-block cursor-pointer`}>Selecionar fotografias<input aria-label="Selecionar várias fotografias" type="file" multiple disabled={locked} accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif" className="sr-only" onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} /></label><p className="mt-3 text-xs text-zinc-500">As imagens são convertidas para JPEG e otimizadas. Os GIF ficam como imagem estática.</p>{selected.is_published && <p className="mt-2 text-xs text-red-800">Este álbum está publicado: as novas fotografias ficam visíveis à medida que são guardadas.</p>}</div>
+        {jobs.length > 0 && <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm font-bold">{jobs.filter(j => j.status === 'done').length} de {jobs.length} concluídas · {jobs.filter(j => j.status === 'failed').length} com erro</p><div className="flex flex-wrap gap-2"><button className={button} disabled={locked || !pending.length} onClick={() => void upload()}>{jobs.some(j => j.status === 'failed') ? 'Continuar / repetir falhadas' : 'Carregar fotografias'}</button>{uploading && <button className={button} onClick={() => { stop.current = true; setSuccess('A terminar a fotografia atual antes de pausar…'); }}>Pausar</button>}<button className={button} disabled={locked} onClick={() => setJobs(v => v.filter(j => j.status !== 'done'))}>Limpar concluídas</button></div></div><progress aria-label="Fotografias concluídas" max={jobs.length} value={jobs.filter(j => j.status === 'done').length} className="h-2 w-full accent-red-700" /><ul className="max-h-64 divide-y overflow-auto rounded border border-zinc-200">{jobs.map(j => <li key={j.id} className="flex items-center justify-between gap-3 p-3 text-sm"><div className="min-w-0"><p className="truncate font-medium">{j.file.name}</p><p className={j.status === 'failed' ? 'text-red-700' : 'text-zinc-500'}>{j.message}</p></div>{(j.status === 'pending' || j.status === 'failed') && <button disabled={locked} className={button} onClick={() => void discard(j)}>Retirar</button>}</li>)}</ul><p className="text-xs text-zinc-500">Mantém esta página aberta até concluir. Se falhar uma fotografia, as restantes continuam.</p></div>}
+        <div><h3 className="font-bold">Fotografias do álbum ({photos.length})</h3><p className="mt-1 text-sm text-zinc-500">Clica para ampliar. Escolhe a capa e ajusta a ordem com as setas.</p><div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">{photos.map((p, i) => <article key={p.id} className="overflow-hidden rounded-lg border border-zinc-200"><button className="block w-full" onClick={() => setIndex(i)} aria-label={`Ampliar fotografia ${i + 1}`}><img src={p.thumbnail_url} alt={`Fotografia ${i + 1}`} loading="lazy" className="aspect-[4/3] w-full object-cover" /></button><div className="space-y-2 p-2"><button disabled={locked || selected.cover_url === p.thumbnail_url} onClick={() => void run(() => updateAlbum({ cover_url: p.thumbnail_url }))} className={`${button} w-full px-2!`}>{selected.cover_url === p.thumbnail_url ? '✓ Capa do álbum' : 'Usar como capa'}</button><div className="flex flex-wrap gap-1"><button aria-label={`Mover fotografia ${i + 1} para trás`} className={button} disabled={locked || pending.length > 0 || i === 0} onClick={() => void movePhoto(i, -1)}>←</button><button aria-label={`Mover fotografia ${i + 1} para a frente`} className={button} disabled={locked || pending.length > 0 || i === photos.length - 1} onClick={() => void movePhoto(i, 1)}>→</button><button className={`${button} text-red-700`} disabled={locked} onClick={() => void removePhoto(p)}>Apagar</button></div></div></article>)}</div>{!photos.length && <p className="py-8 text-sm text-zinc-500">Adiciona as primeiras fotografias e publica o álbum quando estiver pronto.</p>}</div>
+      </>}
+      <div className="border-t border-zinc-200 pt-4"><button onClick={backToAlbums} disabled={locked} className={button}>← Voltar aos álbuns</button></div>
+    </section>}
+    {!editing && <section>{waitingElsewhere > 0 && <p role="status" className="mb-4 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">Tens {waitingElsewhere} fotografias por concluir. Reabre o respetivo álbum para continuar. Mantém esta página aberta para conservar a fila.</p>}<div className="flex flex-wrap items-center justify-between gap-4"><h2 className="text-xl font-bold">Os álbuns ({albums.length})</h2><input aria-label="Pesquisar álbuns" placeholder="Pesquisar álbum ou equipa…" value={search} onChange={e => setSearch(e.target.value)} className="rounded-lg border border-zinc-300 bg-white p-3 text-sm" /></div>{loading ? <p className="py-8">A carregar álbuns…</p> : <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visible.map(a => <button key={a.id} disabled={locked} onClick={() => void openAlbum(a)} className={`overflow-hidden rounded-xl border bg-white text-left disabled:opacity-50 ${selected?.id === a.id ? 'border-red-700 ring-1 ring-red-700' : 'border-zinc-200'}`}>{a.cover_url ? <img src={a.cover_url} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" /> : <div className="flex aspect-[16/9] items-center justify-center bg-zinc-100 text-zinc-400">Sem capa</div>}<div className="p-4"><p className="text-xs font-bold text-red-700">{a.is_published ? 'Publicado' : 'Rascunho'} · {a.gdrb_gallery_photos?.[0]?.count ?? 0} fotografias</p><h3 className="mt-2 font-bold">{a.title}</h3>{!!savedQueues[a.id]?.length && <p className="mt-2 text-sm font-bold text-amber-800">{savedQueues[a.id].length} fotografias por concluir</p>}<p className="mt-1 text-sm text-zinc-500">{a.category}</p></div></button>)}</div>}{!loading && !visible.length && <p className="py-8 text-zinc-500">{search ? 'Nenhum álbum encontrado.' : 'Cria o primeiro álbum para começar.'}</p>}</section>}
+    {index !== null && selected && <GalleryLightbox photos={photos} index={index} title={selected.title} onChange={setIndex} onClose={() => setIndex(null)} />}
+  </div>;
 }

@@ -66,6 +66,7 @@ export function AppRoutes() {
         <Route path="noticias/:id" element={<NewsDetailPage />} />
         <Route path="socios" element={<MembersPage />} />
         <Route path="galeria" element={<GalleryPage />} />
+          <Route path="galeria/:albumId" element={<GalleryPage />} />
         <Route path="patrocinadores" element={<SponsorsPage />} />
         <Route path="parceiros" element={<SponsorsPage />} />
         <Route path="contactos" element={<ContactsPage />} />
