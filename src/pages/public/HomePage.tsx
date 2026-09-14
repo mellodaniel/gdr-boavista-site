@@ -15,6 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { GalleryPromotionBanner } from '../../components/public/GalleryPromotionBanner';
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
 import { trackAnalyticsEvent } from '../../lib/analytics';
@@ -647,6 +648,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <GalleryPromotionBanner />
 
       {featuredTournament && (
         <section className="relative overflow-hidden bg-[#111827] py-14 text-white">
