@@ -1233,7 +1233,7 @@ export function AdminCommunicationsPage() {
         .select('name,logo_url,website_url').eq('is_active', true)
         .order('sort_order', { ascending: true }).order('name', { ascending: true });
       if (error) throw new Error(`Não foi possível carregar os parceiros: ${error.message}`);
-      const subscriber = { name: 'Sócio', unsubscribe_token: 'preview-only' };
+      const subscriber = { name: '', unsubscribe_token: 'preview-only' };
       const html = buildNewsletterHtml({
         communication: { subject: form.subject || 'Pré-visualização da newsletter', preview_text: form.preview_text, body: form.body },
         subscriber,
@@ -1936,7 +1936,7 @@ export function AdminCommunicationsPage() {
                   <button type="button" onClick={() => setNewsletterPreview(null)} className="ml-auto rounded-lg border border-zinc-300 px-3 py-2 text-xs font-bold text-zinc-700">Fechar prévia</button>
                 </div>
                 <p className="mb-3 text-xs leading-5 text-zinc-500">
-                  A saudação usa um nome de exemplo. O cancelamento está desativado nesta prévia.
+                  A prévia usa uma saudação neutra. No envio, pode incluir o nome do destinatário. O cancelamento está desativado nesta prévia.
                   A apresentação pode variar ligeiramente entre aplicações de email.
                 </p>
                 <iframe title="Pré-visualização do email" sandbox="" srcDoc={newsletterPreview.html}
