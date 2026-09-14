@@ -318,7 +318,7 @@ export default async function handler(request, response) {
         body: String(draft.body || ''),
       };
       const partners = await getNewsletterPartners();
-      const subscriber = { name: 'Sócio', unsubscribe_token: 'preview-only' };
+      const subscriber = { name: '', unsubscribe_token: 'preview-only' };
       const html = buildNewsletterHtml({ communication, subscriber, emailTemplate, partners })
         .replaceAll(escapeHtml(getUnsubscribeUrl(subscriber)), '#');
       response.setHeader('Cache-Control', 'no-store');
