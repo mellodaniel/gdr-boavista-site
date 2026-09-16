@@ -16,5 +16,13 @@ export function VercelAnalytics() {
   if (!page) return null;
 
   // Explicit SPA routes disable automatic tracking, including subsequent admin navigation.
-  return <Analytics mode="production" beforeSend={beforeSend} route={page.route} path={page.path} />;
+  return (
+    <Analytics
+      mode="production"
+      configString={import.meta.env.VITE_VERCEL_OBSERVABILITY_CLIENT_CONFIG}
+      beforeSend={beforeSend}
+      route={page.route}
+      path={page.path}
+    />
+  );
 }
