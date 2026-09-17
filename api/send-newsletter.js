@@ -316,6 +316,7 @@ export default async function handler(request, response) {
         subject: String(draft.subject || 'Pré-visualização da newsletter'),
         preview_text: String(draft.preview_text || ''),
         body: String(draft.body || ''),
+        images: draft.images,
       };
       const partners = await getNewsletterPartners();
       const subscriber = { name: '', unsubscribe_token: 'preview-only' };

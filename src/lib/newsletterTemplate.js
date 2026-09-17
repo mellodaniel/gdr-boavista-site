@@ -88,6 +88,21 @@ function renderPartnersHtml(partners = []) {
   </td></tr>`;
 }
 
+function renderNewsletterImages(images) {
+  if (!Array.isArray(images)) return '';
+  return images.slice(0, 10).map((photo) => {
+    if (!photo || typeof photo.url !== 'string') return '';
+    let url;
+    try { url = new URL(photo.url); } catch { return ''; }
+    if (url.protocol !== 'https:' || url.username || url.password) return '';
+    const caption = escapeHtml(String(photo.caption || '').slice(0, 300));
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:20px 0;"><tr><td>
+      <img src="${escapeHtml(url.href)}" width="556" alt="${caption || 'Fotografia do GDR Boavista'}" style="display:block;width:100%;max-width:556px;height:auto;border:0;" />
+      ${caption ? `<p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#52525b;">${caption}</p>` : ''}
+    </td></tr></table>`;
+  }).join('');
+}
+
 function buildStandardNewsletterHtml({ communication, subscriber, partners = [] }) {
   const unsubscribeUrl = getUnsubscribeUrl(subscriber);
 
@@ -161,6 +176,7 @@ function buildStandardNewsletterHtml({ communication, subscriber, partners = [] 
                   ${previewText}
                   <div class="email-body" style="font-size:16px;line-height:1.75;color:#27272a;">
                     ${bodyHtml}
+                  ${renderNewsletterImages(communication.images)}
                   </div>
                 </div>
               </td>
@@ -318,6 +334,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber, partners 
 
                 <div style="color:#27272a;">
                   ${bodyHtml}
+                  ${renderNewsletterImages(communication.images)}
                 </div>
 
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">

@@ -27,7 +27,7 @@ export function formatAlbumDate(date: string | null) {
 function canvasBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Não foi possível preparar esta fotografia.')), 'image/jpeg', quality));
 }
-export async function prepareGalleryPhoto(file: File) {
+export async function prepareGalleryPhoto(file: File, maxEdge = 2400) {
   if (file.size > 40 * 1024 * 1024) throw new Error('O ficheiro ultrapassa 40 MB. Escolhe uma versão mais pequena.');
   const isHeic = /\.(heic|heif)$/i.test(file.name) || /image\/(heic|heif)/i.test(file.type);
   let input: Blob = file;
@@ -58,7 +58,7 @@ export async function prepareGalleryPhoto(file: File) {
       canvas.width = 1; canvas.height = 1;
       return result;
     };
-    return { full: await create(2400, 0.86), thumbnail: await create(640, 0.78) };
+    return { full: await create(maxEdge, 0.86), thumbnail: await create(640, 0.78) };
   } finally { URL.revokeObjectURL(url); }
 }
 

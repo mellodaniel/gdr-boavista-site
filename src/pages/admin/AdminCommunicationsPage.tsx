@@ -16,6 +16,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { buildNewsletterHtml, getUnsubscribeUrl, escapeHtml } from '../../lib/newsletterTemplate.js';
+import { NewsletterPhotos } from '../../components/admin/NewsletterPhotos';
+import type { NewsletterImage } from '../../lib/newsletterTemplate.js';
 import { supabase } from '../../lib/supabase';
 import { useSessionState } from '../../hooks/useSessionState';
 
@@ -30,6 +32,7 @@ type Communication = {
   subject: string | null;
   preview_text: string | null;
   body: string;
+  images?: NewsletterImage[];
   channel: 'email' | 'whatsapp' | 'email_whatsapp';
   status: 'draft' | 'ready' | 'sent' | 'archived';
   from_name: string | null;
@@ -112,6 +115,7 @@ type FormState = {
   subject: string;
   preview_text: string;
   body: string;
+  images?: NewsletterImage[];
   channel: 'email' | 'whatsapp' | 'email_whatsapp';
   status: 'draft' | 'ready' | 'sent' | 'archived';
   from_name: string;
@@ -144,6 +148,7 @@ const emptyForm: FormState = {
   subject: '',
   preview_text: '',
   body: '',
+  images: [],
   channel: 'email',
   status: 'draft',
   from_name: 'GDR Boavista',
@@ -477,11 +482,12 @@ export function AdminCommunicationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingFinal, setSendingFinal] = useState(false);
+  const [photosUploading, setPhotosUploading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [newsletterPreview, setNewsletterPreview] = useState<{ html: string; key: string } | null>(null);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
-  const previewKey = JSON.stringify([form.subject, form.preview_text, form.body, form.email_template]);
+  const previewKey = JSON.stringify([form.subject, form.preview_text, form.body, form.email_template, form.images]);
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
@@ -874,6 +880,7 @@ export function AdminCommunicationsPage() {
   }
 
   function resetForm() {
+    if (photosUploading) return;
     setForm(emptyForm);
     setSelectedCommunicationId(null);
     clearRecipientComposer();
@@ -881,6 +888,7 @@ export function AdminCommunicationsPage() {
   }
 
   function editCommunication(communication: Communication) {
+    if (photosUploading) return;
     const groupIds = targets
       .filter((target) => target.communication_id === communication.id)
       .map((target) => target.group_id);
@@ -905,6 +913,7 @@ export function AdminCommunicationsPage() {
       subject: communication.subject || '',
       preview_text: communication.preview_text || '',
       body: communication.body || '',
+      images: communication.images || [],
       channel: communication.channel || 'email',
       status: communication.status || 'draft',
       from_name: communication.from_name || 'GDR Boavista',
@@ -1126,6 +1135,7 @@ export function AdminCommunicationsPage() {
   }
 
   async function persistCommunication() {
+    if (photosUploading) throw new Error("Aguarda a conclusão das fotografias.");
     const title = form.subject.trim();
     const subject = form.subject.trim();
     const body = form.body.trim();
@@ -1171,6 +1181,7 @@ export function AdminCommunicationsPage() {
       subject,
       preview_text: form.preview_text.trim() || null,
       body,
+      images: form.images || [],
       channel: form.channel,
       status: 'ready' as const,
       from_name: form.from_name.trim() || 'GDR Boavista',
@@ -1224,6 +1235,7 @@ export function AdminCommunicationsPage() {
   }
 
   async function previewNewsletter() {
+    if (photosUploading) return;
     setPreviewLoading(true);
     setPreviewError(null);
     setNewsletterPreview(null);
@@ -1235,7 +1247,7 @@ export function AdminCommunicationsPage() {
       if (error) throw new Error(`Não foi possível carregar os parceiros: ${error.message}`);
       const subscriber = { name: '', unsubscribe_token: 'preview-only' };
       const html = buildNewsletterHtml({
-        communication: { subject: form.subject || 'Pré-visualização da newsletter', preview_text: form.preview_text, body: form.body },
+        communication: { subject: form.subject || 'Pré-visualização da newsletter', preview_text: form.preview_text, body: form.body, images: form.images || [] },
         subscriber,
         emailTemplate: form.email_template || 'standard',
         partners: data || [],
@@ -1249,6 +1261,7 @@ export function AdminCommunicationsPage() {
   }
 
   async function sendNewsletter() {
+    if (photosUploading) return;
     if (audienceSummary.needsGroups) {
       setMessage({ type: 'error', text: 'Seleciona pelo menos um grupo antes do envio definitivo.' });
       return;
@@ -1419,6 +1432,7 @@ export function AdminCommunicationsPage() {
           subject: communication.subject,
           preview_text: communication.preview_text,
           body: communication.body,
+          images: communication.images || [],
           channel: communication.channel,
           status: 'draft',
           from_name: communication.from_name || 'GDR Boavista',
@@ -1905,6 +1919,10 @@ export function AdminCommunicationsPage() {
             />
           </label>
 
+          <NewsletterPhotos images={form.images || []} disabled={sendingFinal || saving}
+            onChange={(images) => setForm((current) => ({ ...current, images }))}
+            onUploadingChange={setPhotosUploading} />
+
           <section aria-label="Pré-visualização da newsletter" className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -1913,7 +1931,7 @@ export function AdminCommunicationsPage() {
                   Mostra o texto atual e os parceiros, sem guardar nem enviar emails.
                 </p>
               </div>
-              <button type="button" onClick={previewNewsletter} disabled={previewLoading}
+              <button type="button" onClick={previewNewsletter} disabled={previewLoading || photosUploading}
                 className="inline-flex items-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-black text-white hover:bg-red-800 disabled:opacity-50">
                 <Eye className="h-4 w-4" />
                 {previewLoading ? 'A carregar…' : 'Pré-visualizar newsletter'}
@@ -2316,7 +2334,7 @@ export function AdminCommunicationsPage() {
             <button
               type="button"
               onClick={sendNewsletter}
-              disabled={sendingFinal || saving || audienceSummary.needsGroups || audienceSummary.recipients === 0}
+              disabled={photosUploading || sendingFinal || saving || audienceSummary.needsGroups || audienceSummary.recipients === 0}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Send className="h-4 w-4" />
