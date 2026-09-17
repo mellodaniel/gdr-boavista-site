@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, ExternalLink, Newspaper, Search } from 'luci
 import { Link } from 'react-router-dom';
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
-import type { GdrbNews, GdrbNewsStatus } from '../../types/database';
+import type { GdrbNews } from '../../types/database';
 
 const sourceFilters = [
   'Todas',
@@ -24,14 +24,6 @@ function formatDate(date: string | null) {
     month: 'long',
     year: 'numeric',
   });
-}
-
-function getNewsStatus(item: GdrbNews): GdrbNewsStatus {
-  if (item.status) {
-    return item.status;
-  }
-
-  return item.is_published ? 'published' : 'draft';
 }
 
 export function NewsPage() {
@@ -58,12 +50,6 @@ export function NewsPage() {
       return matchesSource && matchesSearch;
     });
   }, [news, sourceFilter, search]);
-
-  const publishedCount = useMemo(
-    () => news.filter((item) => getNewsStatus(item) === 'published').length,
-    [news],
-  );
-
 
   useEffect(() => {
     async function loadNews() {
@@ -119,9 +105,6 @@ export function NewsPage() {
                 Notícias publicadas
               </h2>
 
-              <p className="mt-1 text-sm font-semibold text-zinc-500">
-                {filteredNews.length} notícia(s) encontrada(s)
-              </p>
             </div>
 
             <button
@@ -166,11 +149,7 @@ export function NewsPage() {
             </select>
           </div>
 
-          <div className="mt-5 flex flex-col justify-between gap-3 border-t border-zinc-200 pt-4 md:flex-row md:items-center">
-            <span className="inline-flex w-fit rounded-full bg-red-700 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-wide text-white md:text-sm">
-              Publicadas · {publishedCount}
-            </span>
-          </div>
+
         </div>
 
         {isLoading ? (
