@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /newsletter/cancelar/
+Disallow: /equipas/seniores/plantel-2026-gdrb-7f4k
+
+Sitemap: https://gdrboavista.pt/sitemap.xml
