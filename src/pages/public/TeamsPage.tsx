@@ -279,6 +279,18 @@ export function TeamsPage() {
         </div>
       </section>
 
+      <section className="bg-[#f6f2ec] px-5 py-12 md:px-4">
+        <div className="mx-auto max-w-7xl rounded-2xl border border-zinc-200 bg-white p-6 md:p-10">
+          <h2 className="font-serif text-3xl text-[#24180f]">Futebol de formação em Leiria: como começar?</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-zinc-600">O GDR Boavista acompanha atletas em diferentes escalões, na Boavista, Leiria. Para saberes qual o escalão adequado, as vagas e as condições de inscrição, contacta o clube e indica o ano de nascimento do atleta.</p>
+          <p className="mt-3 max-w-3xl leading-7 text-zinc-600">Consulta os horários e a localização do campo. Confirma com o clube a disponibilidade e os procedimentos antes de te deslocares para um treino.</p>
+          <div className="mt-6 flex flex-wrap gap-4">
+            <Link to="/contactos" className="rounded-lg bg-red-700 px-5 py-3 font-bold text-white">Pedir informações sobre inscrições</Link>
+            <Link to="/horarios-de-treino" className="rounded-lg border border-zinc-300 px-5 py-3 font-bold">Ver horários e localização</Link>
+          </div>
+        </div>
+      </section>
+
       <section className="bg-white py-14 md:py-20">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="grid gap-6 md:grid-cols-3">

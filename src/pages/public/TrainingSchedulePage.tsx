@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import {
   CalendarDays,
   ChevronRight,
@@ -122,26 +121,6 @@ const footballElevenSchedules: TrainingSchedule[] = [
 ];
 
 export function TrainingSchedulePage() {
-  useEffect(() => {
-    const previousTitle = document.title;
-    const descriptionMeta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-    const previousDescription = descriptionMeta?.content;
-
-    document.title = 'Horários de Treino 2026/27 · GDR Boavista';
-
-    if (descriptionMeta) {
-      descriptionMeta.content =
-        'Consulta os dias e horários de treino de todos os escalões do GDR Boavista na época 2026/27.';
-    }
-
-    return () => {
-      document.title = previousTitle;
-
-      if (descriptionMeta && previousDescription !== undefined) {
-        descriptionMeta.content = previousDescription;
-      }
-    };
-  }, []);
 
   return (
     <div className="gdrb-public-page bg-[#f6f2ec] text-zinc-950">

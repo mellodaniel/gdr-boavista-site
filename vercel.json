@@ -1,8 +1,24 @@
 {
-  "rewrites": [
+  "functions": {
+    "api/public-page.js": {
+      "includeFiles": "dist/index.html"
+    }
+  },
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/sitemap.xml",
+      "dest": "/api/sitemap"
+    },
+    {
+      "src": "/",
+      "dest": "/api/public-page?path=/"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/public-page?path=/$1"
     }
   ]
 }

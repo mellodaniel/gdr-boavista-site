@@ -557,7 +557,7 @@ export function HomePage() {
             </h1>
 
             <p className="mt-7 max-w-2xl text-base leading-8 text-zinc-300 md:mt-8 md:text-lg">
-              O GDR Boavista é uma casa de futebol, formação e comunidade. Um
+              O GDR Boavista, na Boavista, Leiria, é uma casa de futebol, formação e comunidade. Um
               clube onde atletas, famílias, sócios e amigos vivem o futebol com
               compromisso, união e orgulho.
             </p>

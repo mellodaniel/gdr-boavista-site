@@ -243,31 +243,6 @@ export function SeniorRosterPage() {
   }, [players]);
 
   useEffect(() => {
-    const previousTitle = document.title;
-    document.title = 'Plantel Sénior 2026/2027 · GDR Boavista';
-
-    const robotsMeta = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
-    const previousRobotsContent = robotsMeta?.content;
-
-    if (robotsMeta) {
-      robotsMeta.content = 'noindex,nofollow';
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'robots';
-      meta.content = 'noindex,nofollow';
-      document.head.appendChild(meta);
-    }
-
-    return () => {
-      document.title = previousTitle;
-
-      if (robotsMeta && previousRobotsContent !== undefined) {
-        robotsMeta.content = previousRobotsContent;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     async function loadPlayers() {
       setIsLoading(true);
 

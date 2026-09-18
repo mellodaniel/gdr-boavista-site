@@ -28,3 +28,5 @@ android/keystores/*.properties
 *.zip
 *.zip
 *.zip
+.vercel
+.env*
