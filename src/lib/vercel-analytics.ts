@@ -1,7 +1,7 @@
 const PUBLIC_PATHS = new Set([
   '/', '/clube', '/equipas', '/noticias', '/socios', '/galeria',
   '/patrocinadores', '/parceiros', '/contactos', '/resultados', '/loja',
-  '/app', '/horarios-de-treino',
+  '/app', '/horarios-de-treino', '/equipas/juniores/plantel',
 ]);
 
 export function publicAnalyticsPage(raw: string): { url: string; path: string; route: string } | null {

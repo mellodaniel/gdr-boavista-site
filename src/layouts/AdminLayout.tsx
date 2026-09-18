@@ -55,6 +55,7 @@ const adminNavigationGroups: AdminNavigationGroup[] = [
     icon: Trophy,
     items: [
       { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
+      { label: 'Plantel Juniores', path: '/admin/equipas/juniores/plantel', icon: Users },
       { label: 'Plantel Sénior', path: '/admin/equipas/seniores/plantel', icon: Users },
       { label: 'Jogos / Agenda', path: '/admin/jogos', icon: CalendarDays },
       { label: 'Participações em Torneios', path: '/admin/torneios', icon: Trophy },

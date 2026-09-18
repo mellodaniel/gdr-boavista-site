@@ -8,7 +8,7 @@ import { ProtectedAdminRoute } from '../components/admin/ProtectedAdminRoute';
 import { HomePage } from '../pages/public/HomePage';
 import { ClubPage } from '../pages/public/ClubPage';
 import { TeamsPage } from '../pages/public/TeamsPage';
-import { SeniorRosterPage } from '../pages/public/SeniorRosterPage';
+import { SeniorRosterPage, JuniorRosterPage } from '../pages/public/SeniorRosterPage';
 import { NewsPage } from '../pages/public/NewsPage';
 import { NewsDetailPage } from '../pages/public/NewsDetailPage';
 import { MembersPage } from '../pages/public/MembersPage';
@@ -31,7 +31,7 @@ import { AdminContactImportPage } from '../pages/admin/AdminContactImportPage';
 import { AdminNewsPage } from '../pages/admin/AdminNewsPage';
 import { AdminFacebookPostsPage } from '../pages/admin/AdminFacebookPostsPage';
 import { AdminTeamsPage } from '../pages/admin/AdminTeamsPage';
-import { AdminSeniorRosterPage } from '../pages/admin/AdminSeniorRosterPage';
+import { AdminSeniorRosterPage, AdminJuniorRosterPage } from '../pages/admin/AdminSeniorRosterPage';
 import { AdminSponsorsPage } from '../pages/admin/AdminSponsorsPage';
 import { AdminGalleryPage } from '../pages/admin/AdminGalleryPage';
 import { AdminMatchesPage } from '../pages/admin/AdminMatchesPage';
@@ -62,6 +62,7 @@ export function AppRoutes() {
         <Route path="clube" element={<ClubPage />} />
         <Route path="equipas" element={<TeamsPage />} />
         <Route path="equipas/seniores/plantel-2026-gdrb-7f4k" element={<SeniorRosterPage />} />
+        <Route path="equipas/juniores/plantel" element={<JuniorRosterPage />} />
         <Route path="noticias" element={<NewsPage />} />
         <Route path="noticias/:id" element={<NewsDetailPage />} />
         <Route path="socios" element={<MembersPage />} />
@@ -88,6 +89,7 @@ export function AppRoutes() {
           <Route path="facebook" element={<AdminFacebookPostsPage />} />
           <Route path="equipas" element={<AdminTeamsPage />} />
           <Route path="equipas/seniores/plantel" element={<AdminSeniorRosterPage />} />
+          <Route path="equipas/juniores/plantel" element={<AdminJuniorRosterPage />} />
           <Route path="jogos" element={<AdminMatchesPage />} />
           <Route path="torneios" element={<AdminTournamentsPage />} />
           <Route path="gestor-torneios" element={<AdminTournamentManagerPage />} />

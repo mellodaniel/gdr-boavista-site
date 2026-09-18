@@ -4,7 +4,7 @@ import { Flag, Sparkles, Trophy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbRosterGroup, GdrbRosterPlayer } from '../../types/database';
 
-const SENIOR_TEAM_KEY = 'senior';
+
 
 const rosterGroups: GdrbRosterGroup[] = [
   'Guarda-redes',
@@ -210,6 +210,16 @@ function PlayerCard({ player }: { player: GdrbRosterPlayer }) {
 }
 
 export function SeniorRosterPage() {
+  return <RosterPage key="senior" teamKey="senior" />;
+}
+
+export function JuniorRosterPage() {
+  return <RosterPage key="junior" teamKey="junior" />;
+}
+
+function RosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
+  const isJunior = teamKey === 'junior';
+  const [errorMessage, setErrorMessage] = useState('');
   const [players, setPlayers] = useState<GdrbRosterPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState<GdrbRosterGroup | 'Todos'>('Todos');
@@ -243,29 +253,34 @@ export function SeniorRosterPage() {
   }, [players]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadPlayers() {
       setIsLoading(true);
+      setErrorMessage('');
 
       const { data, error } = await supabase
         .from('gdrb_roster_players')
         .select('*')
-        .eq('team_key', SENIOR_TEAM_KEY)
+        .eq('team_key', teamKey)
         .eq('is_active', true)
         .order('roster_group', { ascending: true })
         .order('sort_order', { ascending: true })
         .order('shirt_number', { ascending: true, nullsFirst: false })
         .order('name', { ascending: true });
 
+      if (cancelled) return;
       if (error) {
-        console.error('Erro ao carregar plantel sénior:', error);
+        console.error('Erro ao carregar plantel:', error);
+        setErrorMessage('Não foi possível carregar o plantel. Tenta novamente mais tarde.');
       }
 
       setPlayers((data ?? []) as GdrbRosterPlayer[]);
       setIsLoading(false);
     }
 
-    loadPlayers();
-  }, []);
+    void loadPlayers();
+    return () => { cancelled = true; };
+  }, [teamKey]);
 
   return (
     <div className="gdrb-public-page overflow-hidden bg-[#f6f2ec] text-zinc-950">
@@ -285,16 +300,16 @@ export function SeniorRosterPage() {
             <div>
               <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-red-200 backdrop-blur">
                 <Sparkles size={16} />
-                Plantel privado
+                {isJunior ? 'Plantel oficial' : 'Plantel privado'}
               </div>
 
               <h1 className="mt-7 max-w-4xl font-serif text-4xl font-light leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
-                Equipa Sénior
+                {isJunior ? 'Equipa de Juniores' : 'Equipa Sénior'}
                 <span className="block text-red-300">GDR Boavista.</span>
               </h1>
 
               <p className="mt-7 max-w-2xl text-lg leading-8 text-zinc-300">
-                Plantel oficial da equipa principal para a época 2026/2027.
+                Plantel oficial {isJunior ? 'dos juniores' : 'da equipa principal'} para a época 2026/2027.
                 Uma apresentação moderna para valorizar quem representa a
                 camisola do GDR Boavista dentro e fora de campo.
               </p>
@@ -304,10 +319,10 @@ export function SeniorRosterPage() {
                   Época 2026/2027
                 </span>
                 <span className="rounded-full border border-white/15 px-5 md:px-4 py-2">
-                  Futebol sénior
+                  {isJunior ? 'Futebol júnior' : 'Futebol sénior'}
                 </span>
                 <span className="rounded-full border border-white/15 px-5 md:px-4 py-2">
-                  Página por link direto
+                  {isJunior ? 'Formação e competição' : 'Página por link direto'}
                 </span>
               </div>
             </div>
@@ -335,6 +350,8 @@ export function SeniorRosterPage() {
             <div className="rounded-[2rem] border border-zinc-200 bg-white p-6 md:p-10 text-center text-sm font-bold text-zinc-500 shadow-sm">
               A carregar plantel...
             </div>
+          ) : errorMessage ? (
+            <div role="alert" className="rounded-2xl border border-red-200 bg-white p-8 text-center text-red-700">{errorMessage}</div>
           ) : players.length === 0 ? (
             <div className="rounded-[2rem] border border-dashed border-zinc-300 bg-white p-12 text-center shadow-sm">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
@@ -356,7 +373,7 @@ export function SeniorRosterPage() {
                       Plantel oficial
                     </p>
                     <h2 className="mt-2 font-serif text-4xl font-light text-[#24180f] md:text-5xl">
-                      Conhece a equipa Sénior
+                      Conhece {isJunior ? 'os Juniores' : 'a equipa Sénior'}
                     </h2>
                   </div>
 

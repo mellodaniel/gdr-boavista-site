@@ -116,8 +116,11 @@ function normalizeText(value: string | null | undefined) {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-function hasSeniorRoster(team: GdrbTeam) {
-  return normalizeText(team.name).includes('senior');
+function getRosterPath(team: GdrbTeam) {
+  const name = normalizeText(team.name);
+  if (name.includes('junior')) return '/equipas/juniores/plantel';
+  if (name.includes('senior')) return '/equipas/seniores/plantel-2026-gdrb-7f4k';
+  return null;
 }
 
 export function TeamsPage() {
@@ -261,9 +264,9 @@ export function TeamsPage() {
                       </p>
                     )}
 
-                    {hasSeniorRoster(team) && (
+                    {getRosterPath(team) && (
                       <Link
-                        to="/equipas/seniores/plantel-2026-gdrb-7f4k"
+                        to={getRosterPath(team)!}
                         className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#24180f] px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2"
                       >
                         <Users size={17} />

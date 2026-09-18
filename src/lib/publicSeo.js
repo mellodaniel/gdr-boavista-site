@@ -1,5 +1,6 @@
 export const SITE = 'https://gdrboavista.pt';
 export const pages = {
+  '/equipas/juniores/plantel': ['Plantel de Juniores — GDR Boavista, Leiria', 'Conhece os jogadores e a equipa técnica dos juniores do GDR Boavista na época 2026/2027. Futebol de formação, união e orgulho em Leiria.'],
   '/': ['GDR Boavista — Futebol e Formação em Leiria', 'Conhece o GDR Boavista, em Leiria. Equipas, formação, horários de treino, jogos, notícias e informações para atletas, famílias e sócios.'],
   '/clube': ['O Clube — GDR Boavista, Leiria', 'Conhece a história, os valores e a comunidade do Grupo Desportivo e Recreativo Boavista, em Leiria.'],
   '/equipas': ['Equipas e Futebol de Formação — GDR Boavista, Leiria', 'Conhece as equipas e os escalões do GDR Boavista, em Leiria. Consulta os horários e contacta o clube para informações sobre inscrições.'],

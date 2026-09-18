@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import {
   Camera,
@@ -21,8 +21,7 @@ import { useSessionState } from '../../hooks/useSessionState';
 import type { GdrbRosterGroup, GdrbRosterPlayer } from '../../types/database';
 
 const ROSTER_STORAGE_BUCKET = 'gdrb-roster-images';
-const SENIOR_TEAM_KEY = 'senior';
-const PRIVATE_ROSTER_PATH = '/equipas/seniores/plantel-2026-gdrb-7f4k';
+
 
 const rosterGroups: GdrbRosterGroup[] = [
   'Guarda-redes',
@@ -74,13 +73,24 @@ function normalizeText(value: string | null | undefined) {
 }
 
 export function AdminSeniorRosterPage() {
+  return <AdminRosterPage key="senior" teamKey="senior" />;
+}
+
+export function AdminJuniorRosterPage() {
+  return <AdminRosterPage key="junior" teamKey="junior" />;
+}
+
+function AdminRosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
+  const teamLabel = teamKey === 'junior' ? 'Juniores' : 'Sénior';
+  const rosterPath = teamKey === 'junior' ? '/equipas/juniores/plantel' : '/equipas/seniores/plantel-2026-gdrb-7f4k';
+  const sessionPrefix = teamKey === 'senior' ? 'admin:roster' : 'admin:roster:junior';
   const [players, setPlayers] = useState<GdrbRosterPlayer[]>([]);
-  const [form, setForm] = useSessionState('admin:roster:form', initialForm);
-  const [editingId, setEditingId] = useSessionState<string | null>('admin:roster:editingId', null);
+  const [form, setForm] = useSessionState(`${sessionPrefix}:form`, initialForm);
+  const [editingId, setEditingId] = useSessionState<string | null>(`${sessionPrefix}:editingId`, null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showForm, setShowForm] = useSessionState('admin:roster:showForm', false);
+  const [showForm, setShowForm] = useSessionState(`${sessionPrefix}:showForm`, false);
 
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -179,33 +189,33 @@ export function AdminSeniorRosterPage() {
     });
   }
 
-  async function loadPlayers() {
+  const loadPlayers = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage('');
 
     const { data, error } = await supabase
       .from('gdrb_roster_players')
       .select('*')
-      .eq('team_key', SENIOR_TEAM_KEY)
+      .eq('team_key', teamKey)
       .order('roster_group', { ascending: true })
       .order('sort_order', { ascending: true })
       .order('shirt_number', { ascending: true, nullsFirst: false })
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('Erro ao carregar plantel sénior:', error);
-      setErrorMessage('Não foi possível carregar o plantel sénior.');
+      console.error(`Erro ao carregar plantel ${teamKey}:`, error);
+      setErrorMessage(`Não foi possível carregar o plantel ${teamLabel}.`);
       setIsLoading(false);
       return;
     }
 
     setPlayers((data ?? []) as GdrbRosterPlayer[]);
     setIsLoading(false);
-  }
+  }, [teamKey, teamLabel]);
 
   useEffect(() => {
-    loadPlayers();
-  }, []);
+    void loadPlayers();
+  }, [loadPlayers]);
 
   function handleChange(
     field: keyof typeof initialForm,
@@ -224,8 +234,8 @@ export function AdminSeniorRosterPage() {
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      setErrorMessage('Escolhe um ficheiro de imagem válido.');
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setErrorMessage('Escolhe uma imagem JPEG, PNG, WebP ou GIF. Converte fotografias HEIC para JPEG antes de carregar.');
       event.target.value = '';
       return;
     }
@@ -261,7 +271,7 @@ export function AdminSeniorRosterPage() {
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-    const filePath = `senior/${uniqueId}.${extension}`;
+    const filePath = `${teamKey}/${uniqueId}.${extension}`;
 
     const { error: uploadError } = await supabase.storage
       .from(ROSTER_STORAGE_BUCKET)
@@ -327,7 +337,7 @@ export function AdminSeniorRosterPage() {
 
     setIsSaving(true);
 
-    let uploadedPhotoUrl: string | null = null;
+    let uploadedPhotoUrl: string | null;
 
     try {
       uploadedPhotoUrl = await uploadSelectedPhoto();
@@ -349,7 +359,7 @@ export function AdminSeniorRosterPage() {
       : null;
 
     const payload = {
-      team_key: SENIOR_TEAM_KEY,
+      team_key: teamKey,
       name: form.name.trim(),
       shirt_number: Number.isNaN(shirtNumber) ? null : shirtNumber,
       position: form.position.trim() || null,
@@ -364,7 +374,7 @@ export function AdminSeniorRosterPage() {
     };
 
     const result = editingId
-      ? await supabase.from('gdrb_roster_players').update(payload).eq('id', editingId)
+      ? await supabase.from('gdrb_roster_players').update(payload).eq('id', editingId).eq('team_key', teamKey)
       : await supabase.from('gdrb_roster_players').insert(payload);
 
     setIsSaving(false);
@@ -386,7 +396,7 @@ export function AdminSeniorRosterPage() {
     const { error } = await supabase
       .from('gdrb_roster_players')
       .update({ is_active: !player.is_active })
-      .eq('id', player.id);
+      .eq('id', player.id).eq('team_key', teamKey);
 
     if (error) {
       console.error('Erro ao alterar jogador:', error);
@@ -409,7 +419,7 @@ export function AdminSeniorRosterPage() {
     const { error } = await supabase
       .from('gdrb_roster_players')
       .delete()
-      .eq('id', player.id);
+      .eq('id', player.id).eq('team_key', teamKey);
 
     if (error) {
       console.error('Erro ao apagar jogador:', error);
@@ -432,18 +442,18 @@ export function AdminSeniorRosterPage() {
             </p>
 
             <h1 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl md:mt-6 md:text-7xl">
-              Plantel Sénior.
+              Plantel {teamLabel}.
             </h1>
 
             <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base sm:leading-8 md:mt-6">
-              Gere os jogadores e equipa técnica da página privada do plantel sénior.
+              Gere os jogadores e a equipa técnica do plantel {teamLabel}.
               A página pública continua a mostrar apenas elementos ativos.
             </p>
           </div>
 
           <div className="grid w-full grid-cols-2 gap-3 md:flex md:w-auto md:flex-wrap">
             <Link
-              to={PRIVATE_ROSTER_PATH}
+              to={rosterPath}
               target="_blank"
               className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
             >
@@ -535,7 +545,7 @@ export function AdminSeniorRosterPage() {
               <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-3 text-sm font-bold text-zinc-700 hover:border-red-700 hover:text-red-700">
                 <Upload size={17} />
                 Carregar foto
-                <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handlePhotoChange} className="hidden" />
               </label>
 
               {(photoPreview || form.photo_url) && (
