@@ -12,6 +12,7 @@ const rosterGroups: GdrbRosterGroup[] = [
   'Médios',
   'Avançados',
   'Equipa técnica',
+  'Jogadores',
 ];
 
 function getPlayerInitials(name: string) {
@@ -149,21 +150,21 @@ function PlayerCard({ player }: { player: GdrbRosterPlayer }) {
 
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
 
-        <div className="absolute left-4 top-4 rounded-full bg-white px-5 md:px-4 py-2 text-sm font-black text-[#24180f] shadow-lg ring-1 ring-black/5">
+        {player.shirt_number !== null && <div className="absolute left-4 top-4 rounded-full bg-white px-5 md:px-4 py-2 text-sm font-black text-[#24180f] shadow-lg ring-1 ring-black/5">
           {formatPlayerNumber(player.shirt_number)}
-        </div>
+        </div>}
 
         <div className="absolute bottom-4 left-4 right-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-red-300">
+          {(player.position || player.roster_group !== 'Jogadores') && <p className="text-[10px] font-black uppercase tracking-[0.28em] text-red-300">
             {player.position || player.roster_group}
-          </p>
+          </p>}
           <h3 className="mt-2 text-2xl font-black leading-tight text-white drop-shadow">
             {player.name}
           </h3>
         </div>
       </div>
 
-      <div className="p-5">
+      {(player.height || player.birth_year || player.nationality) && <div className="p-5">
         <div className="grid grid-cols-2 gap-3 text-sm">
           {player.height && (
             <div className="rounded-2xl bg-zinc-50 p-3 ring-1 ring-zinc-100">
@@ -204,7 +205,7 @@ function PlayerCard({ player }: { player: GdrbRosterPlayer }) {
             </div>
           )}
         </div>
-      </div>
+      </div>}
     </article>
   );
 }
@@ -249,6 +250,7 @@ function RosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
       Médios: 0,
       Avançados: 0,
       'Equipa técnica': 0,
+      Jogadores: 0,
     });
   }, [players]);
 
@@ -390,7 +392,7 @@ function RosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
                       Todos · {players.length}
                     </button>
 
-                    {rosterGroups.map((group) => (
+                    {rosterGroups.filter((group) => groupCounts[group] > 0).map((group) => (
                       <button
                         key={group}
                         type="button"

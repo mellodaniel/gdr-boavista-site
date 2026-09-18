@@ -29,13 +29,14 @@ const rosterGroups: GdrbRosterGroup[] = [
   'Médios',
   'Avançados',
   'Equipa técnica',
+  'Jogadores',
 ];
 
 const initialForm = {
   name: '',
   shirt_number: '',
   position: '',
-  roster_group: 'Avançados' as GdrbRosterGroup,
+  roster_group: 'Jogadores' as GdrbRosterGroup,
   photo_url: '',
   height: '',
   birth_year: '',
@@ -130,6 +131,7 @@ function AdminRosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
         Médios: 0,
         Avançados: 0,
         'Equipa técnica': 0,
+        Jogadores: 0,
       }),
     };
   }, [players, activePlayers.length, inactivePlayers.length]);

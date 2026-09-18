@@ -117,7 +117,8 @@ export type GdrbRosterGroup =
   | 'Defesas'
   | 'Médios'
   | 'Avançados'
-  | 'Equipa técnica';
+  | 'Equipa técnica'
+  | 'Jogadores';
 
 export type GdrbRosterPlayer = {
   id: string;
