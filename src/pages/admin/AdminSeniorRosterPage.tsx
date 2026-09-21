@@ -41,6 +41,8 @@ const initialForm = {
   height: '',
   birth_year: '',
   nationality: '',
+  transfer_status: '',
+  previous_club: '',
   notes: '',
   is_active: true,
   sort_order: 0,
@@ -316,6 +318,8 @@ function AdminRosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
       height: player.height ?? '',
       birth_year: player.birth_year === null ? '' : String(player.birth_year),
       nationality: player.nationality ?? '',
+      transfer_status: player.transfer_status ?? '',
+      previous_club: player.previous_club ?? '',
       notes: player.notes ?? '',
       is_active: player.is_active,
       sort_order: player.sort_order ?? 0,
@@ -370,6 +374,8 @@ function AdminRosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
       height: form.height.trim() || null,
       birth_year: Number.isNaN(birthYear) ? null : birthYear,
       nationality: form.nationality.trim() || null,
+      transfer_status: form.transfer_status || null,
+      previous_club: form.transfer_status === 'Contratação' ? form.previous_club.trim() || null : null,
       notes: form.notes.trim() || null,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
@@ -651,6 +657,19 @@ function AdminRosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
                   className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
                 />
               </div>
+
+              <div>
+                <label htmlFor="transfer-status" className="text-sm font-black text-zinc-800">Situação</label>
+                <select id="transfer-status" value={form.transfer_status ?? ''} onChange={(event) => handleChange('transfer_status', event.target.value)} className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm">
+                  <option value="">Não indicada</option>
+                  <option value="Contratação">Contratação</option>
+                  <option value="Renovação">Renovação</option>
+                </select>
+              </div>
+              {form.transfer_status === 'Contratação' && <div>
+                <label htmlFor="previous-club" className="text-sm font-black text-zinc-800">Clube de origem</label>
+                <input id="previous-club" type="text" value={form.previous_club ?? ''} onChange={(event) => handleChange('previous_club', event.target.value)} className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm" />
+              </div>}
 
               <div>
                 <label className="text-sm font-black text-zinc-800">Ordem</label>

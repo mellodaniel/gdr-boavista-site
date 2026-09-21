@@ -131,6 +131,8 @@ export type GdrbRosterPlayer = {
   height: string | null;
   birth_year: number | null;
   nationality: string | null;
+  transfer_status: 'Contratação' | 'Renovação' | null;
+  previous_club: string | null;
   notes: string | null;
   is_active: boolean;
   sort_order: number;

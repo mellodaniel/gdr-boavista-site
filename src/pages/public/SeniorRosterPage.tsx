@@ -164,8 +164,16 @@ function PlayerCard({ player }: { player: GdrbRosterPlayer }) {
         </div>
       </div>
 
-      {(player.height || player.birth_year || player.nationality) && <div className="p-5">
+      {(player.height || player.birth_year || player.nationality || player.transfer_status) && <div className="p-5">
         <div className="grid grid-cols-2 gap-3 text-sm">
+          {player.transfer_status && <div className="col-span-2">
+            <span className="inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase tracking-wider text-red-700">{player.transfer_status}</span>
+          </div>}
+          {player.transfer_status === 'Contratação' && player.previous_club && <div className="col-span-2 rounded-2xl bg-zinc-50 p-3 ring-1 ring-zinc-100">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">Origem</p>
+            <p className="mt-1 font-bold text-zinc-900">{player.previous_club}</p>
+          </div>}
+
           {player.height && (
             <div className="rounded-2xl bg-zinc-50 p-3 ring-1 ring-zinc-100">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">
@@ -187,7 +195,7 @@ function PlayerCard({ player }: { player: GdrbRosterPlayer }) {
           {player.nationality && (
             <div className="col-span-2 rounded-2xl bg-zinc-50 p-3 ring-1 ring-zinc-100">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">
-                Origem
+                Nacionalidade
               </p>
 
               <div className="mt-2 flex items-center gap-2 font-bold text-zinc-900">
