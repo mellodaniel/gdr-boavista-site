@@ -15,8 +15,32 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function renderMessageLinks(body) {
+  const text = String(body ?? '');
+  const pattern = /\[([^\]\r\n]+)\]\((https?:\/\/(?:[^\s<>()]|\([^\s<>()]*\))+)\)|https?:\/\/[^\s<>]+/gi;
+  let html = '';
+  let cursor = 0;
+  for (const match of text.matchAll(pattern)) {
+    html += escapeHtml(text.slice(cursor, match.index));
+    let address = match[2] || match[0];
+    let suffix = '';
+    if (!match[2]) {
+      while (/[.,;:!?]$/.test(address) || (address.endsWith(')') && (address.match(/\)/g) || []).length > (address.match(/\(/g) || []).length)) {
+        suffix = address.slice(-1) + suffix;
+        address = address.slice(0, -1);
+      }
+    }
+    const url = partnerUrl(address);
+    html += url
+      ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="color:#991b1b;text-decoration:underline;overflow-wrap:anywhere;">${escapeHtml(match[1] || address)}</a>${escapeHtml(suffix)}`
+      : escapeHtml(match[0]);
+    cursor = match.index + match[0].length;
+  }
+  return html + escapeHtml(text.slice(cursor));
+}
+
 function renderBodyHtml(body) {
-  return escapeHtml(body)
+  return renderMessageLinks(body)
     .replace(/\r\n/g, '\n')
     .split('\n')
     .map((line) => (line.trim() ? line : '&nbsp;'))
@@ -24,7 +48,7 @@ function renderBodyHtml(body) {
 }
 
 function renderBodyParagraphs(body) {
-  return escapeHtml(body)
+  return renderMessageLinks(body)
     .replace(/\r\n/g, '\n')
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.trim())

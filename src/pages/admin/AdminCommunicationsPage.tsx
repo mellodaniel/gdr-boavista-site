@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Archive,
@@ -478,6 +478,35 @@ export function AdminCommunicationsPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [form, setForm] = useSessionState<FormState>('admin:communications:form', emptyForm);
+  const messageInput = useRef<HTMLTextAreaElement>(null);
+  const [linkEditor, setLinkEditor] = useState<{ start: number; end: number; text: string; url: string } | null>(null);
+  const [linkError, setLinkError] = useState('');
+
+  function insertMessageLink() {
+    if (!linkEditor) return;
+    let url: URL;
+    try {
+      url = new URL(linkEditor.url.trim());
+      if (!['http:', 'https:'].includes(url.protocol) || !url.hostname || url.username || url.password) throw new Error();
+    } catch {
+      setLinkError('Introduz uma ligação válida que comece por https:// ou http://.');
+      return;
+    }
+    const label = linkEditor.text.trim();
+    if (!label || /[\[\]\r\n]/.test(label)) {
+      setLinkError('Indica o texto do link, numa só linha e sem parênteses retos.');
+      return;
+    }
+    const address = url.href.replace(/\(/g, '%28').replace(/\)/g, '%29');
+    const link = `[${label}](${address})`;
+    setForm((current) => ({ ...current, body: current.body.slice(0, linkEditor.start) + link + current.body.slice(linkEditor.end) }));
+    const cursor = linkEditor.start + link.length;
+    setLinkEditor(null);
+    requestAnimationFrame(() => {
+      messageInput.current?.focus();
+      messageInput.current?.setSelectionRange(cursor, cursor);
+    });
+  }
   const [selectedCommunicationId, setSelectedCommunicationId] = useSessionState<string | null>('admin:communications:selectedId', null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1908,16 +1937,43 @@ export function AdminCommunicationsPage() {
             </label>
           </div>
 
-          <label className="mt-4 block space-y-2">
-            <span className="text-sm font-black text-zinc-800">Mensagem *</span>
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="newsletter-message" className="text-sm font-black text-zinc-800">Mensagem *</label>
+              <button type="button" className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold" onClick={() => {
+                const start = messageInput.current?.selectionStart ?? form.body.length;
+                const end = messageInput.current?.selectionEnd ?? start;
+                setLinkEditor({ start, end, text: form.body.slice(start, end), url: '' });
+                setLinkError('');
+              }}>Inserir link</button>
+            </div>
+            {linkEditor && (
+              <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4" role="group" aria-label="Inserir link na mensagem">
+                <label className="block text-sm">Texto do link
+                  <input autoFocus value={linkEditor.text} onChange={(event) => setLinkEditor({ ...linkEditor, text: event.target.value })} placeholder="Ex.: Responder ao formulário" className="mt-1 w-full rounded-lg border p-2" />
+                </label>
+                <label className="block text-sm">Ligação
+                  <input type="url" value={linkEditor.url} onChange={(event) => setLinkEditor({ ...linkEditor, url: event.target.value })} placeholder="https://" className="mt-1 w-full rounded-lg border p-2" />
+                </label>
+                {linkError && <p role="alert" className="text-sm text-red-700">{linkError}</p>}
+                <div className="flex gap-3">
+                  <button type="button" onClick={insertMessageLink} className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-bold text-white">Adicionar link</button>
+                  <button type="button" onClick={() => setLinkEditor(null)} className="rounded-lg border px-3 py-2 text-sm">Cancelar</button>
+                </div>
+              </div>
+            )}
             <textarea
+              id="newsletter-message"
+              ref={messageInput}
+              readOnly={linkEditor !== null}
               value={form.body}
               onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
               rows={10}
               placeholder="Escreve aqui a comunicação. O sistema mantém as quebras de linha no email."
               className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm leading-7 outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
             />
-          </label>
+            <p className="text-xs text-zinc-500">Seleciona um texto e escolhe “Inserir link”, ou cola uma ligação diretamente. Os links ficam clicáveis no email; usa “Ver antes de enviar” para ver o resultado.</p>
+          </div>
 
           <NewsletterPhotos images={form.images || []} disabled={sendingFinal || saving}
             onChange={(images) => setForm((current) => ({ ...current, images }))}
