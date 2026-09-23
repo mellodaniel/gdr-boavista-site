@@ -103,6 +103,41 @@ function renderNewsletterImages(images) {
   }).join('');
 }
 
+function renderNewsletterHeader(communication) {
+  const site = escapeHtml(getSiteUrl());
+  const issued = communication.newsletter_issued_at ? new Date(communication.newsletter_issued_at) : null;
+  const date = issued && !Number.isNaN(issued.getTime())
+    ? new Intl.DateTimeFormat('pt-PT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Lisbon' }).format(issued)
+    : 'Data a atribuir no envio';
+  const edition = Number.isSafeInteger(communication.newsletter_edition) && communication.newsletter_edition > 0
+    ? `Edição n.º ${communication.newsletter_edition}` : 'Edição a atribuir no envio';
+  return `<tr><td align="center" style="padding:26px 20px 22px;background:#ffffff;border-bottom:3px solid #b91c1c;">
+    <a href="${site}/"><img src="${site}/logo-gdr-boavista-header-256.png" width="54" alt="GDR Boavista" style="display:block;width:54px;height:auto;margin:0 auto 14px;border:0;" /></a>
+    <p style="margin:0 0 7px;color:#b91c1c;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Newsletter oficial</p>
+    <p style="margin:0;color:#18181b;font-family:Georgia,'Times New Roman',serif;font-size:27px;line-height:1.2;font-weight:700;">A VOZ DA BOAVISTA</p>
+    <p style="margin:10px 0 14px;color:#52525b;font-size:12px;line-height:1.6;">Notícias, formação e vida do clube.</p>
+    <p style="margin:0;color:#52525b;font-size:11px;line-height:1.8;"><span style="display:inline-block;">${escapeHtml(edition)}</span> · <span style="display:inline-block;">${escapeHtml(date)}</span></p>
+  </td></tr>`;
+}
+
+function renderNewsletterFooter(subscriber) {
+  const site = getSiteUrl();
+  const links = [['Notícias', '/noticias'], ['Equipas', '/equipas'], ['Jogos', '/resultados'], ['Sócios', '/socios'], ['Contactos', '/contactos']];
+  const navigation = links.map(([label, path]) => `<a class="newsletter-nav" href="${escapeHtml(site + path)}" style="display:inline-block;padding:14px 10px;color:#18181b;font-size:12px;line-height:1.5;font-weight:700;text-decoration:none;">${label}</a>`).join('');
+  const socials = [['Facebook', 'https://www.facebook.com/G.D.R.BoaVista', 'facebook'], ['Instagram', 'https://www.instagram.com/gdr_boavista_oficial/', 'instagram']]
+    .map(([label, url, icon]) => `<a href="${url}" style="display:inline-block;padding:12px;color:#52525b;font-size:12px;text-decoration:none;"><img src="${escapeHtml(site)}/newsletter/${icon}.png" width="22" height="22" alt="" style="display:inline-block;width:22px;height:22px;vertical-align:middle;margin-right:6px;border:0;" />${label}</a>`).join('');
+  const checks = [0, 1].map(row => `<tr>${Array.from({length:12}, (_, i) => `<td width="8" height="8" bgcolor="${(i + row) % 2 ? '#ffffff' : '#18181b'}" style="width:8px;height:8px;font-size:0;line-height:0;">&nbsp;</td>`).join('')}</tr>`).join('');
+  return `<tr><td align="center" style="padding:12px 20px 30px;background:#faf9f6;border-top:1px solid #e4e4e7;">
+    <div style="border-bottom:1px solid #e4e4e7;padding-bottom:8px;">${navigation}</div>
+    <div style="padding:8px 0;">${socials}</div>
+    <p style="margin:6px 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:700;line-height:1.4;color:#18181b;">Mais que um clube. Uma comunidade.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="96" style="width:96px;margin:0 auto 18px;table-layout:fixed;">${checks}</table>
+    <p style="margin:0 0 8px;color:#52525b;font-size:11px;line-height:1.6;">Grupo Desportivo e Recreativo Boavista · Leiria</p>
+    <p style="margin:0 0 10px;color:#71717a;font-size:11px;line-height:1.6;">Recebeste esta comunicação através da lista de contactos da Boavista.</p>
+    <p style="margin:0;font-size:11px;line-height:2;"><a href="${escapeHtml(site)}/contactos" style="color:#52525b;text-decoration:underline;">Contactos e privacidade</a> · <a href="${escapeHtml(getUnsubscribeUrl(subscriber))}" style="color:#991b1b;text-decoration:underline;">Cancelar subscrição</a></p>
+  </td></tr>`;
+}
+
 function buildStandardNewsletterHtml({ communication, subscriber, partners = [] }) {
   const unsubscribeUrl = getUnsubscribeUrl(subscriber);
 
@@ -137,6 +172,7 @@ function buildStandardNewsletterHtml({ communication, subscriber, partners = [] 
       .email-pad { padding: 34px 38px; }
       .email-footer { padding: 24px 38px 30px; }
       @media screen and (max-width: 640px) {
+        .newsletter-nav { width: 30% !important; padding: 12px 0 !important; }
         .email-outer { padding: 10px !important; }
         .email-pad { padding: 26px 22px !important; }
         .email-footer { padding: 20px 22px 26px !important; }
@@ -154,9 +190,7 @@ function buildStandardNewsletterHtml({ communication, subscriber, partners = [] 
       <tr>
         <td align="center" class="email-outer" style="padding:24px 14px;">
           <table role="presentation" width="100%" class="email-card" bgcolor="#ffffff" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #e4e4e7;border-radius:14px;overflow:hidden;">
-            <tr>
-              <td style="height:5px;line-height:5px;font-size:0;background:#b91c1c;" bgcolor="#b91c1c">&nbsp;</td>
-            </tr>
+            ${renderNewsletterHeader(communication)}
             <tr>
               <td class="email-pad" bgcolor="#ffffff" style="background:#ffffff;padding:34px 38px;">
                 <p style="margin:0 0 12px;font-size:12px;line-height:1.4;letter-spacing:0.22em;text-transform:uppercase;font-weight:700;color:#b91c1c;">
@@ -182,17 +216,7 @@ function buildStandardNewsletterHtml({ communication, subscriber, partners = [] 
               </td>
             </tr>
             ${renderPartnersHtml(partners)}
-            <tr>
-              <td class="email-footer" bgcolor="#fafafa" style="background:#fafafa;padding:24px 38px 30px;border-top:1px solid #e4e4e7;">
-                <p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:#52525b;">
-                  Esta é uma comunicação do GDR Boavista.
-                </p>
-                <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
-                  Se não pretendes receber mais comunicações,
-                  <a href="${unsubscribeUrl}" style="color:#991b1b;font-weight:700;text-decoration:underline;">Cancelar subscrição</a>.
-                </p>
-              </td>
-            </tr>
+            ${renderNewsletterFooter(subscriber)}
           </table>
         </td>
       </tr>
@@ -212,13 +236,10 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber, partners 
   const siteUrl = getSiteUrl();
   const campaignQuery = 'utm_source=newsletter&utm_medium=email&utm_campaign=clube';
   const homeUrl = `${siteUrl}/?${campaignQuery}`;
-  const logoUrl = `${siteUrl}/logo-gdr-boavista-header-256.png`;
   // Imagem oficial da campanha, alojada no próprio domínio do GDR Boavista.
   const heroImageUrl = `${siteUrl}/newsletter/inicio-epoca-2026-27.jpg?v=20260904-3`;
   const homeUrlHtml = escapeHtml(homeUrl);
-  const logoUrlHtml = escapeHtml(logoUrl);
   const heroImageUrlHtml = escapeHtml(heroImageUrl);
-  const unsubscribeUrlHtml = escapeHtml(unsubscribeUrl);
   const title = escapeHtml(communication.subject || communication.title || 'Novidades do GDR Boavista');
   const preview = escapeHtml(
     communication.preview_text ||
@@ -271,6 +292,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber, partners 
       .footer-pad { padding: 22px 42px 52px; }
       .cta-link { display: block !important; }
       @media screen and (max-width: 640px) {
+        .newsletter-nav { width: 30% !important; padding: 12px 0 !important; }
         .outer-pad { padding: 10px 10px 76px !important; }
         .content-pad { padding: 27px 22px 24px !important; }
         .footer-pad { padding: 21px 22px 68px !important; }
@@ -291,23 +313,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber, partners 
       <tr>
         <td align="center" class="outer-pad" style="padding:24px 14px 72px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-card" bgcolor="#ffffff" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #e7e2dc;border-radius:18px;border-collapse:separate !important;border-spacing:0 !important;">
-            <tr>
-              <td class="brand-pad" bgcolor="#ffffff" style="background:#ffffff;padding:20px 28px;border-bottom:4px solid #c90012;border-radius:18px 18px 0 0;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
-                  <tr>
-                    <td width="58" valign="middle" style="width:58px;">
-                      <a href="${homeUrlHtml}" target="_blank" aria-label="Visitar o site do GDR Boavista">
-                        <img src="${logoUrlHtml}" width="46" alt="GDR Boavista" style="width:46px;max-width:46px;height:auto;" />
-                      </a>
-                    </td>
-                    <td valign="middle" style="padding-left:12px;">
-                      <p style="margin:0;color:#17120f;font-size:16px;line-height:1.2;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">GDR Boavista</p>
-                      <p style="margin:5px 0 0;color:#c90012;font-size:11px;line-height:1.2;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;">O nosso clube</p>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
+            ${renderNewsletterHeader(communication)}
 
             <tr>
               <td bgcolor="#17120f" style="padding:0;background:#17120f;">
@@ -350,35 +356,7 @@ function buildSeasonOpeningNewsletterHtml({ communication, subscriber, partners 
             </tr>
 
             ${renderPartnersHtml(partners)}
-            <tr>
-              <td class="footer-pad" bgcolor="#f8f5f1" style="background:#f8f5f1;padding:22px 42px 52px;border-top:1px solid #e7e2dc;border-radius:0 0 18px 18px;">
-                <p style="margin:0 0 18px;color:#991b1b;font-size:11px;line-height:1.5;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;text-align:center;">
-                  Trabalho · Ambição · Respeito · União
-                </p>
-
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
-                  <tr>
-                    <td width="44" valign="top" style="width:44px;">
-                      <img src="${logoUrlHtml}" width="34" alt="" style="width:34px;max-width:34px;height:auto;" />
-                    </td>
-                    <td valign="top" style="padding-left:10px;">
-                      <p style="margin:0;color:#17120f;font-size:12px;line-height:1.5;font-weight:800;">Grupo Desportivo e Recreativo Boavista</p>
-                      <p style="margin:4px 0 0;font-size:12px;line-height:1.6;">
-                        <a href="${homeUrlHtml}" style="color:#991b1b;font-weight:700;text-decoration:underline;">gdrboavista.pt</a>
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-
-                <p style="margin:18px 0 7px;font-size:12px;line-height:1.6;color:#52525b;">
-                  Esta é uma comunicação do GDR Boavista.
-                </p>
-                <p style="margin:0;font-size:12px;line-height:1.6;color:#52525b;">
-                  Se não pretendes receber mais comunicações,
-                  <a href="${unsubscribeUrlHtml}" style="color:#991b1b;font-weight:800;text-decoration:underline;">Cancelar subscrição</a>.
-                </p>
-              </td>
-            </tr>
+            ${renderNewsletterFooter(subscriber)}
           </table>
         </td>
       </tr>

@@ -326,7 +326,7 @@ export default async function handler(request, response) {
       return response.status(200).json({ ok: true, mode: 'preview', html });
     }
 
-    const communication = await getCommunication(communicationId);
+    let communication = await getCommunication(communicationId);
 
     if (!communication) {
       return response.status(404).json({ error: 'Comunicação não encontrada.' });
@@ -381,6 +381,13 @@ export default async function handler(request, response) {
 
     // Load once before sending so every recipient gets the same partner section.
     const partners = await getNewsletterPartners();
+
+    const editions = await supabaseRequest('rpc/reserve_newsletter_edition', {
+      method: 'POST',
+      body: JSON.stringify({ p_communication_id: communicationId }),
+    });
+    if (!editions?.[0]?.newsletter_edition) throw new Error('Não foi possível atribuir a edição.');
+    communication = { ...communication, ...editions[0] };
 
     let sentCount = 0;
     let failedCount = 0;
