@@ -163,13 +163,14 @@ function isTournamentInCurrentWeek(tournament: GdrbTournament) {
 }
 
 function formatTournamentDate(tournament: GdrbTournament) {
+  const time = tournament.start_time ? ` | ${tournament.start_time.slice(0, 5)}` : '';
   if (!tournament.end_date || tournament.end_date === tournament.start_date) {
-    return formatDateShort(tournament.start_date);
+    return (formatDateShort(tournament.start_date)) + time;
   }
 
-  return `${formatDateShort(tournament.start_date)} a ${formatDateShort(
+  return (`${formatDateShort(tournament.start_date)} a ${formatDateShort(
     tournament.end_date,
-  )}`;
+  )}`) + time;
 }
 
 function getWeekLabel() {
@@ -277,7 +278,7 @@ export function AdminMatchesPage() {
       .map((tournament) => ({
         type: "tournament",
         id: tournament.id,
-        sortDate: `${tournament.start_date} 00:00`,
+        sortDate: `${tournament.start_date} ${tournament.start_time ?? '23:59'}`,
         data: tournament,
       }));
 

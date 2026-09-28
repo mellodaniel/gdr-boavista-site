@@ -33,6 +33,7 @@ const initialForm = {
   football_type: 'Futebol 11',
   name: '',
   start_date: '',
+  start_time: '',
   end_date: '',
   location: '',
   website_url: '',
@@ -88,11 +89,12 @@ function formatDate(date: string) {
 }
 
 function formatTournamentDate(tournament: AdminTournament) {
+  const time = tournament.start_time ? ` | ${tournament.start_time.slice(0, 5)}` : '';
   if (!tournament.end_date || tournament.end_date === tournament.start_date) {
-    return formatDate(tournament.start_date);
+    return (formatDate(tournament.start_date)) + time;
   }
 
-  return `${formatDate(tournament.start_date)} a ${formatDate(tournament.end_date)}`;
+  return (`${formatDate(tournament.start_date)} a ${formatDate(tournament.end_date)}`) + time;
 }
 
 function getTournamentType(tournament: AdminTournament): TournamentKind {
@@ -180,6 +182,7 @@ export function AdminTournamentsPage() {
       football_type: tournament.football_type,
       name: tournament.name,
       start_date: tournament.start_date,
+      start_time: tournament.start_time?.slice(0, 5) ?? '',
       end_date: tournament.end_date ?? '',
       location: tournament.location ?? '',
       website_url: tournament.website_url ?? '',
@@ -210,6 +213,7 @@ export function AdminTournamentsPage() {
       football_type: form.football_type,
       name: form.name.trim(),
       start_date: form.start_date,
+      start_time: form.start_time || null,
       end_date: form.end_date || null,
       location: form.location.trim() || null,
       website_url: form.website_url.trim() || null,
@@ -599,6 +603,20 @@ export function AdminTournamentsPage() {
                 onChange={(event) => handleChange('end_date', event.target.value)}
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
+            </div>
+
+            <div>
+              <label htmlFor="tournament-start-time" className="text-sm font-black text-zinc-800">Hora de início</label>
+              <input
+                id="tournament-start-time"
+                type="time"
+                step="60"
+                value={form.start_time ?? ''}
+                onChange={(event) => handleChange('start_time', event.target.value)}
+                aria-describedby="tournament-start-time-help"
+                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
+              />
+              <p id="tournament-start-time-help" className="mt-2 text-xs text-zinc-500">Opcional. Hora local no primeiro dia do torneio.</p>
             </div>
 
             <div className="md:col-span-2">

@@ -82,11 +82,12 @@ function formatDateShort(date: string, today: string) {
 }
 
 function formatTournamentDate(tournament: GdrbTournament) {
+  const time = tournament.start_time ? ` | ${tournament.start_time.slice(0, 5)}` : '';
   if (!tournament.end_date || tournament.end_date === tournament.start_date) {
-    return formatDate(tournament.start_date);
+    return (formatDate(tournament.start_date)) + time;
   }
 
-  return `${formatDate(tournament.start_date)} a ${formatDate(tournament.end_date)}`;
+  return (`${formatDate(tournament.start_date)} a ${formatDate(tournament.end_date)}`) + time;
 }
 
 function formatSponsorLevel(level: string) {
@@ -434,7 +435,7 @@ export function HomePage() {
         type: 'tournament',
         id: tournament.id,
         date: tournament.start_date,
-        sortDate: `${tournament.start_date} 00:00`,
+        sortDate: `${tournament.start_date} ${tournament.start_time ?? '23:59'}`,
         data: tournament,
       }));
 
@@ -813,7 +814,8 @@ export function HomePage() {
                               {formatDateShort(tournament.start_date, today)}
                               {tournament.end_date && tournament.end_date !== tournament.start_date
                                 ? ` a ${formatDateShort(tournament.end_date, today)}`
-                                : ' | Hora por confirmar'}
+                                : ''}
+                              {tournament.start_time ? ` | ${tournament.start_time.slice(0, 5)}` : ' | Hora por confirmar'}
                             </span>
                           </span>
 

@@ -64,13 +64,14 @@ function formatDateShort(date: string) {
 }
 
 function formatTournamentDate(tournament: GdrbTournament) {
+  const time = tournament.start_time ? ` | ${tournament.start_time.slice(0, 5)}` : '';
   const start = formatDateShort(tournament.start_date);
 
   if (!tournament.end_date || tournament.end_date === tournament.start_date) {
-    return start;
+    return (start) + time;
   }
 
-  return `${start} a ${formatDateShort(tournament.end_date)}`;
+  return (`${start} a ${formatDateShort(tournament.end_date)}`) + time;
 }
 
 function formatMatchStatus(status: string) {

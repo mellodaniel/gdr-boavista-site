@@ -100,6 +100,7 @@ export type GdrbTournament = {
   football_type: string;
   name: string;
   start_date: string;
+  start_time?: string | null;
   end_date: string | null;
   location: string | null;
   website_url: string | null;
