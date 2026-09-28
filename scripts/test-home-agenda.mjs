@@ -23,3 +23,16 @@ assert.ok(isTournamentUpcoming(tournament,'2026-10-02'));
 assert.ok(!isTournamentUpcoming({...tournament,end_date:'2026-10-01'},'2026-10-02'));
 assert.ok(!isTournamentUpcoming({...tournament,is_archived:true},'2026-10-02'));
 console.log('Home agenda: holiday, seven-day window, team fallback, status, timezone and tournament checks passed.');
+
+const { selectRecentResults, getResultTeams } = await import('../src/lib/homeAgenda.ts');
+const result = (id, date, extra = {}) => match(id, date, 'Seniores', {status:'terminado',home_score:0,away_score:0,opponent:'Visitante',...extra});
+const recent = (rows, today) => selectRecentResults(rows,today).map(m=>m.id);
+assert.deepEqual(recent([result('sunday','2026-09-27')],'2026-10-02'), ['sunday']);
+assert.deepEqual(recent([result('sunday','2026-09-27')],'2026-10-03'), ['sunday']);
+assert.deepEqual(recent([result('sunday','2026-09-27')],'2026-10-04'), []);
+assert.deepEqual(recent([result('monday','2026-10-05')],'2026-10-11'), ['monday']);
+assert.deepEqual(recent([result('friday','2026-10-02')],'2026-10-08'), ['friday']);
+assert.deepEqual(recent([result('older','2026-09-27'),result('today','2026-09-28'),result('future','2026-09-29'),result('missing','2026-09-28',{home_score:null}),result('scheduled','2026-09-28',{status:'agendado'}),result('hidden','2026-09-28',{is_visible:false}),result('archived','2026-09-28',{is_archived:true})],'2026-09-28'), ['today','older']);
+assert.deepEqual(getResultTeams(result('away','2026-09-27',{venue_type:'fora',home_score:3,away_score:6})).map(t=>[t.name,t.score]), [['Visitante',6],['GDR Boavista',3]]);
+assert.deepEqual(getResultTeams(result('home','2026-09-27',{venue_type:'casa',home_score:3,away_score:6})).map(t=>[t.name,t.score]), [['GDR Boavista',3],['Visitante',6]]);
+console.log('Recent results: expiry, confirmed zero scores, exclusions, order and home/away score checks passed.');

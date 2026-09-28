@@ -15,11 +15,12 @@ import {
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { RecentResults } from '../../components/public/RecentResults';
 import { GalleryPromotionBanner } from '../../components/public/GalleryPromotionBanner';
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
 import { trackAnalyticsEvent } from '../../lib/analytics';
-import { addCalendarDays, getLisbonDate, isTournamentUpcoming, selectPostponedMatches, selectUpcomingMatches } from '../../lib/homeAgenda';
+import { addCalendarDays, getLisbonDate, isTournamentUpcoming, selectPostponedMatches, selectRecentResults, selectUpcomingMatches } from '../../lib/homeAgenda';
 import type { GdrbMatch, GdrbNews, GdrbSponsor, GdrbTournament } from '../../types/database';
 
 const googleMapsUrl =
@@ -350,7 +351,8 @@ export function HomePage() {
           .from('gdrb_matches')
           .select('*')
           .eq('is_visible', true)
-          .in('status', ['agendado', 'adiado'])
+          .in('status', ['agendado', 'adiado', 'terminado'])
+          .or(`status.neq.terminado,match_date.gte.${addCalendarDays(today, -6)}`)
           .order('match_date', { ascending: true })
           .order('match_time', { ascending: true }),
 
@@ -405,7 +407,7 @@ export function HomePage() {
     }
 
     loadHomeData();
-  }, []);
+  }, [today]);
 
   const featuredTournament = useMemo(() => {
     return tournaments.find((tournament) =>
@@ -439,6 +441,8 @@ export function HomePage() {
     return [...upcomingMatches, ...upcomingTournaments]
       .sort((a, b) => a.sortDate.localeCompare(b.sortDate));
   }, [matches, tournaments, today]);
+
+  const recentResults = useMemo(() => selectRecentResults(matches, today), [matches, today]);
 
   const postponedMatches = useMemo(() => selectPostponedMatches(matches), [matches]);
 
@@ -646,6 +650,8 @@ export function HomePage() {
           </div>
         </section>
       )}
+
+      <RecentResults matches={recentResults} />
 
       <section className="py-14 md:py-24">
         <div className="mx-auto max-w-7xl px-5 md:px-4">

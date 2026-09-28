@@ -37,3 +37,22 @@ export function isTournamentUpcoming(tournament: GdrbTournament, today: string) 
     tournament.start_date <= addCalendarDays(today, 6) &&
     (tournament.end_date || tournament.start_date) >= today;
 }
+
+export function selectRecentResults(matches: GdrbMatch[], today: string) {
+  const start = addCalendarDays(today, -6);
+  return matches.filter((match) =>
+    match.is_visible && !match.is_archived && match.status === 'terminado' &&
+    match.match_date >= start && match.match_date <= today &&
+    Number.isInteger(match.home_score) && Number.isInteger(match.away_score) &&
+    match.home_score! >= 0 && match.away_score! >= 0,
+  ).sort((a, b) =>
+    `${b.match_date} ${b.match_time ?? '00:00'}`.localeCompare(`${a.match_date} ${a.match_time ?? '00:00'}`) || a.id.localeCompare(b.id),
+  );
+}
+
+export function getResultTeams(match: GdrbMatch) {
+  // The existing schema stores Boavista's goals in home_score, even away.
+  const club = { name: 'GDR Boavista', score: match.home_score, isBoavista: true };
+  const opponent = { name: match.opponent, score: match.away_score, isBoavista: false };
+  return match.venue_type === 'fora' ? [opponent, club] : [club, opponent];
+}
