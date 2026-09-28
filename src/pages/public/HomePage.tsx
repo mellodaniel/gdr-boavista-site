@@ -806,10 +806,15 @@ export function HomePage() {
                           </h3>
                         </div>
 
-                        <div className="flex shrink-0 items-center gap-4 text-sm font-semibold text-zinc-600">
-                          <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-5 md:px-4 py-3">
-                            <CalendarDays size={16} className="text-red-700" />
-                            {formatTournamentDate(tournament)}
+                        <div className="flex shrink-0 flex-wrap items-center gap-4 text-sm font-semibold text-zinc-600">
+                          <span className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 lg:w-[300px]">
+                            <CalendarDays size={16} className="shrink-0 text-red-700" />
+                            <span>
+                              {formatDateShort(tournament.start_date, today)}
+                              {tournament.end_date && tournament.end_date !== tournament.start_date
+                                ? ` a ${formatDateShort(tournament.end_date, today)}`
+                                : ' | Hora por confirmar'}
+                            </span>
                           </span>
 
                           <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
@@ -890,11 +895,13 @@ export function HomePage() {
                         )}
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-4 text-sm font-semibold text-zinc-600">
-                        <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-5 md:px-4 py-3">
-                          <CalendarDays size={16} className="text-red-700" />
-                          {formatDateShort(match.match_date, today)}
-                          {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ' | Hora por confirmar'}
+                      <div className="flex shrink-0 flex-wrap items-center gap-4 text-sm font-semibold text-zinc-600">
+                        <span className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 lg:w-[300px]">
+                          <CalendarDays size={16} className="shrink-0 text-red-700" />
+                          <span>
+                            {formatDateShort(match.match_date, today)}
+                            {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ' | Hora por confirmar'}
+                          </span>
                         </span>
 
                         <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
