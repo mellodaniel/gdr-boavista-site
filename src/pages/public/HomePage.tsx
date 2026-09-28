@@ -651,8 +651,6 @@ export function HomePage() {
         </section>
       )}
 
-      <RecentResults matches={recentResults} />
-
       <section className="py-14 md:py-24">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="mx-auto max-w-4xl">
@@ -999,6 +997,8 @@ export function HomePage() {
           )}
         </div>
       </section>
+
+      <RecentResults matches={recentResults} />
 
       <section className="py-14 md:py-24">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
