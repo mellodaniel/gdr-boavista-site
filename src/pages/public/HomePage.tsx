@@ -21,7 +21,7 @@ import { GalleryPromotionBanner } from '../../components/public/GalleryPromotion
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
 import { trackAnalyticsEvent } from '../../lib/analytics';
-import { addCalendarDays, getLisbonDate, selectUpcomingTournaments, selectPostponedMatches, selectRecentResults, selectUpcomingMatches } from '../../lib/homeAgenda';
+import { addCalendarDays, getLisbonDate, groupAgendaByDate, selectUpcomingTournaments, selectPostponedMatches, selectRecentResults, selectUpcomingMatches } from '../../lib/homeAgenda';
 import type { GdrbMatch, GdrbNews, GdrbSponsor, GdrbTournament } from '../../types/database';
 
 const googleMapsUrl =
@@ -443,6 +443,8 @@ export function HomePage() {
       .sort((a, b) => a.sortDate.localeCompare(b.sortDate));
   }, [matches, tournaments, today]);
 
+  const agendaGroups = useMemo(() => groupAgendaByDate(agendaItems), [agendaItems]);
+
   const recentResults = useMemo(() => selectRecentResults(matches, today), [matches, today]);
 
   const postponedMatches = useMemo(() => selectPostponedMatches(matches), [matches]);
@@ -767,8 +769,14 @@ export function HomePage() {
 
             </div>
           ) : (
-            <div className="mt-7 overflow-hidden rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-white shadow-sm md:mt-10">
-              {agendaItems.map((item, index) => {
+            <div className="mt-7 space-y-6 md:mt-10">
+              {agendaGroups.map((group) => (
+                <section key={group.date} aria-label={`Agenda de ${group.date}`} className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                  <h3 className="flex items-center gap-3 border-b border-zinc-200 bg-[#f6f2ec] px-5 py-4 text-base font-bold capitalize text-[#24180f]">
+                    <CalendarDays size={20} className="shrink-0 text-red-700" aria-hidden="true" />
+                    <time dateTime={group.date}>{new Date(`${group.date}T12:00:00Z`).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</time>
+                  </h3>
+              {group.items.map((item, index) => {
                 const itemKey = `${item.type}-${item.id}`;
                 const isExpanded = expandedAgendaItemId === itemKey;
 
@@ -808,14 +816,13 @@ export function HomePage() {
                         </div>
 
                         <div className="flex shrink-0 flex-wrap items-center gap-4 text-sm font-semibold text-zinc-600">
-                          <span className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 lg:w-[300px]">
+                          <span className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 lg:w-[190px]">
                             <CalendarDays size={16} className="shrink-0 text-red-700" />
                             <span>
-                              {formatDateShort(tournament.start_date, today)}
-                              {tournament.end_date && tournament.end_date !== tournament.start_date
-                                ? ` a ${formatDateShort(tournament.end_date, today)}`
-                                : ''}
-                              {tournament.start_time ? ` | ${tournament.start_time.slice(0, 5)}` : ' | Hora por confirmar'}
+                              {tournament.start_time?.slice(0, 5) || 'Hora por confirmar'}
+                              {tournament.end_date && tournament.end_date !== tournament.start_date && (
+                                <span className="block text-xs font-normal">Até {formatDateShort(tournament.end_date, today)}</span>
+                              )}
                             </span>
                           </span>
 
@@ -898,11 +905,10 @@ export function HomePage() {
                       </div>
 
                       <div className="flex shrink-0 flex-wrap items-center gap-4 text-sm font-semibold text-zinc-600">
-                        <span className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 lg:w-[300px]">
+                        <span className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#f6f2ec] px-4 py-3 lg:w-[190px]">
                           <CalendarDays size={16} className="shrink-0 text-red-700" />
                           <span>
-                            {formatDateShort(match.match_date, today)}
-                            {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ' | Hora por confirmar'}
+                            {match.match_time?.slice(0, 5) || 'Hora por confirmar'}
                           </span>
                         </span>
 
@@ -939,6 +945,8 @@ export function HomePage() {
                   </article>
                 );
               })}
+                </section>
+              ))}
             </div>
           )}
         </div>

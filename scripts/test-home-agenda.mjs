@@ -44,3 +44,15 @@ assert.deepEqual(eventIds([event('oct5','2026-10-05'),event('later','2026-10-12'
 assert.deepEqual(eventIds([event('week1','2026-10-01'),event('week2','2026-10-04'),event('later','2026-10-05')]),['week1','week2']);
 assert.deepEqual(eventIds([event('past','2026-09-27'),event('ongoing','2026-09-27',{end_date:'2026-09-29'}),event('hidden','2026-10-01',{is_visible:false}),event('archive','2026-10-02',{is_archived:true}),event('other','2026-10-10',{team_name:'Benjamins'}),event('otherFormat','2026-10-11',{football_type:'Futebol 7'})]),['ongoing','other','otherFormat']);
 console.log('Tournament agenda: next participation beyond seven days, all weekly events, ongoing events and exclusions passed.');
+
+const { getTeamOrder, groupAgendaByDate } = await import('../src/lib/homeAgenda.ts');
+const hierarchy = ['Seniores','Juniores','Juvenis','Iniciados','Sub-13','Sub12','Benjamins','Traquinas','Petizes','ABCs'];
+assert.deepEqual([...hierarchy].reverse().sort((a,b)=>getTeamOrder(a)-getTeamOrder(b)), hierarchy);
+assert.equal(getTeamOrder('Séniores'),0);
+assert.equal(getTeamOrder('Petizes / ABC'),8);
+const agendaEntry=(date,team,time)=>({date,sortDate:`${date} ${time}`,data:{team_name:team}});
+const grouped=groupAgendaByDate([agendaEntry('2026-10-05','Traquinas','09:30'),agendaEntry('2026-10-05','Juniores','15:30'),agendaEntry('2026-10-04','Seniores','15:00'),agendaEntry('2026-10-05','Juvenis','11:00'),agendaEntry('2026-10-05','Iniciados','10:00'),agendaEntry('2026-10-05','Juvenis','10:00')]);
+assert.deepEqual(grouped.map(g=>g.date),['2026-10-04','2026-10-05']);
+assert.deepEqual(grouped[1].items.map(i=>[i.data.team_name,i.sortDate.slice(-5)]),[['Juniores','15:30'],['Juvenis','10:00'],['Juvenis','11:00'],['Iniciados','10:00'],['Traquinas','09:30']]);
+assert.deepEqual(groupAgendaByDate([]),[]);
+console.log('Date grouping and senior-to-ABC hierarchy checks passed.');

@@ -70,3 +70,33 @@ export function selectUpcomingTournaments(tournaments: GdrbTournament[], today: 
     return include;
   });
 }
+
+export function getTeamOrder(teamName: string) {
+  const name = teamName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (name.startsWith('senior')) return 0;
+  if (name.startsWith('junior')) return 1;
+  if (name.startsWith('juven')) return 2;
+  if (name.startsWith('inici')) return 3;
+  if (name.includes('sub13') || name.includes('u13')) return 4;
+  if (name.includes('sub12') || name.includes('u12')) return 5;
+  if (name.startsWith('infant')) return 5.5;
+  if (name.startsWith('benjam')) return 6;
+  if (name.startsWith('traquin')) return 7;
+  if (name.startsWith('petiz')) return 8;
+  if (name.startsWith('abc')) return 9;
+  return 10;
+}
+
+export function groupAgendaByDate<T extends { date: string; sortDate: string; data: { team_name: string } }>(items: T[]) {
+  const sorted = [...items].sort((a, b) =>
+    a.date.localeCompare(b.date) || getTeamOrder(a.data.team_name) - getTeamOrder(b.data.team_name) ||
+    a.sortDate.localeCompare(b.sortDate) || a.data.team_name.localeCompare(b.data.team_name),
+  );
+  const groups: { date: string; items: T[] }[] = [];
+  for (const item of sorted) {
+    const last = groups.at(-1);
+    if (last?.date === item.date) last.items.push(item);
+    else groups.push({ date: item.date, items: [item] });
+  }
+  return groups;
+}
