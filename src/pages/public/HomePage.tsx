@@ -903,8 +903,8 @@ export function HomePage() {
                 }
 
                 const match = item.data;
-                const mainTitle = match.venue_type === 'fora' ? match.opponent : 'GDR Boavista';
-                const subTitle = match.venue_type === 'fora' ? 'vs GDR Boavista' : `vs ${match.opponent}`;
+                const mainTitle = 'GDR Boavista';
+                const subTitle = `vs ${match.opponent}`;
 
                 return (
                   <article
