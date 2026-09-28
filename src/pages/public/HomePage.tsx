@@ -19,6 +19,7 @@ import { GalleryPromotionBanner } from '../../components/public/GalleryPromotion
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
 import { trackAnalyticsEvent } from '../../lib/analytics';
+import { addCalendarDays, getLisbonDate, isTournamentUpcoming, selectPostponedMatches, selectUpcomingMatches } from '../../lib/homeAgenda';
 import type { GdrbMatch, GdrbNews, GdrbSponsor, GdrbTournament } from '../../types/database';
 
 const googleMapsUrl =
@@ -61,40 +62,6 @@ const missionItems = [
   },
 ];
 
-function getCurrentWeekRange() {
-  const today = new Date();
-  const day = today.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diffToMonday);
-  monday.setHours(0, 0, 0, 0);
-
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
-
-  return { monday, sunday };
-}
-
-function isDateInCurrentWeek(dateValue: string) {
-  const { monday, sunday } = getCurrentWeekRange();
-  const date = new Date(`${dateValue}T12:00:00`);
-
-  return date >= monday && date <= sunday;
-}
-
-function isTournamentInCurrentWeek(tournament: GdrbTournament) {
-  const { monday, sunday } = getCurrentWeekRange();
-
-  const startDate = new Date(`${tournament.start_date}T12:00:00`);
-  const endDate = tournament.end_date
-    ? new Date(`${tournament.end_date}T12:00:00`)
-    : startDate;
-
-  return startDate <= sunday && endDate >= monday;
-}
-
 function formatDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('pt-PT', {
     day: '2-digit',
@@ -103,8 +70,9 @@ function formatDate(date: string) {
   });
 }
 
-function formatDateShort(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('pt-PT', {
+function formatDateShort(date: string, today: string) {
+  const prefix = date === today ? 'Hoje · ' : date === addCalendarDays(today, 1) ? 'Amanhã · ' : '';
+  return prefix + new Date(`${date}T00:00:00`).toLocaleDateString('pt-PT', {
     weekday: 'short',
     day: '2-digit',
     month: 'short',
@@ -117,33 +85,6 @@ function formatTournamentDate(tournament: GdrbTournament) {
   }
 
   return `${formatDate(tournament.start_date)} a ${formatDate(tournament.end_date)}`;
-}
-
-function getWeekLabel() {
-  const { monday, sunday } = getCurrentWeekRange();
-
-  const start = monday.toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
-  });
-
-  const end = sunday.toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
-  });
-
-  return `${start} a ${end}`;
-}
-
-function formatMatchStatus(status: string) {
-  const labels: Record<string, string> = {
-    agendado: 'Agendado',
-    terminado: 'Terminado',
-    adiado: 'Adiado',
-    cancelado: 'Cancelado',
-  };
-
-  return labels[status] ?? status;
 }
 
 function formatSponsorLevel(level: string) {
@@ -380,6 +321,18 @@ function NewsletterSignupSection() {
 }
 
 export function HomePage() {
+  const [today, setToday] = useState(() => getLisbonDate());
+
+  useEffect(() => {
+    const refreshDay = () => setToday(getLisbonDate());
+    const timer = window.setInterval(refreshDay, 60_000);
+    window.addEventListener('focus', refreshDay);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshDay);
+    };
+  }, []);
+
   const [matches, setMatches] = useState<GdrbMatch[]>([]);
   const [tournaments, setTournaments] = useState<GdrbTournament[]>([]);
   const [news, setNews] = useState<GdrbNews[]>([]);
@@ -397,7 +350,7 @@ export function HomePage() {
           .from('gdrb_matches')
           .select('*')
           .eq('is_visible', true)
-          .in('status', ['agendado', 'adiado', 'cancelado'])
+          .in('status', ['agendado', 'adiado'])
           .order('match_date', { ascending: true })
           .order('match_time', { ascending: true }),
 
@@ -464,18 +417,17 @@ export function HomePage() {
   const featuredTournamentLink = featuredTournament?.website_url?.trim() || '/torneios/fut7-boavista-2026';
 
   const agendaItems = useMemo<AgendaItem[]>(() => {
-    const weeklyMatches: AgendaItem[] = matches
-      .filter((match) => isDateInCurrentWeek(match.match_date))
+    const upcomingMatches: AgendaItem[] = selectUpcomingMatches(matches, today)
       .map((match) => ({
         type: 'match',
         id: match.id,
         date: match.match_date,
-        sortDate: `${match.match_date} ${match.match_time ?? '00:00'}`,
+        sortDate: `${match.match_date} ${match.match_time ?? '23:59'}`,
         data: match,
       }));
 
-    const weeklyTournaments: AgendaItem[] = tournaments
-      .filter((tournament) => isTournamentInCurrentWeek(tournament))
+    const upcomingTournaments: AgendaItem[] = tournaments
+      .filter((tournament) => isTournamentUpcoming(tournament, today))
       .map((tournament) => ({
         type: 'tournament',
         id: tournament.id,
@@ -484,10 +436,11 @@ export function HomePage() {
         data: tournament,
       }));
 
-    return [...weeklyMatches, ...weeklyTournaments]
-      .sort((a, b) => a.sortDate.localeCompare(b.sortDate))
-      .slice(0, 6);
-  }, [matches, tournaments]);
+    return [...upcomingMatches, ...upcomingTournaments]
+      .sort((a, b) => a.sortDate.localeCompare(b.sortDate));
+  }, [matches, tournaments, today]);
+
+  const postponedMatches = useMemo(() => selectPostponedMatches(matches), [matches]);
 
   useEffect(() => {
     if (sponsors.length === 0) {
@@ -824,25 +777,41 @@ export function HomePage() {
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.32em] text-red-700 md:text-sm md:tracking-[0.45em]">
-                Semana de {getWeekLabel()}
+                Agenda do Boavista
               </p>
 
               <h2 className="mt-4 font-serif text-3xl font-light text-[#24180f] md:mt-5 md:text-6xl">
-                Jogos e torneios da semana
+                Próximos jogos e torneios
               </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600">
+                Jogos dos próximos 7 dias e o próximo jogo de cada escalão. Torneios a decorrer ou a começar neste período.
+              </p>
             </div>
 
             <Link
               to="/resultados"
               className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-800"
             >
-              Histórico de jogos <ChevronRight size={16} />
+              Ver calendário completo <ChevronRight size={16} />
             </Link>
           </div>
 
+          {!isLoadingAgenda && postponedMatches.length > 0 && (
+            <div className="mt-7 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+              <h3 className="font-bold">Jogos adiados — data por confirmar</h3>
+              <ul className="mt-3 space-y-2 text-sm">
+                {postponedMatches.map((match) => (
+                  <li key={match.id}>
+                    <strong>{match.team_name} · {match.football_type}</strong>: {match.venue_type === 'fora' ? `${match.opponent} vs GDR Boavista` : `GDR Boavista vs ${match.opponent}`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {isLoadingAgenda ? (
             <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#f6f2ec] p-6 md:p-8 text-zinc-600">
-              A carregar agenda da semana...
+              A carregar próximos jogos...
             </div>
           ) : agendaItems.length === 0 ? (
             <div className="mt-10 rounded-2xl md:rounded-[1.35rem] border border-dashed border-zinc-300 bg-[#f6f2ec] p-6 md:p-10 text-center">
@@ -851,7 +820,7 @@ export function HomePage() {
               </div>
 
               <h3 className="mt-5 font-serif text-3xl font-light text-[#24180f]">
-                Sem jogos ou torneios nesta semana
+                Sem jogos ou torneios agendados
               </h3>
 
             </div>
@@ -960,7 +929,7 @@ export function HomePage() {
                           </span>
 
                           <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">
-                            {formatMatchStatus(match.status)}
+                            {match.venue_type === 'casa' ? 'Casa' : match.venue_type === 'fora' ? 'Fora' : 'Campo neutro'}
                           </span>
                         </div>
 
@@ -976,8 +945,8 @@ export function HomePage() {
                       <div className="flex shrink-0 items-center gap-4 text-sm font-semibold text-zinc-600">
                         <span className="inline-flex items-center gap-2 rounded-md bg-[#f6f2ec] px-5 md:px-4 py-3">
                           <CalendarDays size={16} className="text-red-700" />
-                          {formatDateShort(match.match_date)}
-                          {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ''}
+                          {formatDateShort(match.match_date, today)}
+                          {match.match_time ? ` | ${match.match_time.slice(0, 5)}` : ' | Hora por confirmar'}
                         </span>
 
                         <span className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-xs font-black uppercase tracking-wide text-zinc-700">
