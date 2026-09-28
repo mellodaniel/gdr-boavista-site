@@ -36,3 +36,11 @@ assert.deepEqual(recent([result('older','2026-09-27'),result('today','2026-09-28
 assert.deepEqual(getResultTeams(result('away','2026-09-27',{venue_type:'fora',home_score:3,away_score:6})).map(t=>[t.name,t.score]), [['Visitante',6],['GDR Boavista',3]]);
 assert.deepEqual(getResultTeams(result('home','2026-09-27',{venue_type:'casa',home_score:3,away_score:6})).map(t=>[t.name,t.score]), [['GDR Boavista',3],['Visitante',6]]);
 console.log('Recent results: expiry, confirmed zero scores, exclusions, order and home/away score checks passed.');
+
+const { selectUpcomingTournaments } = await import('../src/lib/homeAgenda.ts');
+const event = (id, start, extra = {}) => ({id,start_date:start,end_date:start,team_name:'Traquinas',football_type:'Futebol 5',is_visible:true,is_archived:false,...extra});
+const eventIds = rows => selectUpcomingTournaments(rows,'2026-09-28').map(t=>t.id);
+assert.deepEqual(eventIds([event('oct5','2026-10-05'),event('later','2026-10-12')]),['oct5']);
+assert.deepEqual(eventIds([event('week1','2026-10-01'),event('week2','2026-10-04'),event('later','2026-10-05')]),['week1','week2']);
+assert.deepEqual(eventIds([event('past','2026-09-27'),event('ongoing','2026-09-27',{end_date:'2026-09-29'}),event('hidden','2026-10-01',{is_visible:false}),event('archive','2026-10-02',{is_archived:true}),event('other','2026-10-10',{team_name:'Benjamins'}),event('otherFormat','2026-10-11',{football_type:'Futebol 7'})]),['ongoing','other','otherFormat']);
+console.log('Tournament agenda: next participation beyond seven days, all weekly events, ongoing events and exclusions passed.');

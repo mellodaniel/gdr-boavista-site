@@ -56,3 +56,17 @@ export function getResultTeams(match: GdrbMatch) {
   const opponent = { name: match.opponent, score: match.away_score, isBoavista: false };
   return match.venue_type === 'fora' ? [opponent, club] : [club, opponent];
 }
+
+export function selectUpcomingTournaments(tournaments: GdrbTournament[], today: string) {
+  const upcoming = tournaments.filter((tournament) =>
+    tournament.is_visible && !tournament.is_archived &&
+    (tournament.end_date || tournament.start_date) >= today,
+  ).sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id.localeCompare(b.id));
+  const representedTeams = new Set<string>();
+  return upcoming.filter((tournament) => {
+    const team = JSON.stringify([tournament.team_name.trim().toLowerCase(), tournament.football_type.trim().toLowerCase()]);
+    const include = isTournamentUpcoming(tournament, today) || !representedTeams.has(team);
+    representedTeams.add(team);
+    return include;
+  });
+}

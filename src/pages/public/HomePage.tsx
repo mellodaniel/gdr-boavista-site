@@ -21,7 +21,7 @@ import { GalleryPromotionBanner } from '../../components/public/GalleryPromotion
 import { NewsLikeButton } from '../../components/public/NewsLikeButton';
 import { supabase } from '../../lib/supabase';
 import { trackAnalyticsEvent } from '../../lib/analytics';
-import { addCalendarDays, getLisbonDate, isTournamentUpcoming, selectPostponedMatches, selectRecentResults, selectUpcomingMatches } from '../../lib/homeAgenda';
+import { addCalendarDays, getLisbonDate, selectUpcomingTournaments, selectPostponedMatches, selectRecentResults, selectUpcomingMatches } from '../../lib/homeAgenda';
 import type { GdrbMatch, GdrbNews, GdrbSponsor, GdrbTournament } from '../../types/database';
 
 const googleMapsUrl =
@@ -429,8 +429,7 @@ export function HomePage() {
         data: match,
       }));
 
-    const upcomingTournaments: AgendaItem[] = tournaments
-      .filter((tournament) => isTournamentUpcoming(tournament, today))
+    const upcomingTournaments: AgendaItem[] = selectUpcomingTournaments(tournaments, today)
       .map((tournament) => ({
         type: 'tournament',
         id: tournament.id,
@@ -726,7 +725,7 @@ export function HomePage() {
                 Próximos jogos e torneios
               </h2>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600">
-                Jogos dos próximos 7 dias e o próximo jogo de cada escalão. Torneios a decorrer ou a começar neste período.
+                Jogos e torneios dos próximos 7 dias, incluindo também o próximo jogo e o próximo torneio de cada escalão.
               </p>
             </div>
 
