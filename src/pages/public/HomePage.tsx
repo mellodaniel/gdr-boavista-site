@@ -903,8 +903,7 @@ export function HomePage() {
                 }
 
                 const match = item.data;
-                const mainTitle = 'GDR Boavista';
-                const subTitle = `vs ${match.opponent}`;
+                const isAway = match.venue_type === 'fora';
 
                 return (
                   <article
@@ -933,13 +932,21 @@ export function HomePage() {
                           </span>
                         </div>
 
-                        <h3 className="mt-3 font-serif text-2xl font-light leading-tight text-[#24180f] md:text-3xl">
-                          {mainTitle}
+                        {isAway && (
+                          <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-zinc-500">
+                            {match.opponent} <span className="normal-case">vs</span>
+                          </p>
+                        )}
+
+                        <h3 className={`${isAway ? 'mt-1' : 'mt-3'} font-serif text-2xl font-light leading-tight text-[#24180f] md:text-3xl`}>
+                          GDR Boavista
                         </h3>
 
-                        <p className="mt-1 text-sm font-black uppercase tracking-[0.18em] text-zinc-500">
-                          {subTitle}
-                        </p>
+                        {!isAway && (
+                          <p className="mt-1 text-sm font-black uppercase tracking-[0.18em] text-zinc-500">
+                            vs {match.opponent}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex shrink-0 items-center gap-4 text-sm font-semibold text-zinc-600">
