@@ -1,110 +1,16 @@
+import { AGE_GROUPS } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Trophy, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbTeam } from '../../types/database';
 
-const fallbackTeams = [
-  {
-    id: 'petizes-abc',
-    name: 'Petizes / ABC',
-    category: 'Escola de Futebol',
-    football_type: 'Futebol 5',
-    description: 'Os primeiros passos no futebol, com diversão e aprendizagem.',
-    image_url: null,
-    is_active: true,
-    sort_order: 1,
-    created_at: '',
-  },
-  {
-    id: 'traquinas',
-    name: 'Traquinas',
-    category: 'Escola de Futebol',
-    football_type: 'Futebol 5',
-    description: 'Formação inicial com foco na técnica, amizade e jogo.',
-    image_url: null,
-    is_active: true,
-    sort_order: 2,
-    created_at: '',
-  },
-  {
-    id: 'benjamins',
-    name: 'Benjamins',
-    category: 'Formação',
-    football_type: 'Futebol 7',
-    description: 'Crescimento técnico e competitivo no futebol de formação.',
-    image_url: null,
-    is_active: true,
-    sort_order: 3,
-    created_at: '',
-  },
-  {
-    id: 'infantis',
-    name: 'Infantis',
-    category: 'Formação',
-    football_type: 'Futebol 9',
-    description: 'Transição e evolução para contextos competitivos maiores.',
-    image_url: null,
-    is_active: true,
-    sort_order: 4,
-    created_at: '',
-  },
-  {
-    id: 'iniciados',
-    name: 'Iniciados',
-    category: 'Formação',
-    football_type: 'Futebol 11',
-    description: 'Entrada no futebol de 11, com exigência e organização.',
-    image_url: null,
-    is_active: true,
-    sort_order: 5,
-    created_at: '',
-  },
-  {
-    id: 'juvenis',
-    name: 'Juvenis',
-    category: 'Formação',
-    football_type: 'Futebol 11',
-    description: 'Competição, evolução e consolidação do percurso formativo.',
-    image_url: null,
-    is_active: true,
-    sort_order: 6,
-    created_at: '',
-  },
-  {
-    id: 'juniores',
-    name: 'Juniores',
-    category: 'Formação',
-    football_type: 'Futebol 11',
-    description: 'Preparação para níveis competitivos superiores.',
-    image_url: null,
-    is_active: true,
-    sort_order: 7,
-    created_at: '',
-  },
-  {
-    id: 'seniores',
-    name: 'Seniores',
-    category: 'Seniores',
-    football_type: 'Futebol 11',
-    description: 'A equipa principal do GDR Boavista.',
-    image_url: null,
-    is_active: true,
-    sort_order: 8,
-    created_at: '',
-  },
-  {
-    id: 'veteranos',
-    name: 'Veteranos',
-    category: 'Veteranos',
-    football_type: 'Futebol 11',
-    description: 'Experiência, amizade e ligação permanente ao futebol.',
-    image_url: null,
-    is_active: true,
-    sort_order: 9,
-    created_at: '',
-  },
-];
+const fallbackTeams = AGE_GROUPS.map((name, index) => ({
+  id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'), name,
+  category: index < 4 ? 'Escola de Futebol' : index < 11 ? 'Formação' : 'Seniores',
+  football_type: index < 4 ? 'Futebol 5' : index < 6 ? 'Futebol 7' : index < 8 ? 'Futebol 9' : 'Futebol 11',
+  description: '', image_url: null, is_active: true, sort_order: index + 1, created_at: '',
+}));
 
 const filters = ['Todos', 'Futebol 5', 'Futebol 7', 'Futebol 9', 'Futebol 11'];
 

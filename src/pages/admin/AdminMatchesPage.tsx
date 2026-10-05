@@ -1,3 +1,4 @@
+import { AGE_GROUPS, normalizeAgeGroup, isOutcomeOnly, outcomeLabel, getMatchOutcome, hasMatchResult } from '../../lib/ageGroups';
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
@@ -27,6 +28,7 @@ const initialForm = {
   location: "",
   venue_type: "casa",
   status: "agendado",
+  result_outcome: "",
   home_score: "",
   away_score: "",
   notes: "",
@@ -36,17 +38,7 @@ const initialForm = {
 
 const footballTypes = ["Futebol 5", "Futebol 7", "Futebol 9", "Futebol 11"];
 
-const teamOptions = [
-  "Petizes / ABC",
-  "Traquinas",
-  "Benjamins",
-  "Infantis",
-  "Iniciados",
-  "Juvenis",
-  "Juniores",
-  "Seniores",
-  "Veteranos",
-];
+const teamOptions = AGE_GROUPS;
 
 const statusOptions = [
   { value: "agendado", label: "Agendado" },
@@ -138,7 +130,7 @@ function shouldArchiveMatch(match: GdrbMatch) {
     return false;
   }
 
-  const hasResult = match.home_score !== null && match.away_score !== null;
+  const hasResult = hasMatchResult(match);
 
   if (!hasResult) {
     return false;
@@ -445,13 +437,14 @@ export function AdminMatchesPage() {
     setForm((currentForm) => ({
       ...currentForm,
       [field]: value,
+      ...(field === "team_name" ? { home_score: "", away_score: "", result_outcome: "" } : {}),
     }));
   }
 
   function handleEdit(match: GdrbMatch) {
     setEditingId(match.id);
     setForm({
-      team_name: match.team_name,
+      team_name: normalizeAgeGroup(match.team_name),
       football_type: match.football_type,
       competition: match.competition,
       opponent: match.opponent,
@@ -460,6 +453,7 @@ export function AdminMatchesPage() {
       location: match.location ?? "",
       venue_type: match.venue_type,
       status: match.status,
+      result_outcome: isOutcomeOnly(match.team_name) ? getMatchOutcome(match) ?? "" : "",
       home_score: match.home_score === null ? "" : String(match.home_score),
       away_score: match.away_score === null ? "" : String(match.away_score),
       notes: match.notes ?? "",
@@ -490,17 +484,25 @@ export function AdminMatchesPage() {
 
     setIsSaving(true);
 
-    const hasResult = form.home_score !== "" && form.away_score !== "";
-    const nextStatus = form.status === "aguardar_resultado" && hasResult ? "terminado" : form.status;
+    const outcomeOnly = isOutcomeOnly(form.team_name);
+    const validScore = (value: string) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
+    const hasResult = outcomeOnly ? ['win', 'loss'].includes(form.result_outcome) : validScore(form.home_score) && validScore(form.away_score);
+    if (!AGE_GROUPS.includes(normalizeAgeGroup(form.team_name))) {
+      setErrorMessage('Seleciona um dos 12 escalões. O nome antigo precisa de revisão.'); setIsSaving(false); return;
+    }
+    if (!outcomeOnly && (form.home_score !== '' || form.away_score !== '') && !hasResult) {
+      setErrorMessage('Preenche ambos os golos com números inteiros iguais ou superiores a zero.'); setIsSaving(false); return;
+    }
+    const nextStatus = ["agendado", "aguardar_resultado"].includes(form.status) && hasResult ? "terminado" : form.status;
 
     if (nextStatus === "terminado" && !hasResult) {
-      setErrorMessage("Para marcar como resultado inserido, preenche os golos do GDRB e do adversário.");
+      setErrorMessage("Para marcar como resultado inserido, preenche o resultado adequado ao escalão (vitória/derrota até sub-12 ou golos a partir de sub-13).");
       setIsSaving(false);
       return;
     }
 
     const payload = {
-      team_name: form.team_name.trim(),
+      team_name: normalizeAgeGroup(form.team_name),
       football_type: form.football_type,
       competition: form.competition.trim(),
       opponent: form.opponent.trim(),
@@ -509,10 +511,9 @@ export function AdminMatchesPage() {
       location: form.location.trim() || null,
       venue_type: form.venue_type,
       status: nextStatus,
-      home_score:
-        form.home_score === "" ? null : Number.parseInt(form.home_score, 10),
-      away_score:
-        form.away_score === "" ? null : Number.parseInt(form.away_score, 10),
+      result_outcome: outcomeOnly ? form.result_outcome || null : null,
+      home_score: outcomeOnly || form.home_score === '' ? null : Number(form.home_score),
+      away_score: outcomeOnly || form.away_score === '' ? null : Number(form.away_score),
       notes: form.notes.trim() || null,
       is_visible: form.is_visible,
       sort_order: Number(form.sort_order) || 0,
@@ -777,6 +778,7 @@ export function AdminMatchesPage() {
                 {firstTeam}
               </h3>
 
+              {isOutcomeOnly(match.team_name) ? <span className="text-center text-lg font-black text-red-700">{outcomeLabel(match)}</span> : (
               <div className="flex shrink-0 items-center gap-1">
                 <span className="rounded-lg bg-[#24180f] px-3 py-1.5 text-2xl font-black text-white">
                   {firstScore ?? "-"}
@@ -787,7 +789,8 @@ export function AdminMatchesPage() {
                 <span className="rounded-lg bg-red-700 px-3 py-1.5 text-2xl font-black text-white">
                   {secondScore ?? "-"}
                 </span>
-              </div>
+              </div>)}
+
 
               <h3 className="whitespace-normal break-normal text-center font-serif text-[16px] font-light leading-[1.05] text-[#24180f]">
                 {secondTeam}
@@ -1035,10 +1038,9 @@ export function AdminMatchesPage() {
             </div>
 
             {match.status === "terminado" &&
-              match.home_score !== null &&
-              match.away_score !== null && (
+              hasMatchResult(match) && (
                 <p className="mt-4 font-serif text-4xl font-light text-red-700 md:mt-5 md:text-5xl">
-                  {match.home_score} - {match.away_score}
+                  {isOutcomeOnly(match.team_name) ? outcomeLabel(match) : `${match.home_score} - ${match.away_score}`}
                 </p>
               )}
 
@@ -1319,6 +1321,7 @@ export function AdminMatchesPage() {
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
                 <option value="">Selecionar</option>
+                {form.team_name && !AGE_GROUPS.includes(form.team_name) && <option value={form.team_name}>{form.team_name} — rever escalão</option>}
                 {teamOptions.map((team) => (
                   <option key={team} value={team}>
                     {team}
@@ -1438,7 +1441,7 @@ export function AdminMatchesPage() {
               </select>
 
               <p className="mt-2 text-xs leading-5 text-zinc-500">
-                Fluxo automático: jogo futuro fica em Agendado; depois da hora do jogo passa para Aguardar resultado; ao inserir os golos passa para Resultado recente; após 7 dias da data do jogo é arquivado automaticamente e fica apenas para consulta.
+                Fluxo automático: jogo futuro fica em Agendado; depois da hora do jogo passa para Aguardar resultado; ao inserir o resultado passa para Resultado recente; após 7 dias da data do jogo é arquivado automaticamente e fica apenas para consulta.
               </p>
             </div>
 
@@ -1456,6 +1459,15 @@ export function AdminMatchesPage() {
               />
             </div>
 
+            {isOutcomeOnly(form.team_name) ? (
+              <div className="xl:col-span-2">
+                <label className="text-sm font-black text-zinc-800">Resultado do GDR Boavista</label>
+                <select value={form.result_outcome} onChange={event => handleChange('result_outcome', event.target.value)} className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3">
+                  <option value="">Por confirmar</option><option value="win">Vitória</option><option value="loss">Derrota</option>
+                </select>
+                <p className="mt-2 text-xs text-zinc-500">De ABCs a sub-12, regista-se apenas vitória ou derrota, sem golos.</p>
+              </div>
+            ) : (<>
             <div>
               <label className="text-sm font-black text-zinc-800">
                 Golos GDRB
@@ -1487,6 +1499,8 @@ export function AdminMatchesPage() {
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
+
+            </>)}
 
             <div>
               <label className="text-sm font-black text-zinc-800">Ordem</label>

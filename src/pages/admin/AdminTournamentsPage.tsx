@@ -1,3 +1,4 @@
+import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
@@ -45,17 +46,7 @@ const initialForm = {
 
 const footballTypes = ['Futebol 5', 'Futebol 7', 'Futebol 9', 'Futebol 11'];
 
-const teamOptions = [
-  'Petizes / ABC',
-  'Traquinas',
-  'Benjamins',
-  'Infantis',
-  'Iniciados',
-  'Juvenis',
-  'Juniores',
-  'Seniores',
-  'Veteranos',
-];
+const teamOptions = AGE_GROUPS;
 
 const tournamentTypes: { value: TournamentKind; label: string; description: string }[] = [
   {
@@ -209,7 +200,7 @@ export function AdminTournamentsPage() {
     setIsSaving(true);
 
     const payload = {
-      team_name: form.team_name.trim(),
+      team_name: normalizeAgeGroup(form.team_name),
       football_type: form.football_type,
       name: form.name.trim(),
       start_date: form.start_date,
@@ -547,6 +538,7 @@ export function AdminTournamentsPage() {
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               >
                 <option value="">Selecionar</option>
+                {form.team_name && !AGE_GROUPS.includes(form.team_name) && <option value={form.team_name}>{form.team_name} — rever escalão</option>}
                 {teamOptions.map((team) => (
                   <option key={team} value={team}>
                     {team}

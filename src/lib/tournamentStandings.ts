@@ -36,7 +36,7 @@ export type TournamentStandingsSummary = {
 };
 
 function hasValidResult(match: TournamentManagerMatch) {
-  return match.score_a !== null && match.score_b !== null;
+  return !!match.result_winner || (match.score_a !== null && match.score_b !== null);
 }
 
 function shouldCountMatch(match: TournamentManagerMatch) {
@@ -64,6 +64,7 @@ function getHeadToHeadPoints(
 
     if (!isHome && !isAway) return total;
 
+    if (match.result_winner) return total + ((isHome ? match.result_winner === 'a' : match.result_winner === 'b') ? winPoints : lossPoints);
     const goalsFor = isHome ? match.score_a ?? 0 : match.score_b ?? 0;
     const goalsAgainst = isHome ? match.score_b ?? 0 : match.score_a ?? 0;
 
@@ -170,12 +171,12 @@ export function calculateTournamentStandings(params: {
         teamB.goals_against += scoreA;
         teamB.goal_difference = teamB.goals_for - teamB.goals_against;
 
-        if (scoreA > scoreB) {
+        if (match.result_winner === 'a' || (!match.result_winner && scoreA > scoreB)) {
           teamA.wins += 1;
           teamB.losses += 1;
           teamA.points += rule?.win_points ?? 3;
           teamB.points += rule?.loss_points ?? 0;
-        } else if (scoreA < scoreB) {
+        } else if (match.result_winner === 'b' || (!match.result_winner && scoreA < scoreB)) {
           teamB.wins += 1;
           teamA.losses += 1;
           teamB.points += rule?.win_points ?? 3;

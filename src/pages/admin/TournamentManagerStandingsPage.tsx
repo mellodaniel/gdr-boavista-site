@@ -1,3 +1,4 @@
+import { isOutcomeOnly } from '../../lib/ageGroups';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { RefreshCw, Trophy } from 'lucide-react';
@@ -33,6 +34,7 @@ export default function TournamentManagerStandingsPage() {
   const { id } = useParams();
 
   const [tournament, setTournament] = useState<TournamentManagerTournament | null>(null);
+  const outcomeOnly = isOutcomeOnly(tournament?.age_group ?? '');
   const [groups, setGroups] = useState<TournamentManagerGroup[]>([]);
   const [teams, setTeams] = useState<TournamentManagerTeam[]>([]);
   const [groupTeams, setGroupTeams] = useState<TournamentManagerGroupTeam[]>([]);
@@ -227,9 +229,9 @@ export default function TournamentManagerStandingsPage() {
                         <th className="px-4 py-3 text-center">V</th>
                         <th className="px-4 py-3 text-center">E</th>
                         <th className="px-4 py-3 text-center">D</th>
-                        <th className="px-4 py-3 text-center">GM</th>
-                        <th className="px-4 py-3 text-center">GS</th>
-                        <th className="px-4 py-3 text-center">DG</th>
+                        {!outcomeOnly && <th className="px-4 py-3 text-center">GM</th>}
+                        {!outcomeOnly && <th className="px-4 py-3 text-center">GS</th>}
+                        {!outcomeOnly && <th className="px-4 py-3 text-center">DG</th>}
                         <th className="px-4 py-3 text-center">Estado</th>
                       </tr>
                     </thead>
@@ -246,9 +248,9 @@ export default function TournamentManagerStandingsPage() {
                           <td className="px-4 py-3 text-center">{row.wins}</td>
                           <td className="px-4 py-3 text-center">{row.draws}</td>
                           <td className="px-4 py-3 text-center">{row.losses}</td>
-                          <td className="px-4 py-3 text-center">{row.goals_for}</td>
-                          <td className="px-4 py-3 text-center">{row.goals_against}</td>
-                          <td className="px-4 py-3 text-center font-semibold">{row.goal_difference}</td>
+                          {!outcomeOnly && <td className="px-4 py-3 text-center">{row.goals_for}</td>}
+                          {!outcomeOnly && <td className="px-4 py-3 text-center">{row.goals_against}</td>}
+                          {!outcomeOnly && <td className="px-4 py-3 text-center font-semibold">{row.goal_difference}</td>}
                           <td className="px-4 py-3 text-center">
                             {row.qualified ? (
                               <span className="rounded-full bg-green-700 px-3 py-1 text-xs font-bold text-white">Apurado</span>

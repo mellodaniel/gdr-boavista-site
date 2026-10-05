@@ -1,3 +1,4 @@
+import { AGE_GROUPS, isOutcomeOnly, outcomeLabel } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
@@ -13,18 +14,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import type { GdrbMatch, GdrbTournament } from '../../types/database';
 
-const teamOptions = [
-  'Todos',
-  'Petizes / ABC',
-  'Traquinas',
-  'Benjamins',
-  'Infantis',
-  'Iniciados',
-  'Juvenis',
-  'Juniores',
-  'Seniores',
-  'Veteranos',
-];
+const teamOptions = ['Todos', ...AGE_GROUPS];
 
 const footballTypeOptions = [
   'Todos',
@@ -617,9 +607,9 @@ function ResultCard({ match, isExpanded, onToggle }: ResultCardProps) {
               {result.firstTeam}
             </h3>
             <div className="w-fit rounded-2xl md:rounded-[1.35rem] bg-[#24180f] px-5 py-3 text-3xl font-black text-white md:px-6 md:py-4 md:text-4xl">
-              <span>{result.firstScore ?? '-'}</span>
+              {isOutcomeOnly(match.team_name) ? outcomeLabel(match) : <><span>{result.firstScore ?? '-'}</span>
               <span className="px-2 text-red-500 md:px-3">-</span>
-              <span>{result.secondScore ?? '-'}</span>
+              <span>{result.secondScore ?? '-'}</span></>}
             </div>
             <h3 className="font-serif text-xl font-light uppercase text-[#24180f] md:text-3xl">
               {result.secondTeam}

@@ -1,3 +1,4 @@
+import { isOutcomeOnly } from '../lib/ageGroups';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -91,6 +92,7 @@ type TournamentMatch = {
   match_date: string | null;
   match_time: string | null;
   status: string;
+  result_winner?: 'a' | 'b' | null;
   score_a: number | null;
   score_b: number | null;
   penalty_score_a: number | null;
@@ -323,7 +325,7 @@ function sortMatchesDescending(a: TournamentMatch, b: TournamentMatch) {
 }
 
 function hasResult(match: TournamentMatch) {
-  return match.score_a !== null && match.score_b !== null;
+  return !!match.result_winner || (match.score_a !== null && match.score_b !== null);
 }
 
 function isFinalPhase(phase: string | null | undefined) {
@@ -335,6 +337,7 @@ function hasPenaltyResult(match: TournamentMatch) {
 }
 
 function formatMatchResult(match: TournamentMatch) {
+  if (match.result_winner) return match.result_winner === 'a' ? 'Vitória · Derrota' : 'Derrota · Vitória';
   if (!hasResult(match)) return 'x';
 
   const baseResult = `${match.score_a} x ${match.score_b}`;
@@ -395,6 +398,7 @@ export default function PublicTournamentPage() {
   const navigate = useNavigate();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const outcomeOnly = isOutcomeOnly(tournament?.age_group ?? '');
   const [teams, setTeams] = useState<TournamentTeam[]>([]);
   const [groups, setGroups] = useState<TournamentGroup[]>([]);
   const [groupTeams, setGroupTeams] = useState<TournamentGroupTeam[]>([]);
@@ -780,21 +784,21 @@ export default function PublicTournamentPage() {
           const teamA = rowByTeamId.get(match.team_a_id as string);
           const teamB = rowByTeamId.get(match.team_b_id as string);
 
-          if (!teamA || !teamB || match.score_a === null || match.score_b === null) return;
+          if (!teamA || !teamB) return;
 
           teamA.played += 1;
           teamB.played += 1;
 
-          teamA.goalsFor += match.score_a;
-          teamA.goalsAgainst += match.score_b;
-          teamB.goalsFor += match.score_b;
-          teamB.goalsAgainst += match.score_a;
+          teamA.goalsFor += match.score_a ?? 0;
+          teamA.goalsAgainst += match.score_b ?? 0;
+          teamB.goalsFor += match.score_b ?? 0;
+          teamB.goalsAgainst += match.score_a ?? 0;
 
-          if (match.score_a > match.score_b) {
+          if (match.result_winner === 'a' || (!match.result_winner && (match.score_a ?? 0) > (match.score_b ?? 0))) {
             teamA.wins += 1;
             teamA.points += 3;
             teamB.losses += 1;
-          } else if (match.score_a < match.score_b) {
+          } else if (match.result_winner === 'b' || (!match.result_winner && (match.score_a ?? 0) < (match.score_b ?? 0))) {
             teamB.wins += 1;
             teamB.points += 3;
             teamA.losses += 1;
@@ -941,7 +945,7 @@ export default function PublicTournamentPage() {
           <a href="#memorias" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Memórias</a>
           <a href="#entrevistas" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Entrevistas</a>
           <a href="#classificacao" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Classificação</a>
-          <a href="#marcadores" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Marcadores</a>
+          {!outcomeOnly && <a href="#marcadores" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Marcadores</a>}
           <a href="#equipas" className="shrink-0 rounded-full bg-slate-100 px-5 md:px-4 py-2 hover:bg-red-50 hover:text-red-700">Equipas</a>
         </div>
       </nav>
@@ -989,7 +993,7 @@ export default function PublicTournamentPage() {
                     getMatchTeamName={getMatchTeamName}
                     getGroupName={getGroupName}
                     getFieldName={getFieldName}
-                    goals={getMatchGoals(match.id)}
+                    goals={outcomeOnly ? [] : getMatchGoals(match.id)}
                     playerById={playerById}
                   />
                 ))}
@@ -1025,7 +1029,7 @@ export default function PublicTournamentPage() {
                     getMatchTeamName={getMatchTeamName}
                     getGroupName={getGroupName}
                     getFieldName={getFieldName}
-                    goals={getMatchGoals(match.id)}
+                    goals={outcomeOnly ? [] : getMatchGoals(match.id)}
                     playerById={playerById}
                   />
                 ))}
@@ -1153,7 +1157,7 @@ export default function PublicTournamentPage() {
                                   <p className="text-sm font-bold text-slate-900">{getMatchTeamName(match, 'b')}</p>
                                   <ScorersDisplay
                                     match={match}
-                                    goals={getMatchGoals(match.id)}
+                                    goals={outcomeOnly ? [] : getMatchGoals(match.id)}
                                     playerById={playerById}
                                     teamById={teamById}
                                   />
@@ -1201,7 +1205,7 @@ export default function PublicTournamentPage() {
                                     </div>
                                     <ScorersDisplay
                                       match={match}
-                                      goals={getMatchGoals(match.id)}
+                                      goals={outcomeOnly ? [] : getMatchGoals(match.id)}
                                       playerById={playerById}
                                       teamById={teamById}
                                     />
@@ -1224,7 +1228,7 @@ export default function PublicTournamentPage() {
             )}
           </details>
 
-          <section id="marcadores" className="scroll-mt-20 rounded-2xl bg-white p-5 shadow-sm md:p-6">
+          {!outcomeOnly && (          <section id="marcadores" className="scroll-mt-20 rounded-2xl bg-white p-5 shadow-sm md:p-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-red-700 md:text-sm">Melhor marcador</p>
@@ -1254,7 +1258,7 @@ export default function PublicTournamentPage() {
                 ))}
               </div>
             )}
-          </section>
+          </section>)}
 
           <TournamentMemoriesSection />
 
@@ -1305,9 +1309,9 @@ export default function PublicTournamentPage() {
                             </div>
 
                             <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs text-slate-600">
-                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalsFor}</strong>GM</div>
-                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalsAgainst}</strong>GS</div>
-                              <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalDifference}</strong>DG</div>
+                              {!outcomeOnly && <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalsFor}</strong>GM</div>}
+                              {!outcomeOnly && <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalsAgainst}</strong>GS</div>}
+                              {!outcomeOnly && <div className="rounded-xl bg-white p-2"><strong className="block text-sm text-slate-900">{row.goalDifference}</strong>DG</div>}
                             </div>
                           </div>
                         ))}
@@ -1324,9 +1328,9 @@ export default function PublicTournamentPage() {
                               <th className="px-5 md:px-4 py-3 text-center">V</th>
                               <th className="px-5 md:px-4 py-3 text-center">E</th>
                               <th className="px-5 md:px-4 py-3 text-center">D</th>
-                              <th className="px-5 md:px-4 py-3 text-center">GM</th>
-                              <th className="px-5 md:px-4 py-3 text-center">GS</th>
-                              <th className="px-5 md:px-4 py-3 text-center">DG</th>
+                              {!outcomeOnly && <th className="px-5 md:px-4 py-3 text-center">GM</th>}
+                              {!outcomeOnly && <th className="px-5 md:px-4 py-3 text-center">GS</th>}
+                              {!outcomeOnly && <th className="px-5 md:px-4 py-3 text-center">DG</th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-200">
@@ -1339,9 +1343,9 @@ export default function PublicTournamentPage() {
                                 <td className="px-5 md:px-4 py-3 text-center">{row.wins}</td>
                                 <td className="px-5 md:px-4 py-3 text-center">{row.draws}</td>
                                 <td className="px-5 md:px-4 py-3 text-center">{row.losses}</td>
-                                <td className="px-5 md:px-4 py-3 text-center">{row.goalsFor}</td>
-                                <td className="px-5 md:px-4 py-3 text-center">{row.goalsAgainst}</td>
-                                <td className="px-5 md:px-4 py-3 text-center">{row.goalDifference}</td>
+                                {!outcomeOnly && <td className="px-5 md:px-4 py-3 text-center">{row.goalsFor}</td>}
+                                {!outcomeOnly && <td className="px-5 md:px-4 py-3 text-center">{row.goalsAgainst}</td>}
+                                {!outcomeOnly && <td className="px-5 md:px-4 py-3 text-center">{row.goalDifference}</td>}
                               </tr>
                             ))}
                           </tbody>

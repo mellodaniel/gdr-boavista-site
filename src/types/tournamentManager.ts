@@ -146,6 +146,7 @@ export type TournamentManagerMatch = {
   match_date: string | null;
   match_time: string | null;
   status: TournamentManagerMatchStatus;
+  result_winner?: 'a' | 'b' | null;
   score_a: number | null;
   score_b: number | null;
   penalty_score_a: number | null;

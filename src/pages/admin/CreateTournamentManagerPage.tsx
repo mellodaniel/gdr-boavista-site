@@ -1,3 +1,5 @@
+import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
+import { AgeGroupSelect } from '../../components/AgeGroupSelect';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -38,6 +40,8 @@ export default function CreateTournamentManagerPage() {
       return;
     }
 
+    if (!AGE_GROUPS.includes(normalizeAgeGroup(ageGroup))) { setErrorMessage('Seleciona um dos 12 escalões.'); return; }
+
     setSaving(true);
     setErrorMessage('');
 
@@ -50,7 +54,7 @@ export default function CreateTournamentManagerPage() {
         name: name.trim(),
         slug,
         edition: edition.trim() || null,
-        age_group: ageGroup.trim() || null,
+        age_group: normalizeAgeGroup(ageGroup),
         birth_year: birthYear.trim() || null,
         football_type: footballType || null,
         gender: gender || null,
@@ -108,7 +112,7 @@ export default function CreateTournamentManagerPage() {
         <div className="grid gap-5 md:grid-cols-2">
           <FormField label="Nome do torneio *" value={name} setValue={setName} placeholder="Ex: Torneio de Verão GDR Boavista" className="md:col-span-2" />
           <FormField label="Edição" value={edition} setValue={setEdition} placeholder="Ex: 2026" />
-          <FormField label="Escalão" value={ageGroup} setValue={setAgeGroup} placeholder="Ex: Sub-9" />
+          <label>Escalão<AgeGroupSelect value={ageGroup} onChange={setAgeGroup} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>
           <FormField label="Ano de nascimento" value={birthYear} setValue={setBirthYear} placeholder="Ex: 2017" />
 
           <div>

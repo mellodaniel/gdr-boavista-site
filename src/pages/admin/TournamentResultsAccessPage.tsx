@@ -1,3 +1,4 @@
+import { isOutcomeOnly } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CalendarDays, Clock, Lock, RefreshCw, Save, Trophy } from 'lucide-react';
@@ -22,6 +23,7 @@ type ResultAccessRow = {
 
 type ResultDraft = {
   status: string;
+  result_winner: string;
   score_a: string;
   score_b: string;
   penalty_score_a: string;
@@ -67,8 +69,8 @@ function formatTime(value: string | null) {
   return value.slice(0, 5);
 }
 
-function hasResult(match: Pick<TournamentManagerMatch, 'score_a' | 'score_b'>) {
-  return match.score_a !== null && match.score_a !== undefined && match.score_b !== null && match.score_b !== undefined;
+function hasResult(match: Pick<TournamentManagerMatch, 'score_a' | 'score_b' | 'result_winner'>) {
+  return !!match.result_winner || (match.score_a !== null && match.score_a !== undefined && match.score_b !== null && match.score_b !== undefined);
 }
 
 function isFinalPhase(phase: string | null | undefined) {
@@ -85,6 +87,7 @@ function hasPenaltyResult(match: Pick<TournamentManagerMatch, 'penalty_score_a' 
 }
 
 function getWinnerId(match: TournamentManagerMatch) {
+  if (match.result_winner) return match.result_winner === 'a' ? match.team_a_id : match.team_b_id;
   if (!hasResult(match) || !match.team_a_id || !match.team_b_id) return null;
 
   if ((match.score_a ?? 0) > (match.score_b ?? 0)) return match.team_a_id;
@@ -98,6 +101,7 @@ function getWinnerId(match: TournamentManagerMatch) {
 }
 
 function getLoserId(match: TournamentManagerMatch) {
+  if (match.result_winner) return match.result_winner === 'a' ? match.team_b_id : match.team_a_id;
   if (!hasResult(match) || !match.team_a_id || !match.team_b_id) return null;
 
   if ((match.score_a ?? 0) < (match.score_b ?? 0)) return match.team_a_id;
@@ -113,6 +117,7 @@ function getLoserId(match: TournamentManagerMatch) {
 function matchToDraft(match: TournamentManagerMatch): ResultDraft {
   return {
     status: match.status || 'scheduled',
+    result_winner: match.result_winner ?? '',
     score_a: match.score_a === null || match.score_a === undefined ? '' : String(match.score_a),
     score_b: match.score_b === null || match.score_b === undefined ? '' : String(match.score_b),
     penalty_score_a: match.penalty_score_a === null || match.penalty_score_a === undefined ? '' : String(match.penalty_score_a),
@@ -152,8 +157,9 @@ function getDraftMatch(match: TournamentManagerMatch, draft: ResultDraft): Tourn
   return {
     ...match,
     status: draft.status as TournamentManagerMatch['status'],
-    score_a: normalizeScore(draft.score_a),
-    score_b: normalizeScore(draft.score_b),
+    result_winner: draft.result_winner === 'a' || draft.result_winner === 'b' ? draft.result_winner : null,
+    score_a: draft.result_winner ? null : normalizeScore(draft.score_a),
+    score_b: draft.result_winner ? null : normalizeScore(draft.score_b),
     penalty_score_a: normalizeScore(draft.penalty_score_a),
     penalty_score_b: normalizeScore(draft.penalty_score_b),
     notes: draft.notes.trim() || null,
@@ -165,6 +171,7 @@ export default function TournamentResultsAccessPage() {
 
   const [access, setAccess] = useState<ResultAccessRow | null>(null);
   const [tournament, setTournament] = useState<TournamentManagerTournament | null>(null);
+  const outcomeOnly = isOutcomeOnly(tournament?.age_group ?? '');
   const [fields, setFields] = useState<TournamentManagerField[]>([]);
   const [teams, setTeams] = useState<TournamentManagerTeam[]>([]);
   const [groups, setGroups] = useState<TournamentManagerGroup[]>([]);
@@ -426,15 +433,20 @@ export default function TournamentResultsAccessPage() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    const scoreA = normalizeScore(draft.score_a);
-    const scoreB = normalizeScore(draft.score_b);
-    const penaltyA = normalizeScore(draft.penalty_score_a);
-    const penaltyB = normalizeScore(draft.penalty_score_b);
+    const winner: 'a' | 'b' | null = outcomeOnly && (draft.result_winner === 'a' || draft.result_winner === 'b') ? draft.result_winner : null;
+    if (outcomeOnly && ['finished', 'no_show'].includes(draft.status) && !winner) {
+      setErrorMessage('Seleciona a equipa vencedora, sem indicar golos.'); setSavingMatchId(null); return;
+    }
+    const scoreA = outcomeOnly ? null : normalizeScore(draft.score_a);
+    const scoreB = outcomeOnly ? null : normalizeScore(draft.score_b);
+    const penaltyA = outcomeOnly ? null : normalizeScore(draft.penalty_score_a);
+    const penaltyB = outcomeOnly ? null : normalizeScore(draft.penalty_score_b);
 
     const { error } = await supabase
       .from('tournament_matches')
       .update({
         status: draft.status,
+        result_winner: winner,
         score_a: scoreA,
         score_b: scoreB,
         penalty_score_a: penaltyA,
@@ -456,7 +468,8 @@ export default function TournamentResultsAccessPage() {
         ? {
             ...item,
             status: draft.status as TournamentManagerMatch['status'],
-            score_a: scoreA,
+            result_winner: winner,
+        score_a: scoreA,
             score_b: scoreB,
             penalty_score_a: penaltyA,
             penalty_score_b: penaltyB,
@@ -620,7 +633,9 @@ export default function TournamentResultsAccessPage() {
 
                     <div className="rounded-2xl bg-slate-950 p-4 text-center text-white shadow-lg">
                       <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-300">Resultado</p>
-                      <div className="mt-3 flex items-center justify-center gap-3">
+                      {outcomeOnly ? <select aria-label="Equipa vencedora" value={draft.result_winner} onChange={event => updateDraft(match.id, 'result_winner', event.target.value)} className="w-full rounded-lg bg-white p-2 text-sm text-slate-900">
+ <option value="">Por confirmar</option><option value="a">Vitória: {teamAName}</option><option value="b">Vitória: {teamBName}</option>
+ </select> : (<div className="mt-3 flex items-center justify-center gap-3">
                         <input
                           type="number"
                           min="0"
@@ -636,9 +651,9 @@ export default function TournamentResultsAccessPage() {
                           onChange={(event) => updateDraft(match.id, 'score_b', event.target.value)}
                           className="h-14 w-16 rounded-xl border border-white/20 bg-white text-center text-2xl font-black text-slate-950 outline-none focus:ring-4 focus:ring-red-200"
                         />
-                      </div>
+                      </div>)}
 
-                      {finalPhaseTie && (
+                      {!outcomeOnly && finalPhaseTie && (
                         <div className="mt-4 rounded-xl bg-white/10 p-3">
                           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-300">Penáltis</p>
                           <div className="mt-2 flex items-center justify-center gap-2">

@@ -1,3 +1,4 @@
+import { isOutcomeOnly } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AlertTriangle, CalendarDays, CheckCircle2, ChevronDown, ChevronRight, Clock, MapPin, RefreshCw, Save, Search, Trash2, Trophy } from 'lucide-react';
@@ -34,6 +35,7 @@ type MatchDraft = {
   team_b_source: string;
   round_number: string;
   status: string;
+  result_winner: string;
   score_a: string;
   score_b: string;
   penalty_score_a: string;
@@ -94,8 +96,8 @@ function rangesOverlap(startA: number, endA: number, startB: number, endB: numbe
   return startA < endB && startB < endA;
 }
 
-function hasResult(match: Pick<TournamentManagerMatch, 'score_a' | 'score_b'>) {
-  return match.score_a !== null && match.score_a !== undefined && match.score_b !== null && match.score_b !== undefined;
+function hasResult(match: Pick<TournamentManagerMatch, 'score_a' | 'score_b' | 'result_winner'>) {
+  return !!match.result_winner || (match.score_a !== null && match.score_a !== undefined && match.score_b !== null && match.score_b !== undefined);
 }
 
 function isFinalPhase(phase: string | null | undefined) {
@@ -112,6 +114,7 @@ function hasPenaltyResult(match: Pick<TournamentManagerMatch, 'penalty_score_a' 
 }
 
 function getWinnerId(match: TournamentManagerMatch) {
+  if (match.result_winner) return match.result_winner === 'a' ? match.team_a_id : match.team_b_id;
   if (!hasResult(match) || !match.team_a_id || !match.team_b_id) return null;
 
   if ((match.score_a ?? 0) > (match.score_b ?? 0)) return match.team_a_id;
@@ -125,6 +128,7 @@ function getWinnerId(match: TournamentManagerMatch) {
 }
 
 function getLoserId(match: TournamentManagerMatch) {
+  if (match.result_winner) return match.result_winner === 'a' ? match.team_b_id : match.team_a_id;
   if (!hasResult(match) || !match.team_a_id || !match.team_b_id) return null;
 
   if ((match.score_a ?? 0) < (match.score_b ?? 0)) return match.team_a_id;
@@ -151,6 +155,7 @@ function matchToDraft(match: TournamentManagerMatch): MatchDraft {
     team_b_source: match.team_b_source || '',
     round_number: match.round_number ? String(match.round_number) : '',
     status: match.status || 'scheduled',
+    result_winner: match.result_winner ?? '',
     score_a: match.score_a === null || match.score_a === undefined ? '' : String(match.score_a),
     score_b: match.score_b === null || match.score_b === undefined ? '' : String(match.score_b),
     penalty_score_a: match.penalty_score_a === null || match.penalty_score_a === undefined ? '' : String(match.penalty_score_a),
@@ -192,6 +197,7 @@ export default function TournamentManagerMatchesPage() {
   const { id } = useParams();
 
   const [tournament, setTournament] = useState<TournamentManagerTournament | null>(null);
+  const outcomeOnly = isOutcomeOnly(tournament?.age_group ?? '');
   const [days, setDays] = useState<TournamentManagerDay[]>([]);
   const [fields, setFields] = useState<TournamentManagerField[]>([]);
   const [teams, setTeams] = useState<TournamentManagerTeam[]>([]);
@@ -529,6 +535,7 @@ export default function TournamentManagerMatchesPage() {
       [matchId]: {
         ...current[matchId],
         [field]: value,
+        ...(['team_a_id', 'team_b_id'].includes(field) ? { result_winner: '', score_a: '', score_b: '', penalty_score_a: '', penalty_score_b: '' } : {}),
       },
     }));
   }
@@ -820,8 +827,12 @@ export default function TournamentManagerMatchesPage() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    const scoreA = normalizeScore(draft.score_a);
-    const scoreB = normalizeScore(draft.score_b);
+    const winner: 'a' | 'b' | null = outcomeOnly && (draft.result_winner === 'a' || draft.result_winner === 'b') ? draft.result_winner : null;
+    if (outcomeOnly && ['finished', 'no_show'].includes(draft.status) && !winner) {
+      setErrorMessage('Seleciona a equipa vencedora, sem indicar golos.'); setSavingMatchId(null); return;
+    }
+    const scoreA = outcomeOnly ? null : normalizeScore(draft.score_a);
+    const scoreB = outcomeOnly ? null : normalizeScore(draft.score_b);
     const isPenaltyPhase = isFinalPhase(draft.phase);
     const penaltyScoreA = isPenaltyPhase ? normalizeScore(draft.penalty_score_a) : null;
     const penaltyScoreB = isPenaltyPhase ? normalizeScore(draft.penalty_score_b) : null;
@@ -838,7 +849,7 @@ export default function TournamentManagerMatchesPage() {
       }
     }
 
-    const shouldAutoFinish = scoreA !== null && scoreB !== null && draft.status === 'scheduled';
+    const shouldAutoFinish = (winner !== null || (scoreA !== null && scoreB !== null)) && draft.status === 'scheduled';
 
     const { error } = await supabase
       .from('tournament_matches')
@@ -856,6 +867,7 @@ export default function TournamentManagerMatchesPage() {
         team_b_source: draft.team_b_source || null,
         round_number: draft.round_number ? Number(draft.round_number) : null,
         status: shouldAutoFinish ? 'finished' : draft.status,
+        result_winner: winner,
         score_a: scoreA,
         score_b: scoreB,
         penalty_score_a: isPenaltyPhase && scoreA !== null && scoreB !== null && scoreA === scoreB ? penaltyScoreA : null,
@@ -905,7 +917,8 @@ export default function TournamentManagerMatchesPage() {
           team_b_source: draft.team_b_source || null,
           round_number: draft.round_number ? Number(draft.round_number) : null,
           status: (shouldAutoFinish ? 'finished' : draft.status) as TournamentManagerMatch['status'],
-          score_a: scoreA,
+          result_winner: winner,
+        score_a: scoreA,
           score_b: scoreB,
           penalty_score_a: isPenaltyPhase && scoreA !== null && scoreB !== null && scoreA === scoreB ? penaltyScoreA : null,
           penalty_score_b: isPenaltyPhase && scoreA !== null && scoreB !== null && scoreA === scoreB ? penaltyScoreB : null,
@@ -1178,7 +1191,7 @@ export default function TournamentManagerMatchesPage() {
             const isExpanded = expandedMatchId === match.id;
             const fieldName = draft.field_id ? fieldById[draft.field_id]?.name || 'Campo' : 'Campo por definir';
             const statusLabel = statusOptions.find((item) => item.value === draft.status)?.label || draft.status;
-            const hasScore = draft.score_a !== '' && draft.score_b !== '';
+            const hasScore = outcomeOnly ? !!draft.result_winner : draft.score_a !== '' && draft.score_b !== '';
 
             return (
               <article
@@ -1213,13 +1226,13 @@ export default function TournamentManagerMatchesPage() {
                         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                           <p className="truncate text-sm font-black text-slate-900">{teamAName}</p>
                           <div className="rounded-xl bg-slate-950 px-3 py-2 text-white shadow-sm">
-                            <span className="text-lg font-black">{hasScore ? draft.score_a : '-'}</span>
+                            {outcomeOnly ? <span className="text-sm font-black">{!draft.result_winner ? 'Por confirmar' : draft.result_winner === 'a' ? 'Vitória · Derrota' : 'Derrota · Vitória'}</span> : <><span className="text-lg font-black">{hasScore ? draft.score_a : '-'}</span>
                             <span className="mx-2 text-sm font-black text-slate-300">x</span>
-                            <span className="text-lg font-black">{hasScore ? draft.score_b : '-'}</span>
+                            <span className="text-lg font-black">{hasScore ? draft.score_b : '-'}</span></>}
                           </div>
                           <p className="truncate text-sm font-black text-slate-900">{teamBName}</p>
                         </div>
-                        <p className="mt-1 text-[11px] font-semibold text-slate-500">{matchGoalList.length} marcador(es) registado(s)</p>
+                        {!outcomeOnly && <p className="mt-1 text-[11px] font-semibold text-slate-500">{matchGoalList.length} marcador(es) registado(s)</p>}
                       </div>
                     </div>
                   </button>
@@ -1324,7 +1337,9 @@ export default function TournamentManagerMatchesPage() {
 
                           <div className="rounded-xl bg-slate-950 p-3 text-center text-white shadow-lg">
                             <p className="mb-2 text-[9px] font-black uppercase tracking-[0.22em] text-slate-300">Resultado</p>
-                            <div className="flex items-center justify-center gap-2">
+                            {outcomeOnly ? <select aria-label="Equipa vencedora" value={draft.result_winner} onChange={event => updateDraft(match.id, 'result_winner', event.target.value)} className="w-full rounded-lg bg-white p-2 text-sm text-slate-900">
+ <option value="">Por confirmar</option><option value="a">Vitória: {teamAName}</option><option value="b">Vitória: {teamBName}</option>
+ </select> : (<div className="flex items-center justify-center gap-2">
                               <input
                                 type="number"
                                 min="0"
@@ -1340,9 +1355,9 @@ export default function TournamentManagerMatchesPage() {
                                 onChange={(event) => updateDraft(match.id, 'score_b', event.target.value)}
                                 className="h-12 w-14 rounded-lg border-0 bg-white text-center text-xl font-black text-slate-900 outline-none ring-2 ring-white/20 focus:ring-green-300"
                               />
-                            </div>
+                            </div>)}
 
-                            {isFinalPhase(draft.phase) && draft.score_a !== '' && draft.score_b !== '' && draft.score_a === draft.score_b && (
+                            {!outcomeOnly && isFinalPhase(draft.phase) && draft.score_a !== '' && draft.score_b !== '' && draft.score_a === draft.score_b && (
                               <div className="mt-3 rounded-lg bg-white/10 p-2">
                                 <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-300">Penáltis</p>
                                 <div className="flex items-center justify-center gap-2">
@@ -1397,7 +1412,7 @@ export default function TournamentManagerMatchesPage() {
                       </div>
                     </div>
 
-                    <MatchScorersEditor
+                    {!outcomeOnly && (                    <MatchScorersEditor
                       match={match}
                       teamAName={teamAName}
                       teamBName={teamBName}
@@ -1413,7 +1428,7 @@ export default function TournamentManagerMatchesPage() {
                       savingGoalKey={savingGoalKey}
                       onAddGoal={addGoal}
                       onRemoveGoal={removeGoal}
-                    />
+                    />)}
                   </>
                 )}
               </article>

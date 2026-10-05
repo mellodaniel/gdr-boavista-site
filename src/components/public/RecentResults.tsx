@@ -1,3 +1,4 @@
+import { isOutcomeOnly, outcomeLabel } from '../../lib/ageGroups';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { getResultTeams } from '../../lib/homeAgenda';
@@ -27,6 +28,7 @@ export function RecentResults({ matches }: { matches: GdrbMatch[] }) {
                 <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">{match.football_type}</span>
                 <span className="rounded-full bg-[#24180f] px-3 py-1 text-xs font-bold uppercase text-white">{match.venue_type === 'fora' ? 'Fora' : match.venue_type === 'casa' ? 'Casa' : 'Campo neutro'}</span>
               </div>
+              {isOutcomeOnly(match.team_name) && <p className="mt-4 text-xl font-black text-red-700">{outcomeLabel(match)}</p>}
               <div className="my-5 space-y-3">
                 {getResultTeams(match).map((team, index) => (
                   <div key={index} className="flex items-center justify-between gap-4">
@@ -35,7 +37,7 @@ export function RecentResults({ matches }: { matches: GdrbMatch[] }) {
                     ) : (
                       <p className="min-w-0 text-sm font-bold uppercase tracking-wide text-zinc-500">{team.name}</p>
                     )}
-                    <span className={`shrink-0 tabular-nums ${team.isBoavista ? 'text-3xl font-black text-red-700' : 'text-2xl font-bold text-zinc-500'}`} aria-label={`${team.score} golos`}>{team.score}</span>
+                    {!isOutcomeOnly(match.team_name) && <span className={`shrink-0 tabular-nums ${team.isBoavista ? 'text-3xl font-black text-red-700' : 'text-2xl font-bold text-zinc-500'}`} aria-label={`${team.score} golos`}>{team.score}</span>}
                   </div>
                 ))}
               </div>

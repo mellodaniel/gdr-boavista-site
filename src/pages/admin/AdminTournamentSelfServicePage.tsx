@@ -1,3 +1,5 @@
+import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
+import { AgeGroupSelect } from '../../components/AgeGroupSelect';
 import { useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import type { ReactNode } from 'react';
@@ -113,7 +115,7 @@ type Pairing = {
 const initialForm: PilotForm = {
   tournamentName: '',
   edition: String(new Date().getFullYear()),
-  ageGroup: 'Sub-9',
+  ageGroup: '',
   birthYear: '',
   footballType: 'Futebol 7',
   gender: 'Masculino',
@@ -654,6 +656,7 @@ export function AdminTournamentSelfServicePage() {
     setIsCreating(true);
 
     try {
+      if (!AGE_GROUPS.includes(normalizeAgeGroup(form.ageGroup))) throw new Error('Seleciona um dos 12 escalões.');
       const { data: sessionData } = await supabase.auth.getSession();
 
       if (!sessionData.session) {
@@ -668,7 +671,7 @@ export function AdminTournamentSelfServicePage() {
           name: form.tournamentName.trim(),
           slug,
           edition: form.edition.trim() || null,
-          age_group: form.ageGroup.trim() || null,
+          age_group: normalizeAgeGroup(form.ageGroup),
           birth_year: form.birthYear.trim() || null,
           football_type: form.footballType,
           gender: form.gender,
@@ -1032,12 +1035,7 @@ export function AdminTournamentSelfServicePage() {
                   </Field>
 
                   <Field label="Escalão">
-                    <input
-                      className={getInputClass()}
-                      value={form.ageGroup}
-                      onChange={(event) => updateField('ageGroup', event.target.value)}
-                      placeholder="Ex: Sub-9"
-                    />
+                    <AgeGroupSelect value={form.ageGroup} onChange={value => updateField('ageGroup', value)} className={getSelectClass()} />
                   </Field>
 
                   <Field label="Ano de nascimento">

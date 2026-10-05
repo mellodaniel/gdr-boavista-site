@@ -83,6 +83,7 @@ export type GdrbMatch = {
   location: string | null;
   venue_type: string;
   status: string;
+  result_outcome?: 'win' | 'loss' | null;
   home_score: number | null;
   away_score: number | null;
   notes: string | null;

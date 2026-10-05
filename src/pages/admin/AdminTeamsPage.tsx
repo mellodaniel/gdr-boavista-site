@@ -1,3 +1,4 @@
+import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
@@ -170,7 +171,7 @@ export function AdminTeamsPage() {
   function handleEdit(team: GdrbTeam) {
     setEditingId(team.id);
     setForm({
-      name: team.name,
+      name: normalizeAgeGroup(team.name),
       category: team.category,
       football_type: team.football_type,
       description: team.description ?? '',
@@ -188,8 +189,8 @@ export function AdminTeamsPage() {
     setSuccessMessage('');
     setErrorMessage('');
 
-    if (!form.name.trim()) {
-      setErrorMessage('Indica o nome do escalão/equipa.');
+    if (!AGE_GROUPS.includes(form.name)) {
+      setErrorMessage('Seleciona um dos 12 escalões.');
       return;
     }
 
@@ -348,13 +349,11 @@ export function AdminTeamsPage() {
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <div>
               <label className="text-sm font-black text-zinc-800">Nome *</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(event) => handleChange('name', event.target.value)}
-                placeholder="Ex: Iniciados"
-                className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
-              />
+              <select value={form.name} onChange={event => handleChange('name', event.target.value)} required className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3">
+                <option value="">Selecionar escalão</option>
+                {form.name && !AGE_GROUPS.includes(form.name) && <option value={form.name}>{form.name} — rever escalão</option>}
+                {AGE_GROUPS.map(name => <option key={name} value={name}>{name}</option>)}
+              </select>
             </div>
 
             <div>

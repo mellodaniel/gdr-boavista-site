@@ -1,3 +1,4 @@
+import { hasMatchResult } from './ageGroups.ts';
 import type { GdrbMatch, GdrbTournament } from '../types/database';
 
 export function getLisbonDate(now = new Date()) {
@@ -43,8 +44,7 @@ export function selectRecentResults(matches: GdrbMatch[], today: string) {
   return matches.filter((match) =>
     match.is_visible && !match.is_archived && match.status === 'terminado' &&
     match.match_date >= start && match.match_date <= today &&
-    Number.isInteger(match.home_score) && Number.isInteger(match.away_score) &&
-    match.home_score! >= 0 && match.away_score! >= 0,
+    hasMatchResult(match),
   ).sort((a, b) =>
     `${b.match_date} ${b.match_time ?? '00:00'}`.localeCompare(`${a.match_date} ${a.match_time ?? '00:00'}`) || a.id.localeCompare(b.id),
   );

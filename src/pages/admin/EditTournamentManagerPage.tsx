@@ -1,3 +1,5 @@
+import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
+import { AgeGroupSelect } from '../../components/AgeGroupSelect';
 import { useEffect, useState, type FormEvent } from 'react';
 import { CalendarDays, Handshake, Layers, ListChecks, MapPin, Shield, Table2, Trophy } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -125,6 +127,8 @@ export default function EditTournamentManagerPage() {
       return;
     }
 
+    if (!AGE_GROUPS.includes(normalizeAgeGroup(ageGroup))) { setErrorMessage('Seleciona um dos 12 escalões.'); return; }
+
     setSaving(true);
     setErrorMessage('');
     setSuccessMessage('');
@@ -135,7 +139,7 @@ export default function EditTournamentManagerPage() {
         name: name.trim(),
         slug: slug.trim(),
         edition: edition.trim() || null,
-        age_group: ageGroup.trim() || null,
+        age_group: normalizeAgeGroup(ageGroup),
         birth_year: birthYear.trim() || null,
         football_type: footballType || null,
         gender: gender || null,
@@ -423,12 +427,7 @@ export default function EditTournamentManagerPage() {
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">Escalão</label>
-            <input
-              type="text"
-              value={ageGroup}
-              onChange={(event) => setAgeGroup(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-green-700 focus:ring-2 focus:ring-green-100"
-            />
+            <AgeGroupSelect value={ageGroup} onChange={setAgeGroup} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
           </div>
 
           <div>

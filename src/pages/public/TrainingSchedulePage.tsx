@@ -22,7 +22,7 @@ type TrainingSchedule = {
 
 const formationSchedules: TrainingSchedule[] = [
   {
-    name: 'ABC',
+    name: 'ABCs',
     sessions: [
       { days: ['Quarta-feira'], time: '18h45 — 19h30' },
       { days: ['Sábado'], time: '09h00 — 09h45' },
