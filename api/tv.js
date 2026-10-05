@@ -36,13 +36,8 @@ export function createTvHandler({ env = process.env, fetcher = fetch, makeSecret
     };
     try {
       if (req.method === 'GET') {
-        const session = (req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith(`${COOKIE}=`))?.slice(COOKIE.length+1);
-        if (!validKey(session)) return res.status(401).json({ error: 'Ativa esta televisão no backoffice.' });
-        const devices = await rest(`gdrb_tv_devices?select=id&session_hash=eq.${hashKey(session)}&revoked_at=is.null&session_expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);
-        if (!devices.length) {
-          res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Secure; SameSite=Strict; Path=/api/tv; Max-Age=0`);
-          return res.status(401).json({ error: 'Acesso expirado ou revogado. Pede um novo link de ativação.' });
-        }
+        // Open viewing during the club's trial. Only published content is returned.
+        // Administrative POST actions remain authenticated.
         return res.status(200).json(await feed());
       }
       if (req.method !== 'POST') { res.setHeader('Allow', 'GET, POST'); return res.status(405).json({ error: 'Método não permitido.' }); }

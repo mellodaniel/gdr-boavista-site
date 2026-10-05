@@ -17,8 +17,10 @@ const fetcher=async(url,options)=>{
 };
 const handler=createTvHandler({env,fetcher,makeSecret:()=> 'b'.repeat(64)});
 async function call(method,body,headers={}){const result={headers:{}};const res={setHeader:(k,v)=>{result.headers[k]=v;},status:(code)=>{result.status=code;return res;},json:(data)=>{result.body=data;return res;}};await handler({method,body,headers},res);return result;}
-assert.equal((await call('GET')).status,401);
-assert.equal(requests.length,0,'Unauthorized TV must never query content');
+assert.equal((await call('GET')).status,200);
+assert.equal(requests.length,4,'Trial viewing queries only published content');
+assert.ok(requests.every(r=>!r.url.includes('gdrb_tv_devices')));
+assert.equal((await call('GET',null,{cookie:'gdrb_tv=expired'})).status,200);
 assert.equal((await call('POST',{action:'list'},{'content-type':'application/json'})).status,401);
 assert.equal((await call('POST',{action:'activate',key:'a'.repeat(64)},{origin:'https://evil.test','content-type':'application/json'})).status,403);
 assert.equal((await call('POST',{action:'activate',key:'short'},{'content-type':'application/json'})).status,400);
@@ -49,4 +51,4 @@ assert.deepEqual(playlist.filter(s=>s.kind==='matches').flatMap(s=>s.matches.map
 assert.ok(buildTvPlaylist({...data,sponsors:[],matches:[]}).length>=2);
 assert.equal(safeImage('javascript:alert(1)'),undefined);assert.equal(contactWebsite('javascript:alert(1)'),'');
 assert.equal(baseSeo('/tv').noindex,true);assert.equal(baseSeo('/tv').status,200);
-console.log('TV: authentication, admin authorization, private cookie, origin, hashed keys, published feed, offline failures, all partners, youth results, Lisbon schedule and noindex passed.');
+console.log('TV: unrestricted trial viewing, admin authorization, private cookie, origin, hashed keys, published feed, offline failures, all partners, youth results, Lisbon schedule and noindex passed.');

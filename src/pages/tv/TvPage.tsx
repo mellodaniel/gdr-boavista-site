@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Maximize, Pause, Play, ChevronLeft, ChevronRight } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { isOutcomeOnly, outcomeLabel } from '../../lib/ageGroups';
 import { getResultTeams } from '../../lib/homeAgenda';
 import { buildTvPlaylist, contactWebsite, plainText, safeImage } from '../../lib/tvPlaylist';
@@ -36,17 +35,12 @@ function Slide({slide}:{slide:TvSlide}) {
 export default function TvPage() {
  const [feed,setFeed]=useState<TvFeed|null>(null);
  const [message,setMessage]=useState('A ligar ao canal do clube…');
- const [locked,setLocked]=useState(false);
  const [offline,setOffline]=useState(false);
  const [index,setIndex]=useState(0);
  const [paused,setPaused]=useState(false);
  const [clock,setClock]=useState(new Date());
  const [controls,setControls]=useState(true);
- const [input,setInput]=useState('');
- const [retry,setRetry]=useState(0);
  const lastSuccess=useRef(0);
- const activationKey=useRef<string|null>(null);
- const activating=useRef<Promise<{ok:boolean;error?:string}>|null>(null);
  const controlsTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const preview=useMemo(()=>new URLSearchParams(window.location.search).get('preview')==='1',[]);
  const playlist=useMemo(()=>feed ? buildTvPlaylist(feed,clock) : [],[feed,clock]);
@@ -66,34 +60,22 @@ export default function TvPage() {
    const load=async()=>{
      if(busy)return;busy=true;
      try {
-       const key=new URLSearchParams(window.location.hash.slice(1)).get('ativar') || activationKey.current;
-       if(key){
-         // Keep the key out of logs, analytics, referrers and subsequent history entries.
-         window.history.replaceState(null,'',window.location.pathname+window.location.search);
-         activationKey.current=key;
-         if(!activating.current) activating.current=fetch('/api/tv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'activate',key}),signal:timeoutSignal(15000)}).then(async response=>({ok:response.ok,...await response.json()}));
-         const activation=await activating.current;
-         if(stopped)return;
-         activating.current=null;
-         if(!activation.ok){if(!stopped){setMessage(activation.error || 'Não foi possível ativar.');setLocked(true);}activationKey.current=null;return;}
-         activationKey.current=null;
-       }
-       let options:RequestInit={signal:timeoutSignal(20000)};
-       if(preview){const {data:{session}}=await supabase.auth.getSession();options={...options,method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token || ''}`},body:JSON.stringify({action:'preview'})};}
+       // Old activation links also open the unrestricted trial channel.
+       if(window.location.hash)window.history.replaceState(null,'',window.location.pathname+window.location.search);
+       const options:RequestInit={signal:timeoutSignal(20000)};
        const response=await fetch('/api/tv',options);
-       if(response.status===401 || response.status===403){if(!stopped){setFeed(null);setLocked(true);setMessage(preview?'Inicie sessão no backoffice para pré-visualizar.':'Esta televisão precisa de ser ativada. Use o link gerado em Administração → Televisão.');}return;}
        if(!response.ok)throw new Error('unavailable');
        const data=await response.json() as TvFeed;
        if(!Array.isArray(data.matches)||!Array.isArray(data.sponsors)||!Array.isArray(data.news)||!Array.isArray(data.tournaments))throw new Error('invalid');
-       if(!stopped){lastSuccess.current=Date.now();setFeed(data);setOffline(false);setLocked(false);setMessage('');}
-     }catch{activating.current=null;if(!stopped){setOffline(true);setMessage('A restabelecer a ligação…');if(Date.now()-lastSuccess.current>10*60*1000)setFeed(null);}}
+       if(!stopped){lastSuccess.current=Date.now();setFeed(data);setOffline(false);setMessage('');}
+     }catch{if(!stopped){setOffline(true);setMessage('A restabelecer a ligação…');if(Date.now()-lastSuccess.current>10*60*1000)setFeed(null);}}
      finally{busy=false;}
    };
    void load();const interval=setInterval(()=>void load(),60000);
    window.addEventListener('online',load);
    window.addEventListener('hashchange',load);
    return()=>{stopped=true;clearInterval(interval);window.removeEventListener('online',load);window.removeEventListener('hashchange',load);};
- },[preview,retry]);
+ },[]);
  useEffect(()=>{if(!slideId || !seconds || paused)return;const timer=setTimeout(()=>setIndex(i=>i+1),seconds*1000);return()=>clearTimeout(timer);},[slideId,seconds,paused,index]);
  useEffect(()=>{
    const key=(e:KeyboardEvent)=>{if((e.target as HTMLElement).matches('input,button,a'))return;showControls();if(e.key==='ArrowRight')move(1);if(e.key==='ArrowLeft')move(-1);if(e.key===' '){e.preventDefault();setPaused(p=>!p);}if(e.key.toLowerCase()==='f'||e.key==='Enter')void fullscreen();};
@@ -106,7 +88,7 @@ export default function TvPage() {
    void acquire();document.addEventListener('visibilitychange',acquire);
    return()=>{cancelled=true;void wake?.release();document.removeEventListener('visibilitychange',acquire);};
  },[hasFeed]);
- if(!feed || !slide)return <div className="tv-shell tv-gate"><img src={LOGO} alt="GDR Boavista"/><p className="tv-eyebrow">CANAL DO CLUBE</p><h1>Boavista <em>TV.</em></h1><p role="status">{message}</p>{locked && <form onSubmit={e=>{e.preventDefault();const key=input.includes('#')?new URLSearchParams(input.split('#')[1]).get('ativar'):input.trim();if(!/^[a-f0-9]{64}$/.test(key || '')){setMessage('Cole o link de ativação completo.');return;}window.location.hash=`ativar=${key}`;setInput('');setLocked(false);setRetry(r=>r+1);}}><label htmlFor="tv-key">Link de ativação</label><input id="tv-key" type="password" autoComplete="off" value={input} onChange={e=>setInput(e.target.value)} placeholder="Cole aqui o link gerado no backoffice"/><button type="submit">Ativar televisão</button></form>}{preview && <a href="/admin/televisao">Voltar ao backoffice</a>}<small>{!locked?'Voltamos a tentar automaticamente.':'O link funciona uma única vez. Depois, basta abrir gdrboavista.pt/tv.'}</small></div>;
+ if(!feed || !slide)return <div className="tv-shell tv-gate"><img src={LOGO} alt="GDR Boavista"/><p className="tv-eyebrow">CANAL DO CLUBE</p><h1>Boavista <em>TV.</em></h1><p role="status">{message}</p><small>Voltamos a tentar automaticamente.</small></div>;
  const section={welcome:'O nosso clube',community:'Comunidade',news:'Notícias',matches:'Agenda',results:'Resultados',sponsor:'Parceiros',tournaments:'Torneios'}[slide.kind];
  return <div className={`tv-shell ${controls?'tv-controls-visible':''}`} onMouseMove={showControls} onTouchStart={showControls}>
    <header className="tv-header"><div className="tv-brand"><img src={LOGO} alt="GDR Boavista"/><strong>BOAVISTA<span>TV</span></strong><i/>{section}</div><div className="tv-clock"><span>{clock.toLocaleDateString('pt-PT',{timeZone:'Europe/Lisbon',weekday:'long',day:'2-digit',month:'long'})}</span><b>{clock.toLocaleTimeString('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit'})}</b></div></header>
