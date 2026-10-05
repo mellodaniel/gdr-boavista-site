@@ -1,3 +1,6 @@
+import { lazy, Suspense } from 'react';
+import { AdminTvPage } from '../pages/admin/AdminTvPage';
+const TvPage = lazy(() => import('../pages/tv/TvPage'));
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RouteScrollManager } from '../components/RouteScrollManager';
 
@@ -57,6 +60,7 @@ export function AppRoutes() {
     <>
       <RouteScrollManager />
       <Routes>
+      <Route path="/tv" element={<Suspense fallback={<div style={{background:"#24180f",height:"100vh"}}/>}><TvPage /></Suspense>} />
       <Route element={<PublicLayout />}>
         <Route index element={<HomePage />} />
         <Route path="clube" element={<ClubPage />} />
@@ -84,6 +88,7 @@ export function AppRoutes() {
       <Route element={<ProtectedAdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
+          <Route path="televisao" element={<AdminTvPage />} />
           <Route path="analytics" element={<AdminAnalyticsPage />} />
           <Route path="noticias" element={<AdminNewsPage />} />
           <Route path="facebook" element={<AdminFacebookPostsPage />} />

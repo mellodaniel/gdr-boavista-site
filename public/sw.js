@@ -33,6 +33,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const path = new URL(event.request.url).pathname;
+  if (path === '/tv' || path === '/api/tv') return;
 
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))

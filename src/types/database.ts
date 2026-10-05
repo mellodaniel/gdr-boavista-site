@@ -49,6 +49,9 @@ export type GdrbContactRequest = {
 };
 
 export type GdrbSponsor = {
+  tv_message?: string | null;
+  tv_contact?: string | null;
+  show_on_tv?: boolean;
   id: string;
   name: string;
   description: string | null;

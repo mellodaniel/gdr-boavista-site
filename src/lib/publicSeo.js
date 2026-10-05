@@ -24,10 +24,10 @@ export function baseSeo(rawPath) {
   const path = cleanPath(rawPath);
   const canonicalPath = path === '/parceiros' ? '/patrocinadores' : path;
   const entry = pages[canonicalPath];
-  const privatePage = /^\/(admin|newsletter)(\/|$)/.test(path) || path.startsWith('/equipas/seniores/plantel-');
+  const privatePage = /^\/(admin|newsletter|tv)(\/|$)/.test(path) || path.startsWith('/equipas/seniores/plantel-');
   const dynamic = /^\/(noticias|galeria)\/[a-z0-9-]+$/i.test(path);
   const tournament = /^\/torneios\/[a-z0-9-]+$/i.test(path);
-  return { path, title: entry?.[0] || (privatePage ? 'Área reservada — GDR Boavista' : dynamic || tournament ? 'GDR Boavista — Leiria' : 'Página não encontrada — GDR Boavista'),
+  return { path, title: path==='/tv' ? 'Boavista TV — Canal do clube' : entry?.[0] || (privatePage ? 'Área reservada — GDR Boavista' : dynamic || tournament ? 'GDR Boavista — Leiria' : 'Página não encontrada — GDR Boavista'),
     description: entry?.[1] || '', canonical: privatePage || (!entry && !dynamic && !tournament) ? null : SITE + canonicalPath,
     image: SITE + '/og-boavista-v1.jpg', type: 'website', noindex: privatePage || (!entry && !dynamic && !tournament),
     status: entry || privatePage || dynamic || tournament ? 200 : 404, paragraphs: [], schema: null };

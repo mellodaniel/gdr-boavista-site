@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /tv
 Disallow: /admin
 Disallow: /newsletter/cancelar/
 Disallow: /equipas/seniores/plantel-2026-gdrb-7f4k

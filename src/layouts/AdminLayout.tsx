@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
+  Monitor,
   BarChart3,
   CalendarDays,
   ChevronDown,
@@ -43,6 +44,7 @@ const adminNavigationGroups: AdminNavigationGroup[] = [
     label: 'Conteúdo',
     icon: Newspaper,
     items: [
+      { label: 'Televisão', path: '/admin/televisao', icon: Monitor },
       { label: 'Notícias', path: '/admin/noticias', icon: Newspaper },
       { label: 'Publicações Facebook', path: '/admin/facebook', icon: MessageCircle },
       { label: 'Galeria', path: '/admin/galeria', icon: Image },

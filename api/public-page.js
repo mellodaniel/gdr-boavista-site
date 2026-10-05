@@ -3,6 +3,7 @@ export default async function handler(request, response) {
   if (!['GET','HEAD'].includes(request.method)) return response.status(405).end();
   try {
     const result = await pageResponse(String(request.query.path || '/'));
+    if (String(request.query.path || '').startsWith('/tv')) { response.setHeader('X-Robots-Tag','noindex, nofollow, noarchive'); response.setHeader('Referrer-Policy','no-referrer'); }
     response.setHeader('Content-Type','text/html; charset=utf-8');
     response.setHeader('Cache-Control',result.cache);
     return response.status(result.status).send(request.method==='HEAD'?'':result.html);

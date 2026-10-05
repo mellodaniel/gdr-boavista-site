@@ -25,6 +25,9 @@ const initialForm = {
   description: '',
   logo_url: '',
   website_url: '',
+  tv_message: '',
+  tv_contact: '',
+  show_on_tv: true,
   sponsor_level: 'Parceiro oficial',
   is_active: true,
   sort_order: 0,
@@ -207,6 +210,9 @@ export function AdminSponsorsPage() {
       description: sponsor.description ?? '',
       logo_url: sponsor.logo_url ?? '',
       website_url: sponsor.website_url ?? '',
+      tv_message: sponsor.tv_message ?? '',
+      tv_contact: sponsor.tv_contact ?? '',
+      show_on_tv: sponsor.show_on_tv ?? true,
       sponsor_level: normalizePartnerLevel(sponsor.sponsor_level),
       is_active: sponsor.is_active,
       sort_order: sponsor.sort_order ?? 0,
@@ -271,6 +277,9 @@ export function AdminSponsorsPage() {
       description: form.description.trim() || null,
       logo_url: form.logo_url.trim() || null,
       website_url: form.website_url.trim() || null,
+      tv_message: (form.tv_message || '').trim() || null,
+      tv_contact: (form.tv_contact || '').trim() || null,
+      show_on_tv: form.show_on_tv ?? true,
       sponsor_level: form.sponsor_level,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
@@ -496,6 +505,16 @@ export function AdminSponsorsPage() {
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm leading-7 outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
             </div>
+
+            <fieldset className="md:col-span-2 rounded-xl border border-red-100 bg-red-50/40 p-4">
+              <legend className="px-2 font-bold text-red-800">Boavista TV</legend>
+              <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={form.show_on_tv ?? true} onChange={e=>handleChange('show_on_tv',e.target.checked)}/> Mostrar na televisão do clube</label>
+              <label className="mt-4 block text-sm font-bold" htmlFor="sponsor-tv-message">Mensagem breve (até 220 caracteres)</label>
+              <textarea id="sponsor-tv-message" maxLength={220} rows={3} value={form.tv_message || ''} onChange={e=>handleChange('tv_message',e.target.value)} className="mt-2 w-full rounded-lg border border-zinc-200 bg-white p-3" placeholder="O que faz este parceiro?"/>
+              <label className="mt-4 block text-sm font-bold" htmlFor="sponsor-tv-contact">Contacto a apresentar (até 160 caracteres)</label>
+              <input id="sponsor-tv-contact" maxLength={160} value={form.tv_contact || ''} onChange={e=>handleChange('tv_contact',e.target.value)} className="mt-2 w-full rounded-lg border border-zinc-200 bg-white p-3" placeholder="Telefone, e-mail ou morada pública"/>
+              <p className="mt-2 text-xs text-zinc-600">O website também aparece. Use apenas contactos públicos e confirmados.</p>
+            </fieldset>
 
             <div>
               <label className="text-sm font-black text-zinc-800">
