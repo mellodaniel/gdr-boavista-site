@@ -8,6 +8,7 @@ import type { TvFeed, TvSlide } from '../../lib/tvPlaylist';
 import './tv.css';
 
 const LOGO='/logo-gdr-boavista-header-256.png';
+const timeoutSignal=(ms:number)=>typeof AbortSignal!=='undefined' && typeof AbortSignal.timeout==='function' ? AbortSignal.timeout(ms) : undefined;
 const dateLabel=(date:string)=>new Date(`${date.slice(0,10)}T12:00:00Z`).toLocaleDateString('pt-PT',{timeZone:'Europe/Lisbon',day:'2-digit',month:'short'});
 function TvImage({src,alt,logo=false}:{src?:string|null;alt:string;logo?:boolean}) {
  const [failed,setFailed]=useState(false);
@@ -70,14 +71,14 @@ export default function TvPage() {
          // Keep the key out of logs, analytics, referrers and subsequent history entries.
          window.history.replaceState(null,'',window.location.pathname+window.location.search);
          activationKey.current=key;
-         if(!activating.current) activating.current=fetch('/api/tv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'activate',key}),signal:AbortSignal.timeout(15000)}).then(async response=>({ok:response.ok,...await response.json()}));
+         if(!activating.current) activating.current=fetch('/api/tv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'activate',key}),signal:timeoutSignal(15000)}).then(async response=>({ok:response.ok,...await response.json()}));
          const activation=await activating.current;
          if(stopped)return;
          activating.current=null;
          if(!activation.ok){if(!stopped){setMessage(activation.error || 'Não foi possível ativar.');setLocked(true);}activationKey.current=null;return;}
          activationKey.current=null;
        }
-       let options:RequestInit={signal:AbortSignal.timeout(20000)};
+       let options:RequestInit={signal:timeoutSignal(20000)};
        if(preview){const {data:{session}}=await supabase.auth.getSession();options={...options,method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token || ''}`},body:JSON.stringify({action:'preview'})};}
        const response=await fetch('/api/tv',options);
        if(response.status===401 || response.status===403){if(!stopped){setFeed(null);setLocked(true);setMessage(preview?'Inicie sessão no backoffice para pré-visualizar.':'Esta televisão precisa de ser ativada. Use o link gerado em Administração → Televisão.');}return;}
@@ -90,7 +91,8 @@ export default function TvPage() {
    };
    void load();const interval=setInterval(()=>void load(),60000);
    window.addEventListener('online',load);
-   return()=>{stopped=true;clearInterval(interval);window.removeEventListener('online',load);};
+   window.addEventListener('hashchange',load);
+   return()=>{stopped=true;clearInterval(interval);window.removeEventListener('online',load);window.removeEventListener('hashchange',load);};
  },[preview,retry]);
  useEffect(()=>{if(!slideId || !seconds || paused)return;const timer=setTimeout(()=>setIndex(i=>i+1),seconds*1000);return()=>clearTimeout(timer);},[slideId,seconds,paused,index]);
  useEffect(()=>{
