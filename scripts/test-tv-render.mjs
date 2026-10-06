@@ -15,15 +15,15 @@ for(const [outcome,letter,label] of [['loss','D','Derrota'],['win','V','Vitória
 }
 assert.ok(render({kind:'results',matches:[{...match,team_name:'Sub-13'}]}).includes('7 – 0'));
 assert.ok(render({kind:'matches',matches:[match]}).includes('×'));
-for(const [kind,qr] of [['welcome','clube'],['community','socios']]) assert.ok(render({kind}).includes(`/tv/qr-${qr}.svg`));
+for(const [kind,qr] of [['welcome','clube'],['community','socios']]) assert.ok(render({kind}).includes(`/tv/qr-${qr}.png`));
 const membersHtml=render({kind:'community'});
 assert.ok(membersHtml.includes('href="/socios"'));assert.ok(membersHtml.includes('Quero ser sócio'));
 const channelHtml=render({kind:'channel'});
-assert.ok(channelHtml.includes('/tv/qr-canal.svg'));assert.ok(channelHtml.includes('O teu canal.'));
+assert.ok(channelHtml.includes('/tv/qr-canal.png'));assert.ok(channelHtml.includes('O teu canal.'));
 assert.ok(channelHtml.includes('ambição de trazer transmissões de jogos'));
 const sponsorHtml=render({kind:'sponsor',sponsor:{name:'Parceiro',tv_message:'Mensagem curta',tv_contact:'Contacto público',logo_url:'https://example.com/logo.png',website_url:'https://example.com'}});
-assert.ok(sponsorHtml.includes('/tv/qr-parceiros.svg'));assert.ok(sponsorHtml.includes('Contacto público'));
+assert.ok(sponsorHtml.includes('/tv/qr-parceiros.png'));assert.ok(sponsorHtml.includes('Contacto público'));
 const newsHtml=render({kind:'news',news:{title:'Notícia <script> nunca executa',summary:'Texto',published_at:'2026-10-01',image_url:'https://example.com/news.jpg'}});
-assert.ok(!newsHtml.includes('<script>'));assert.ok(newsHtml.includes('/tv/qr-clube.svg'));
-for(const name of ['clube','socios','parceiros','canal'])assert.ok(readFileSync(`public/tv/qr-${name}.svg`,'utf8').includes('<svg'));
+assert.ok(!newsHtml.includes('<script>'));assert.ok(newsHtml.includes('/tv/qr-clube.png'));
+for(const name of ['clube','socios','parceiros','canal'])assert.equal(readFileSync(`public/tv/qr-${name}.png`).subarray(1,4).toString(),'PNG');
 console.log('TV rendering: discreet V/D, accessible outcomes, no youth scores, away scores, QR calls to action, partner contact and escaped content passed.');

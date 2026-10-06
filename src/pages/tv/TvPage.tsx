@@ -6,7 +6,7 @@ import { buildTvPlaylist, contactWebsite, plainText, safeImage } from '../../lib
 import type { TvFeed, TvSlide } from '../../lib/tvPlaylist';
 import './tv.css';
 
-const LOGO='/logo-gdr-boavista-header-256.png';
+const LOGO='/logo-gdr-boavista-clean-1024.png';
 const timeoutSignal=(ms:number)=>typeof AbortSignal!=='undefined' && typeof AbortSignal.timeout==='function' ? AbortSignal.timeout(ms) : undefined;
 const dateLabel=(date:string)=>new Date(`${date.slice(0,10)}T12:00:00Z`).toLocaleDateString('pt-PT',{timeZone:'Europe/Lisbon',day:'2-digit',month:'short'});
 function TvImage({src,alt,logo=false}:{src?:string|null;alt:string;logo?:boolean}) {
@@ -15,7 +15,7 @@ function TvImage({src,alt,logo=false}:{src?:string|null;alt:string;logo?:boolean
 }
 function TvAction({kind='clube'}:{kind?:'clube'|'socios'|'parceiros'|'canal'}) {
  const labels={canal:['Boavista TV, contigo.','Abre o canal no teu telemóvel','gdrboavista.pt/tv'],clube:['Leva o clube contigo','Notícias, jogos e novidades','gdrboavista.pt'],socios:['Faz parte desta família.','Aponta a câmara e envia o teu pedido','gdrboavista.pt/socios'],parceiros:['Apoia quem nos apoia.','Conhece os nossos parceiros','gdrboavista.pt/parceiros']}[kind];
- return <div className={`tv-action tv-action-${kind}`}><img src={`/tv/qr-${kind}.svg`} alt={`Código QR: ${labels[2]}`} width="120" height="120"/><div><strong>{labels[0]}</strong><span>{labels[1]} <ArrowUpRight aria-hidden="true"/></span><small>{labels[2]}</small>{kind==='socios' && <a className="tv-member-button" href="/socios" target="_blank" rel="noopener noreferrer">Quero ser sócio <ArrowUpRight aria-hidden="true"/></a>}</div></div>;
+ return <div className={`tv-action tv-action-${kind}`}><img src={`/tv/qr-${kind}.png`} alt={`Código QR: ${labels[2]}`} width="120" height="120"/><div><strong>{labels[0]}</strong><span>{labels[1]} <ArrowUpRight aria-hidden="true"/></span><small>{labels[2]}</small>{kind==='socios' && <a className="tv-member-button" href="/socios" target="_blank" rel="noopener noreferrer">Quero ser sócio <ArrowUpRight aria-hidden="true"/></a>}</div></div>;
 }
 const sectionNames:Record<TvSlide['kind'],string>={channel:'Boavista TV',welcome:'O nosso clube',community:'Comunidade',news:'Notícias',matches:'Agenda',results:'Resultados',sponsor:'Parceiros',tournaments:'Torneios'};
 function nextTitle(slide:TvSlide){
@@ -61,15 +61,18 @@ export default function TvPage() {
  const playlist=useMemo(()=>feed ? buildTvPlaylist(feed,clock) : [],[feed,clock]);
  const slide=playlist[index%Math.max(1,playlist.length)];
  const slideId=slide?.id; const seconds=slide?.seconds; const hasFeed=Boolean(feed);
- const showControls=useCallback(()=>{setControls(true);if(controlsTimer.current)clearTimeout(controlsTimer.current);controlsTimer.current=setTimeout(()=>setControls(false),4500);},[]);
+ const hideControls=useCallback(()=>{setControls(false);const focused=document.activeElement;if(focused instanceof HTMLElement && focused.closest('.tv-controls'))focused.blur();},[]);
+ const showControls=useCallback(()=>{setControls(true);if(controlsTimer.current)clearTimeout(controlsTimer.current);controlsTimer.current=setTimeout(hideControls,4500);},[hideControls]);
  const move=useCallback((delta:number)=>{setIndex(i=>(i+delta+Math.max(1,playlist.length))%Math.max(1,playlist.length));showControls();},[playlist.length,showControls]);
  const fullscreen=useCallback(async()=>{ try { if(!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); }catch{setMessage('Use o modo de ecrã inteiro do navegador da televisão.');} },[]);
  useEffect(()=>{
    document.title='Boavista TV — Canal do clube';
-   controlsTimer.current=setTimeout(()=>setControls(false),4500);
+   const previousScheme=document.documentElement.style.colorScheme;
+   document.documentElement.style.colorScheme='only light';
+   controlsTimer.current=setTimeout(hideControls,4500);
    const interval=setInterval(()=>setClock(new Date()),30000);
-   return()=>{clearInterval(interval);if(controlsTimer.current)clearTimeout(controlsTimer.current);};
- },[]);
+   return()=>{document.documentElement.style.colorScheme=previousScheme;clearInterval(interval);if(controlsTimer.current)clearTimeout(controlsTimer.current);};
+ },[hideControls]);
  useEffect(()=>{
    let stopped=false;let busy=false;
    const load=async()=>{
@@ -93,7 +96,7 @@ export default function TvPage() {
  },[]);
  useEffect(()=>{if(!slideId || !seconds || paused)return;const timer=setTimeout(()=>setIndex(i=>i+1),seconds*1000);return()=>clearTimeout(timer);},[slideId,seconds,paused,index]);
  useEffect(()=>{
-   const key=(e:KeyboardEvent)=>{if((e.target as HTMLElement).matches('input,button,a'))return;showControls();if(e.key==='ArrowRight')move(1);if(e.key==='ArrowLeft')move(-1);if(e.key===' '){e.preventDefault();setPaused(p=>!p);}if(e.key.toLowerCase()==='f'||e.key==='Enter')void fullscreen();};
+   const key=(e:KeyboardEvent)=>{if((e.target as HTMLElement).matches('input,a'))return;showControls();if((e.target as HTMLElement).matches('button'))return;if(e.key==='ArrowRight')move(1);if(e.key==='ArrowLeft')move(-1);if(e.key===' '){e.preventDefault();setPaused(p=>!p);}if(e.key.toLowerCase()==='f'||e.key==='Enter')void fullscreen();};
    window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
  },[move,fullscreen,showControls]);
  useEffect(()=>{
@@ -106,12 +109,12 @@ export default function TvPage() {
  if(!feed || !slide)return <div className="tv-shell tv-gate"><img src={LOGO} alt="GDR Boavista"/><p className="tv-eyebrow">CANAL DO CLUBE</p><h1>Boavista <em>TV.</em></h1><p role="status">{message}</p><small>Voltamos a tentar automaticamente.</small></div>;
  const section=sectionNames[slide.kind];
  const next=playlist[(index+1)%playlist.length];
- return <div className={`tv-shell tv-section-${slide.kind} ${controls?'tv-controls-visible':''} ${paused?'tv-paused':''}`} onMouseMove={showControls} onTouchStart={showControls}>
+ return <div className={`tv-shell tv-section-${slide.kind} ${controls?'tv-controls-visible':''} ${paused?'tv-paused':''}`} onClick={showControls} onTouchStart={showControls}>
    <div className="tv-ambient" aria-hidden="true"><i/><i/></div>
-   <header className="tv-header"><div className="tv-brand"><img key={slide.id} src={LOGO} alt="GDR Boavista"/><strong>BOAVISTA<span>TV</span></strong><i/><span className="tv-section-pill">{section}</span></div><div className="tv-clock"><span>{clock.toLocaleDateString('pt-PT',{timeZone:'Europe/Lisbon',weekday:'long',day:'2-digit',month:'long'})}</span><b>{clock.toLocaleTimeString('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit'})}</b></div></header>
+   <header className="tv-header"><div className="tv-brand"><span key={slide.id} className="tv-brand-mark"><img src={LOGO} alt="GDR Boavista"/></span><strong>BOAVISTA<span>TV</span></strong><i/><span className="tv-section-pill">{section}</span></div><div className="tv-clock"><span>{clock.toLocaleDateString('pt-PT',{timeZone:'Europe/Lisbon',weekday:'long',day:'2-digit',month:'long'})}</span><b>{clock.toLocaleTimeString('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit'})}</b></div></header>
    <main className="tv-main"><div className="tv-slide" key={`${slide.id}-${index}`}><TvSlideView slide={slide}/></div></main>
    <footer className="tv-footer"><div className="tv-channel"><span className="tv-signal" aria-hidden="true"/><strong>CANAL DO CLUBE</strong><small>{offline?'A restabelecer a ligação':preview?'Pré-visualização':paused?'Em pausa':'GDR BOAVISTA'}</small></div><div className="tv-next" key={next.id}><span>A SEGUIR</span><strong>{nextTitle(next)}</strong><ChevronRight aria-hidden="true"/></div><b>gdrboavista.pt</b></footer>
    <div className="tv-progress" key={`progress-${index}-${slide.id}`} style={{animationDuration:`${slide.seconds}s`,animationPlayState:paused?'paused':'running'}}/>
-   <nav className="tv-controls" aria-label="Controlos da televisão" onFocus={showControls}><button onClick={()=>move(-1)} aria-label="Anterior"><ChevronLeft/></button><button onClick={()=>{setPaused(p=>!p);showControls();}} aria-label={paused?'Continuar':'Pausar'}>{paused?<Play/>:<Pause/>}</button><button onClick={()=>move(1)} aria-label="Seguinte"><ChevronRight/></button><button onClick={()=>void fullscreen()}><Maximize/> Ecrã inteiro</button></nav>
+   <nav className="tv-controls" aria-label="Controlos da televisão" aria-hidden={!controls} onFocus={showControls}><button onClick={()=>move(-1)} aria-label="Anterior"><ChevronLeft/></button><button onClick={()=>{setPaused(p=>!p);showControls();}} aria-label={paused?'Continuar':'Pausar'}>{paused?<Play/>:<Pause/>}</button><button onClick={()=>move(1)} aria-label="Seguinte"><ChevronRight/></button><button onClick={()=>void fullscreen()}><Maximize/> Ecrã inteiro</button></nav>
  </div>;
 }
