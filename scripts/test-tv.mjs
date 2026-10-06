@@ -35,7 +35,7 @@ const feed=await call('GET',null,{cookie:`gdrb_tv=${'b'.repeat(64)}`});
 assert.equal(feed.status,200);assert.equal(feed.headers['Cache-Control'],'private, no-store');
 assert.ok(requests.some(r=>r.url.includes('gdrb_news?')&&r.url.includes('is_published=eq.true')&&r.url.includes('status=eq.published')));
 assert.ok(requests.some(r=>r.url.includes('gdrb_sponsors?')&&r.url.includes('show_on_tv=eq.true')));
-assert.ok(requests.some(r=>r.url.includes('gdrb_matches?')&&r.url.includes('is_archived=eq.false')));
+assert.ok(requests.some(r=>r.url.includes('gdrb_matches?')&&r.url.includes('status=in.(agendado,terminado,adiado)')));
 allowed=false;
 assert.equal((await call('POST',{action:'create',name:'Clube'},{authorization:'Bearer non-admin','content-type':'application/json'})).status,403);
 allowed=true;
