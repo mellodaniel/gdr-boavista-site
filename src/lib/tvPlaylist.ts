@@ -33,9 +33,16 @@ export function buildTvPlaylist(feed:TvFeed, now=new Date()):TvSlide[] {
  content.push({id:'community',kind:'community',seconds:14});
  const sponsors=feed.sponsors.map(sponsor=>({id:`partner-${sponsor.id}`,kind:'sponsor' as const,sponsor,seconds:18}));
  const playlist:TvSlide[]=[{id:'welcome',kind:'welcome',seconds:12}];
- for(let i=0;i<Math.max(content.length,sponsors.length);i++) {
-   if(content[i]) playlist.push(content[i]);
-   if(sponsors[i]) playlist.push(sponsors[i]);
- }
+ // Spread sponsor exposure across the whole programme, avoiding a long ad-only tail.
+ let partnerIndex=0;
+ content.forEach((item,index)=>{
+   playlist.push(item);
+   const end=Math.floor((index+1)*sponsors.length/content.length);
+   let consecutive=0;
+   while(partnerIndex<end){
+     if(consecutive===2){playlist.push({id:`community-break-${partnerIndex}`,kind:'community',seconds:14});consecutive=0;}
+     playlist.push(sponsors[partnerIndex++]);consecutive++;
+   }
+ });
  return playlist;
 }

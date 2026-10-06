@@ -35,6 +35,7 @@ const feed=await call('GET',null,{cookie:`gdrb_tv=${'b'.repeat(64)}`});
 assert.equal(feed.status,200);assert.equal(feed.headers['Cache-Control'],'private, no-store');
 assert.ok(requests.some(r=>r.url.includes('gdrb_news?')&&r.url.includes('is_published=eq.true')&&r.url.includes('status=eq.published')));
 assert.ok(requests.some(r=>r.url.includes('gdrb_sponsors?')&&r.url.includes('show_on_tv=eq.true')));
+assert.ok(requests.some(r=>r.url.includes('gdrb_matches?')&&r.url.includes('is_archived=eq.false')));
 allowed=false;
 assert.equal((await call('POST',{action:'create',name:'Clube'},{authorization:'Bearer non-admin','content-type':'application/json'})).status,403);
 allowed=true;
@@ -46,6 +47,8 @@ const row={id:'u12',team_name:'Sub-12',opponent:'Alcobaça',status:'terminado',r
 const data={updated_at:'2026-10-05T12:00:00Z',sponsors:Array.from({length:13},(_,i)=>({id:String(i),name:`Partner ${i}`})),news:[],matches:[row,{...row,id:'hidden',is_visible:false},{...row,id:'old',match_date:'2026-09-01'},{...row,id:'next',status:'agendado',match_date:'2026-10-10'},{...row,id:'early',status:'agendado',match_date:'2026-10-05',match_time:'09:00'}],tournaments:[]};
 const playlist=buildTvPlaylist(data,new Date('2026-10-05T12:00:00Z'));
 assert.equal(playlist.filter(s=>s.kind==='sponsor').length,13);
+assert.equal(new Set(playlist.filter(s=>s.kind==='sponsor').map(s=>s.id)).size,13,'Each partner appears once per cycle');
+let sponsorRun=0;for(const slide of playlist){sponsorRun=slide.kind==='sponsor'?sponsorRun+1:0;assert.ok(sponsorRun<=2,'Never run three partner slides consecutively');}
 assert.deepEqual(playlist.filter(s=>s.kind==='results').flatMap(s=>s.matches.map(m=>m.id)),['u12']);
 assert.deepEqual(playlist.filter(s=>s.kind==='matches').flatMap(s=>s.matches.map(m=>m.id)),['next']);
 assert.ok(buildTvPlaylist({...data,sponsors:[],matches:[]}).length>=2);
