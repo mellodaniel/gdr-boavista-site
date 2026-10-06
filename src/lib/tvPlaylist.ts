@@ -23,13 +23,13 @@ export function buildTvPlaylist(feed:TvFeed, now=new Date()):TvSlide[] {
  const lisbonTime=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now);
  const minutes=(time:string)=>Number(time.slice(0,2))*60+Number(time.slice(3,5));
  const content:TvSlide[]=[{id:'channel',kind:'channel',seconds:22}];
- const groups=(items:GdrbMatch[],kind:'results'|'matches')=>{ for(let i=0;i<items.length;i+=3) content.push({id:`${kind}-${items.slice(i,i+3).map(m=>m.id).join('-')}`,kind,matches:items.slice(i,i+3),seconds:20}); };
+ const groups=(items:GdrbMatch[],kind:'results'|'matches')=>{ for(let i=0;i<items.length;i++) content.push({id:`${kind}-${items.slice(i,i+1).map(m=>m.id).join('-')}`,kind,matches:items.slice(i,i+1),seconds:16}); };
  groups(selectRecentResults(feed.matches,today),'results');
  groups(selectUpcomingMatches(feed.matches,today).filter(m => m.match_date>today || !m.match_time || minutes(m.match_time)>minutes(lisbonTime)-120).slice(0,15),'matches');
  // An explicit date is shown on every news item; unpublished/future news is filtered by the server.
  for(const news of feed.news.slice(0,5)) content.push({id:`news-${news.id}`,kind:'news',news,seconds:22});
  const tournaments=selectUpcomingTournaments(feed.tournaments,today).slice(0,6);
- for(let i=0;i<tournaments.length;i+=3) content.push({id:`tournaments-${i}`,kind:'tournaments',tournaments:tournaments.slice(i,i+3),seconds:20});
+ for(let i=0;i<tournaments.length;i++) content.push({id:`tournaments-${i}`,kind:'tournaments',tournaments:tournaments.slice(i,i+1),seconds:18});
  content.push({id:'community',kind:'community',seconds:22});
  const sponsors=feed.sponsors.map(sponsor=>({id:`partner-${sponsor.id}`,kind:'sponsor' as const,sponsor,seconds:18}));
  const playlist:TvSlide[]=[{id:'welcome',kind:'welcome',seconds:12}];

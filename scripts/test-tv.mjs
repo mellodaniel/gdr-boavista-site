@@ -57,3 +57,7 @@ assert.ok(buildTvPlaylist({...data,sponsors:[],matches:[]}).length>=2);
 assert.equal(safeImage('javascript:alert(1)'),undefined);assert.equal(contactWebsite('javascript:alert(1)'),'');
 assert.equal(baseSeo('/tv').noindex,true);assert.equal(baseSeo('/tv').status,200);
 console.log('TV: unrestricted trial viewing, admin authorization, private cookie, origin, hashed keys, published feed, offline failures, all partners, youth results, Lisbon schedule and noindex passed.');
+
+const crowded={...data,matches:Array.from({length:5},(_,i)=>({...row,id:`result-${i}`}))};
+const fixtures=buildTvPlaylist(crowded,new Date('2026-10-05T12:00:00Z')).filter(s=>s.kind==='results');
+assert.equal(fixtures.length,5);assert.ok(fixtures.every(s=>s.matches.length===1),'One result per screen without dropping matches');
