@@ -13,19 +13,24 @@ function TvImage({src,alt,logo=false}:{src?:string|null;alt:string;logo?:boolean
  const [failed,setFailed]=useState(false);
  return <img src={!failed && safeImage(src) ? src! : LOGO} alt={alt} onError={()=>setFailed(true)} className={logo || failed || !safeImage(src) ? 'tv-image-logo' : 'tv-image-photo'} referrerPolicy="no-referrer" />;
 }
-function TvAction({kind='clube'}:{kind?:'clube'|'socios'|'parceiros'}) {
- const labels={clube:['Leva o clube contigo','Notícias, jogos e novidades','gdrboavista.pt'],socios:['O próximo passo é teu.','Descobre como ser sócio','gdrboavista.pt/socios'],parceiros:['Apoia quem nos apoia.','Conhece os nossos parceiros','gdrboavista.pt/parceiros']}[kind];
- return <div className="tv-action"><img src={`/tv/qr-${kind}.svg`} alt={`Código QR: ${labels[2]}`} width="120" height="120"/><div><strong>{labels[0]}</strong><span>{labels[1]} <ArrowUpRight aria-hidden="true"/></span><small>{labels[2]}</small></div></div>;
+function TvAction({kind='clube'}:{kind?:'clube'|'socios'|'parceiros'|'canal'}) {
+ const labels={canal:['Boavista TV, contigo.','Abre o canal no teu telemóvel','gdrboavista.pt/tv'],clube:['Leva o clube contigo','Notícias, jogos e novidades','gdrboavista.pt'],socios:['Faz parte desta família.','Aponta a câmara e envia o teu pedido','gdrboavista.pt/socios'],parceiros:['Apoia quem nos apoia.','Conhece os nossos parceiros','gdrboavista.pt/parceiros']}[kind];
+ return <div className={`tv-action tv-action-${kind}`}><img src={`/tv/qr-${kind}.svg`} alt={`Código QR: ${labels[2]}`} width="120" height="120"/><div><strong>{labels[0]}</strong><span>{labels[1]} <ArrowUpRight aria-hidden="true"/></span><small>{labels[2]}</small>{kind==='socios' && <a className="tv-member-button" href="/socios" target="_blank" rel="noopener noreferrer">Quero ser sócio <ArrowUpRight aria-hidden="true"/></a>}</div></div>;
 }
-const sectionNames:Record<TvSlide['kind'],string>={welcome:'O nosso clube',community:'Comunidade',news:'Notícias',matches:'Agenda',results:'Resultados',sponsor:'Parceiros',tournaments:'Torneios'};
+const sectionNames:Record<TvSlide['kind'],string>={channel:'Boavista TV',welcome:'O nosso clube',community:'Comunidade',news:'Notícias',matches:'Agenda',results:'Resultados',sponsor:'Parceiros',tournaments:'Torneios'};
 function nextTitle(slide:TvSlide){
  if(slide.kind==='sponsor')return slide.sponsor.name;
  if(slide.kind==='news')return plainText(slide.news.title,65);
  return sectionNames[slide.kind];
 }
 export function TvSlideView({slide}:{slide:TvSlide}) {
- if(slide.kind==='welcome' || slide.kind==='community') return <section className="tv-hero">
-   <div><p className="tv-eyebrow">{slide.kind==='welcome' ? 'A nossa casa. O nosso clube.' : 'Faz parte desta família'}</p><h1>{slide.kind==='welcome' ? <>Aqui vive<br/>o <em>Boavista.</em></> : <>Juntos,<br/>somos <em>mais.</em></>}</h1><p className="tv-lead">{slide.kind==='welcome' ? 'Formação, paixão e comunidade. Dentro e fora de campo.' : 'Apoia os nossos atletas. Torna-te sócio e acompanha o futuro do clube.'}</p><TvAction kind={slide.kind==='welcome'?'clube':'socios'}/></div>
+ if(slide.kind==='channel') return <section className="tv-promo">
+   <div className="tv-promo-copy"><p className="tv-eyebrow">GDR Boavista TV · O canal da nossa família</p><h1>O teu clube.<br/><em>O teu canal.</em></h1><p className="tv-lead">Fica por dentro das notícias, acompanha os jogos e conhece quem apoia o Boavista.</p><div className="tv-coming"><strong>Em breve, mais novidades.</strong><p>Estamos a preparar o futuro do canal, com a ambição de trazer transmissões de jogos.</p></div><TvAction kind="canal"/></div>
+   <div className="tv-promo-art" aria-label="Identidade Boavista TV"><div className="tv-broadcast-rings" aria-hidden="true"><i/><i/><i/></div><img src={LOGO} alt="Emblema GDR Boavista"/><div className="tv-promo-wordmark">BOAVISTA <b>TV</b></div><span>NOTÍCIAS · FUTEBOL · COMUNIDADE</span></div>
+ </section>;
+
+ if(slide.kind==='welcome' || slide.kind==='community') return <section className={`tv-hero ${slide.kind==='community'?'tv-members':''}`}>
+   <div><p className="tv-eyebrow">{slide.kind==='welcome' ? 'A nossa casa. O nosso clube.' : 'Faz parte desta família'}</p><h1>{slide.kind==='welcome' ? <>Aqui vive<br/>o <em>Boavista.</em></> : <>O Boavista<br/>conta <em>contigo.</em></>}</h1><p className="tv-lead">{slide.kind==='welcome' ? 'Formação, paixão e comunidade. Dentro e fora de campo.' : 'Torna-te sócio. Ajuda a nossa formação a crescer e faz parte da vida do clube.'}</p><TvAction kind={slide.kind==='welcome'?'clube':'socios'}/></div>
    <div className="tv-crest"><div className="tv-orbit" aria-hidden="true"/><img src={LOGO} alt="GDR Boavista"/><span>UMA TERRA. UMA EQUIPA. UMA FAMÍLIA.</span></div>
  </section>;
  if(slide.kind==='sponsor') { const sponsor=slide.sponsor; return <section className="tv-partner">
@@ -103,7 +108,7 @@ export default function TvPage() {
  const next=playlist[(index+1)%playlist.length];
  return <div className={`tv-shell tv-section-${slide.kind} ${controls?'tv-controls-visible':''} ${paused?'tv-paused':''}`} onMouseMove={showControls} onTouchStart={showControls}>
    <div className="tv-ambient" aria-hidden="true"><i/><i/></div>
-   <header className="tv-header"><div className="tv-brand"><img src={LOGO} alt="GDR Boavista"/><strong>BOAVISTA<span>TV</span></strong><i/><span className="tv-section-pill">{section}</span></div><div className="tv-clock"><span>{clock.toLocaleDateString('pt-PT',{timeZone:'Europe/Lisbon',weekday:'long',day:'2-digit',month:'long'})}</span><b>{clock.toLocaleTimeString('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit'})}</b></div></header>
+   <header className="tv-header"><div className="tv-brand"><img key={slide.id} src={LOGO} alt="GDR Boavista"/><strong>BOAVISTA<span>TV</span></strong><i/><span className="tv-section-pill">{section}</span></div><div className="tv-clock"><span>{clock.toLocaleDateString('pt-PT',{timeZone:'Europe/Lisbon',weekday:'long',day:'2-digit',month:'long'})}</span><b>{clock.toLocaleTimeString('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit'})}</b></div></header>
    <main className="tv-main"><div className="tv-slide" key={`${slide.id}-${index}`}><TvSlideView slide={slide}/></div></main>
    <footer className="tv-footer"><div className="tv-channel"><span className="tv-signal" aria-hidden="true"/><strong>CANAL DO CLUBE</strong><small>{offline?'A restabelecer a ligação':preview?'Pré-visualização':paused?'Em pausa':'GDR BOAVISTA'}</small></div><div className="tv-next" key={next.id}><span>A SEGUIR</span><strong>{nextTitle(next)}</strong><ChevronRight aria-hidden="true"/></div><b>gdrboavista.pt</b></footer>
    <div className="tv-progress" key={`progress-${index}-${slide.id}`} style={{animationDuration:`${slide.seconds}s`,animationPlayState:paused?'paused':'running'}}/>
