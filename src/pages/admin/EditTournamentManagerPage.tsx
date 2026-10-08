@@ -127,7 +127,7 @@ export default function EditTournamentManagerPage() {
       return;
     }
 
-    if (!AGE_GROUPS.includes(normalizeAgeGroup(ageGroup))) { setErrorMessage('Seleciona um dos 12 escalões.'); return; }
+    if (!AGE_GROUPS.includes(normalizeAgeGroup(ageGroup))) { setErrorMessage('Seleciona um dos escalões disponíveis.'); return; }
 
     setSaving(true);
     setErrorMessage('');

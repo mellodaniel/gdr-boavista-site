@@ -1,4 +1,4 @@
-import { AGE_GROUPS, isOutcomeOnly, outcomeLabel } from '../../lib/ageGroups';
+import { ageGroupLabel, AGE_GROUPS, isOutcomeOnly, outcomeLabel } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
@@ -335,7 +335,7 @@ export function ResultsPage() {
 
               <FilterField label="Escalão">
                 <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)} className="w-full rounded-md border border-zinc-200 px-5 md:px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100">
-                  {teamOptions.map((team) => <option key={team} value={team}>{team}</option>)}
+                  {teamOptions.map((team) => <option key={team} value={team}>{ageGroupLabel(team)}</option>)}
                 </select>
               </FilterField>
 

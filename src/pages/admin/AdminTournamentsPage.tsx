@@ -1,4 +1,4 @@
-import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
+import { ageGroupLabel, AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
@@ -541,7 +541,7 @@ export function AdminTournamentsPage() {
                 {form.team_name && !AGE_GROUPS.includes(form.team_name) && <option value={form.team_name}>{form.team_name} — rever escalão</option>}
                 {teamOptions.map((team) => (
                   <option key={team} value={team}>
-                    {team}
+                    {ageGroupLabel(team)}
                   </option>
                 ))}
               </select>
@@ -598,7 +598,7 @@ export function AdminTournamentsPage() {
             </div>
 
             <div>
-              <label htmlFor="tournament-start-time" className="text-sm font-black text-zinc-800">Hora de início</label>
+              <label htmlFor="tournament-start-time" className="text-sm font-black text-zinc-800">Hora de início (opcional)</label>
               <input
                 id="tournament-start-time"
                 type="time"
@@ -608,7 +608,7 @@ export function AdminTournamentsPage() {
                 aria-describedby="tournament-start-time-help"
                 className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-red-700 focus:ring-4 focus:ring-red-100"
               />
-              <p id="tournament-start-time-help" className="mt-2 text-xs text-zinc-500">Opcional. Hora local no primeiro dia do torneio.</p>
+              <p id="tournament-start-time-help" className="mt-2 text-xs text-zinc-500">Pode deixar em branco se o horário ainda não estiver confirmado.</p>
             </div>
 
             <div className="md:col-span-2">
@@ -745,7 +745,7 @@ export function AdminTournamentsPage() {
             <option value="Todos">Todos os escalões</option>
             {teamOptions.map((team) => (
               <option key={team} value={team}>
-                {team}
+                {ageGroupLabel(team)}
               </option>
             ))}
           </select>

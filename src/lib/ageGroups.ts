@@ -1,6 +1,10 @@
 import type { GdrbMatch } from '../types/database';
 
-export const AGE_GROUPS = ['ABCs', 'Petizes', 'Traquinas A', 'Traquinas B', 'Benjamins A', 'Benjamins B', 'Sub-12', 'Sub-13', 'Iniciados', 'Juvenis', 'Juniores', 'Seniores'];
+export const AGE_GROUPS = ['ABCs', 'Petizes', 'Traquinas A', 'Traquinas B', 'Benjamins A', 'Benjamins B', 'Sub-12', 'Sub-13', 'Iniciados', 'Juvenis', 'Juniores', 'Seniores', 'equipa de desenvolvimento'];
+// Keep the stored catalogue value unchanged; use the label in form options.
+export function ageGroupLabel(value: string) {
+  return value === 'equipa de desenvolvimento' ? 'Equipa de Desenvolvimento' : value;
+}
 export function normalizeAgeGroup(value: string) {
   const key = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
   if (key === 'abc') return 'ABCs';
@@ -10,7 +14,7 @@ export function normalizeAgeGroup(value: string) {
 }
 export function isOutcomeOnly(value: string) {
   const name = normalizeAgeGroup(value);
-  return AGE_GROUPS.slice(0, 7).includes(name) || /^(petiz|abc|traquin|benjam|infant)/i.test(name);
+  return name === 'equipa de desenvolvimento' || AGE_GROUPS.slice(0, 7).includes(name) || /^(petiz|abc|traquin|benjam|infant)/i.test(name);
 }
 export function getMatchOutcome(match: Pick<GdrbMatch, 'home_score' | 'away_score' | 'result_outcome'>) {
   if (match.result_outcome === 'win' || match.result_outcome === 'loss') return match.result_outcome;

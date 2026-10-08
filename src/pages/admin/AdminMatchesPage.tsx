@@ -1,4 +1,4 @@
-import { AGE_GROUPS, normalizeAgeGroup, isOutcomeOnly, outcomeLabel, getMatchOutcome, hasMatchResult } from '../../lib/ageGroups';
+import { ageGroupLabel, AGE_GROUPS, normalizeAgeGroup, isOutcomeOnly, outcomeLabel, getMatchOutcome, hasMatchResult } from '../../lib/ageGroups';
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
@@ -488,7 +488,7 @@ export function AdminMatchesPage() {
     const validScore = (value: string) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
     const hasResult = outcomeOnly ? ['win', 'loss'].includes(form.result_outcome) : validScore(form.home_score) && validScore(form.away_score);
     if (!AGE_GROUPS.includes(normalizeAgeGroup(form.team_name))) {
-      setErrorMessage('Seleciona um dos 12 escalões. O nome antigo precisa de revisão.'); setIsSaving(false); return;
+      setErrorMessage('Seleciona um dos escalões disponíveis. O nome antigo precisa de revisão.'); setIsSaving(false); return;
     }
     if (!outcomeOnly && (form.home_score !== '' || form.away_score !== '') && !hasResult) {
       setErrorMessage('Preenche ambos os golos com números inteiros iguais ou superiores a zero.'); setIsSaving(false); return;
@@ -1324,7 +1324,7 @@ export function AdminMatchesPage() {
                 {form.team_name && !AGE_GROUPS.includes(form.team_name) && <option value={form.team_name}>{form.team_name} — rever escalão</option>}
                 {teamOptions.map((team) => (
                   <option key={team} value={team}>
-                    {team}
+                    {ageGroupLabel(team)}
                   </option>
                 ))}
               </select>

@@ -656,7 +656,7 @@ export function AdminTournamentSelfServicePage() {
     setIsCreating(true);
 
     try {
-      if (!AGE_GROUPS.includes(normalizeAgeGroup(form.ageGroup))) throw new Error('Seleciona um dos 12 escalões.');
+      if (!AGE_GROUPS.includes(normalizeAgeGroup(form.ageGroup))) throw new Error('Seleciona um dos escalões disponíveis.');
       const { data: sessionData } = await supabase.auth.getSession();
 
       if (!sessionData.session) {

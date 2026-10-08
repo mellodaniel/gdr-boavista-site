@@ -1,4 +1,4 @@
-import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
+import { ageGroupLabel, AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
@@ -190,7 +190,7 @@ export function AdminTeamsPage() {
     setErrorMessage('');
 
     if (!AGE_GROUPS.includes(form.name)) {
-      setErrorMessage('Seleciona um dos 12 escalões.');
+      setErrorMessage('Seleciona um dos escalões disponíveis.');
       return;
     }
 
@@ -352,7 +352,7 @@ export function AdminTeamsPage() {
               <select value={form.name} onChange={event => handleChange('name', event.target.value)} required className="mt-2 w-full rounded-md border border-zinc-200 px-4 py-3">
                 <option value="">Selecionar escalão</option>
                 {form.name && !AGE_GROUPS.includes(form.name) && <option value={form.name}>{form.name} — rever escalão</option>}
-                {AGE_GROUPS.map(name => <option key={name} value={name}>{name}</option>)}
+                {AGE_GROUPS.map(name => <option key={name} value={name}>{ageGroupLabel(name)}</option>)}
               </select>
             </div>
 

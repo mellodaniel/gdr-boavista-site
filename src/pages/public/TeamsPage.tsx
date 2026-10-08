@@ -5,7 +5,7 @@ import { ArrowRight, Trophy, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { GdrbTeam } from '../../types/database';
 
-const fallbackTeams = AGE_GROUPS.map((name, index) => ({
+const fallbackTeams = AGE_GROUPS.filter(name => name !== 'equipa de desenvolvimento').map((name, index) => ({
   id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'), name,
   category: index < 4 ? 'Escola de Futebol' : index < 11 ? 'Formação' : 'Seniores',
   football_type: index < 4 ? 'Futebol 5' : index < 6 ? 'Futebol 7' : index < 8 ? 'Futebol 9' : 'Futebol 11',
