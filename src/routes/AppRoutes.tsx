@@ -1,3 +1,4 @@
+import { TrainWithUsPage } from '../pages/public/TrainWithUsPage';
 import { lazy, Suspense } from 'react';
 import { AdminTvPage } from '../pages/admin/AdminTvPage';
 const TvPage = lazy(() => import('../pages/tv/TvPage'));
@@ -79,6 +80,7 @@ export function AppRoutes() {
         <Route path="resultados" element={<ResultsPage />} />
         <Route path="loja" element={<ShopPage />} />
         <Route path="app" element={<AppInstallPage />} />
+        <Route path="venha-treinar-connosco" element={<TrainWithUsPage />} />
         <Route path="horarios-de-treino" element={<TrainingSchedulePage />} />
         <Route path="torneios/:slug" element={<PublicTournamentPage />} />
       </Route>
