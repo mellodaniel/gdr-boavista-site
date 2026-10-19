@@ -1,6 +1,11 @@
 import {writeFile} from 'node:fs/promises';
 import {setTimeout as sleep} from 'node:timers/promises';
 if(!process.argv.includes('--live'))throw Error('Use --live explicitly; this calls the budget-protected public endpoint.');
+const developer=process.argv.includes('--developer');
+const publicReview=process.argv.includes('--public');
+if(developer===publicReview)throw Error('Choose --developer (authenticated tests) or explicitly --public.');
+const testToken=developer?process.env.BOAVISTA_CHAT_TEST_ACCESS_TOKEN:undefined;
+if(developer&&!testToken)throw Error('Set BOAVISTA_CHAT_TEST_ACCESS_TOKEN to an existing administrator session token; never commit it.');
 const cases=process.argv.includes('--after')?[
  ['scorers',['Quero o top 3 de marcadores desta época','Seniores','E dos Iniciados?']],
  ['seasons',['Lista de marcadores dos Iniciados na época passada','E nesta época, os marcadores dos Iniciados?']],
@@ -35,7 +40,7 @@ for(const [topic,questions] of cases){
  const history=[];
  for(const question of questions){
   const start=Date.now();
-  const response=await fetch('https://gdrboavista.pt/api/chat',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://gdrboavista.pt'},body:JSON.stringify({question,history:history.slice(-8)}),signal:AbortSignal.timeout(55000)});
+  const response=await fetch('https://gdrboavista.pt/api/chat',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://gdrboavista.pt',...(testToken?{Authorization:`Bearer ${testToken}`}:{})},body:JSON.stringify({question,history:history.slice(-8)}),signal:AbortSignal.timeout(55000)});
   const answer=await response.json();
   results.push({topic,question,status:response.status,answer,ms:Date.now()-start});
   await writeFile(file,JSON.stringify(results,null,2));

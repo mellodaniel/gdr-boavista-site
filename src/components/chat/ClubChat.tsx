@@ -6,6 +6,7 @@ import type { ChatAnswer } from '../../lib/clubChatData';
 import { isOutcomeOnly, outcomeLabel } from '../../lib/ageGroups';
 import { getResultTeams } from '../../lib/homeAgenda';
 import type { GdrbMatch } from '../../types/database';
+import { supabase } from '../../lib/supabase';
 import './clubChat.css';
 
 type Message = ChatAnswer & { id: number; role: 'user' | 'assistant'; retry?: string };
@@ -47,7 +48,8 @@ export default function ClubChat() {
     const controller = new AbortController(); pending.current = controller; setBusy(true);
     const timeout = window.setTimeout(() => controller.abort(), 60000);
     try {
-      const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal, body: JSON.stringify({ question, history: messages.filter(m => m.id !== 0).slice(-8).map(m => ({ role: m.role, text: m.text.slice(0, 1000) })) }) });
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) }, signal: controller.signal, body: JSON.stringify({ question, history: messages.filter(m => m.id !== 0).slice(-8).map(m => ({ role: m.role, text: m.text.slice(0, 1000) })) }) });
       const answer: ChatAnswer = await response.json();
       if (pending.current !== controller) return;
       if (controller.signal.aborted) throw new Error('timeout');

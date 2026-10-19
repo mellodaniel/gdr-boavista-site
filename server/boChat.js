@@ -8,7 +8,7 @@ const pages = ['/resultados','/horarios-de-treino','/venha-treinar-connosco',...
 const fields = 'id,team_name,football_type,competition,opponent,match_date,match_time,location,venue_type,status,home_score,away_score,result_outcome,is_visible,updated_at';
 const outcomeOnly = name => /^(ABCs|Petizes|Traquinas|Benjamins|Sub-12|equipa de desenvolvimento)/i.test(name);
 const allowedSource = value => { try { return new URL(value).protocol === 'https:'; } catch { return false; } };
-const errors = { CHAT_BUDGET: 'Por agora, o Bô atingiu o limite mensal de respostas. Podes consultar os jogos, treinos e contactos nas páginas do site.', CHAT_RATE: 'Vamos com calma! Aguarda um pouco antes de fazer mais perguntas.', CHAT_SOURCE: 'Não consegui consultar os dados do clube. Tenta novamente dentro de instantes.' };
+const errors = { CHAT_BUDGET: 'Por agora, o Bô atingiu o limite mensal de respostas. Podes consultar os jogos, treinos e contactos nas páginas do site.', CHAT_RATE: 'Recebi muitas perguntas seguidas. Tenta novamente dentro de um minuto.', CHAT_RATE_MINUTE: 'Recebi muitas perguntas desta ligação. Tenta novamente dentro de um minuto.', CHAT_RATE_DAILY: 'Esta ligação à Internet atingiu o limite diário de 60 respostas com IA. O acesso renova-se às 00h00 UTC. Até lá, podes consultar a informação nas páginas do clube.', CHAT_RATE_BUSY: 'O Bô está a responder a muitas pessoas neste momento. Tenta novamente dentro de um minuto.', CHAT_AUTH: 'A tua sessão terminou. Volta a entrar na administração para continuar os testes.', CHAT_SOURCE: 'Não consegui consultar os dados do clube. Tenta novamente dentro de instantes.' };
 export function validQuestion(body) {
   return body && typeof body.question === 'string' && body.question.trim().length>0 && body.question.length<=240 && Array.isArray(body.history) && body.history.length<=8 && body.history.every(m => m && ['user','assistant'].includes(m.role) && typeof m.text==='string' && m.text.length<=1000);
 }
@@ -41,11 +41,25 @@ export function createChatHandler({env=process.env,fetcher=fetch,knowledge}={}) 
    const day=now.toISOString().slice(0,10);
    // Vercel overwrites x-forwarded-for; never trust a visitor-selected identifier.
    const ip=env.VERCEL ? String(req.headers['x-forwarded-for']||'unknown').split(',')[0].trim() : (req.socket?.remoteAddress||'local');
-   const visitorHash=createHmac('sha256',serviceKey).update(`${day}:${ip}`).digest('hex');
+   let developer=false, identity=ip;
+   const authorization=req.headers.authorization;
+   if(authorization){
+    if(!/^Bearer [^\s]+$/.test(authorization))throw Error('CHAT_AUTH');
+    const authHeaders={apikey:publicKey,Authorization:authorization};
+    const userResponse=await fetcher(`${base}/auth/v1/user`,{headers:authHeaders,signal:AbortSignal.timeout(10000)});
+    if(!userResponse.ok)throw Error('CHAT_AUTH');
+    const user=await userResponse.json();
+    if(!user.id)throw Error('CHAT_AUTH');
+    const permission=await fetcher(`${base}/rest/v1/rpc/gdrb_gallery_is_admin`,{method:'POST',headers:{...authHeaders,'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});
+    if(!permission.ok)throw Error('CHAT_AUTH');
+    developer=(await permission.json())===true;
+    if(developer)identity=user.id;
+   }
+   const visitorHash=createHmac('sha256',serviceKey).update(`${day}:${developer?'developer':'public'}:${identity}`).digest('hex');
    async function rest(path,{privileged=false,method='GET',payload}={}) {
      const key=privileged?serviceKey:publicKey;
      const r=await fetcher(`${base}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json'},...(payload?{body:JSON.stringify(payload)}:{}),signal:AbortSignal.timeout(10000)});
-     if(!r.ok){let data;try{data=await r.json();}catch{data={};}throw Error(['CHAT_BUDGET','CHAT_RATE'].includes(data.message)?data.message:'CHAT_SOURCE');}
+     if(!r.ok){let data;try{data=await r.json();}catch{data={};}throw Error(['CHAT_BUDGET','CHAT_RATE','CHAT_RATE_MINUTE','CHAT_RATE_DAILY','CHAT_RATE_BUSY'].includes(data.message)?data.message:'CHAT_SOURCE');}
      return r.status===204?null:r.json();
    }
    // Public-key reads enforce the exact same publication policies as the site.
@@ -84,7 +98,7 @@ export function createChatHandler({env=process.env,fetcher=fetch,knowledge}={}) 
    const input=[{role:'system',content:instructions},...body.history.map(m=>({role:m.role,content:m.text})),{role:'user',content:body.question}];
    if(Buffer.byteLength(JSON.stringify(input))>MAX_INPUT_BYTES)throw Error('CHAT_CONTEXT');
    const id=randomUUID();
-   const reserved=await rest('rpc/gdrb_chat_reserve',{privileged:true,method:'POST',payload:{request_id:id,visitor_hash:visitorHash}});
+   const reserved=await rest('rpc/gdrb_chat_reserve_v2',{privileged:true,method:'POST',payload:{request_id:id,visitor_hash:visitorHash,is_developer:developer}});
    if(reserved!==id)throw Error('CHAT_RESERVE');
    const response=await fetcher('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(40000),body:JSON.stringify({model:MODEL,store:false,service_tier:'default',reasoning:{effort:'none'},max_output_tokens:1200,input,text:{format:{type:'json_schema',name:'bo_answer',strict:true,schema:{type:'object',additionalProperties:false,properties:{text:{type:'string'},needsClarification:{type:'boolean'},matchIds:{type:'array',items:{type:'string'},maxItems:8},scheduleNames:{type:'array',items:{type:'string'},maxItems:3},sourceIds:{type:'array',items:{type:'string'},maxItems:4},choices:{type:'array',items:{type:'string'},maxItems:3},page:{type:'string',enum:['',...pages]}},required:['text','needsClarification','matchIds','scheduleNames','sourceIds','choices','page']}}}})});
    if(!response.ok)throw Error('CHAT_API'); // Uncertain failures retain the full reserve; never automatically retry.
@@ -99,6 +113,6 @@ export function createChatHandler({env=process.env,fetcher=fetch,knowledge}={}) 
    if(typeof content.text!=='string'||!['matchIds','scheduleNames','sourceIds','choices'].every(k=>Array.isArray(content[k])))throw Error('CHAT_OUTPUT');
    if(content.needsClarification){content.matchIds=[];content.scheduleNames=[];content.sourceIds=[];content.page='';}
    return reply(200,{text:content.text,matches:matches.filter(m=>content.matchIds.includes(m.id)).sort((a,b)=>a.match_date.localeCompare(b.match_date)).slice(0,8),schedules:knowledge.schedules.filter(s=>content.scheduleNames.includes(s.name)).slice(0,3),sources:sources.filter(s=>content.sourceIds.includes(s.id)).slice(0,4),choices:content.choices.filter(s=>typeof s==='string'&&s.length<=100).slice(0,3),href:pages.includes(content.page)?content.page:undefined,linkLabel:'Consultar no site',source:content.needsClarification?undefined:'Informação publicada pelo clube · resposta com IA',consultedAt:content.needsClarification?undefined:now.toISOString()});
-  }catch(e){const code=e instanceof Error?e.message:'';console.warn('Bo chat failure:', /^CHAT_[A-Z]+$/.test(code)?code:'INTERNAL');return reply(['CHAT_BUDGET','CHAT_RATE'].includes(code)?429:503,{text:errors[code]||'O Bô não conseguiu responder agora. Podes consultar a informação nas páginas do clube.',href:'/resultados',linkLabel:'Ver jogos e resultados'});}
+  }catch(e){const code=e instanceof Error?e.message:'';console.warn('Bo chat failure:', /^CHAT_[A-Z_]+$/.test(code)?code:'INTERNAL');if(code.startsWith('CHAT_RATE'))res.setHeader('Retry-After',code==='CHAT_RATE_DAILY'?String(Math.ceil((Date.parse(new Date().toISOString().slice(0,10)+'T00:00:00Z')+86400000-Date.now())/1000)):'60');return reply(code==='CHAT_AUTH'?401:code==='CHAT_BUDGET'||code.startsWith('CHAT_RATE')?429:503,{text:errors[code]||'O Bô não conseguiu responder agora. Podes consultar a informação nas páginas do clube.',href:'/resultados',linkLabel:'Ver jogos e resultados'});}
  };
 }

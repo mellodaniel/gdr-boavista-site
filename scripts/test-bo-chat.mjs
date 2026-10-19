@@ -9,7 +9,9 @@ const json=v=>new Response(JSON.stringify(v),{status:200,headers:{'Content-Type'
 async function fetcher(url,opt={}){
  calls.push({url,opt});
  const path=url.split('/rest/v1/')[1];
- if(path?.startsWith('rpc/gdrb_chat_reserve')){reserveId=JSON.parse(opt.body).request_id;return mode==='budget'?new Response(JSON.stringify({message:'CHAT_BUDGET'}),{status:400}):json(reserveId);}
+ if(url.endsWith('/auth/v1/user'))return mode==='invalidAuth'?new Response('{}',{status:401}):json({id:'verified-user'});
+ if(path==='rpc/gdrb_gallery_is_admin')return json(mode==='developer');
+ if(path?.startsWith('rpc/gdrb_chat_reserve')){reserveId=JSON.parse(opt.body).request_id;if(mode.startsWith('CHAT_RATE_'))return new Response(JSON.stringify({message:mode}),{status:400});return mode==='budget'?new Response(JSON.stringify({message:'CHAT_BUDGET'}),{status:400}):json(reserveId);}
  if(path?.startsWith('rpc/gdrb_chat_settle'))return new Response(null,{status:204});
  if(url.includes('api.openai.com')){
   if(mode==='timeout')throw Error('network timeout');
@@ -34,8 +36,8 @@ async function fetcher(url,opt={}){
  if(path.startsWith('gdrb_standings_rows'))return json([{snapshot_id:'snapshot-1',is_boavista:true,position:3,points:9}]);
  return json([]);
 }
-async function run(body={question:'Qual a classificação?',history:[]},origin='https://gdrboavista.pt'){
- const req={method:'POST',headers:{origin,'content-type':'application/json','x-forwarded-for':'192.0.2.1'},body,socket:{remoteAddress:'127.0.0.1'}};
+async function run(body={question:'Qual a classificação?',history:[]},origin='https://gdrboavista.pt',authorization){
+ const req={method:'POST',headers:{origin,...(authorization?{authorization}:{}),'content-type':'application/json','x-forwarded-for':'192.0.2.1'},body,socket:{remoteAddress:'127.0.0.1'}};
  const res={headers:{},setHeader(k,v){this.headers[k]=v;},end(v){this.body=JSON.parse(v);}};
  await createChatHandler({env,fetcher,knowledge})(req,res);return res;
 }
@@ -56,3 +58,10 @@ console.log('PASS: public-key source reads, new standings context + stale metada
 assert.equal(sanitizeMatches([{...match,status:'arquivado',home_score:3,away_score:6}])[0].status,'terminado');
 assert.equal(sanitizeMatches([{...match,status:'arquivado',home_score:null,away_score:null}]).length,0);
 assert.equal(sanitizeMatches([{...match,status:'arquivado',is_visible:false,home_score:3,away_score:6}]).length,0);
+
+for(const code of ['CHAT_RATE_MINUTE','CHAT_RATE_DAILY','CHAT_RATE_BUSY']){mode=code;calls.length=0;res=await run();assert.equal(res.statusCode,429);assert(res.headers['Retry-After']);assert(!res.body.text.includes('Vamos com calma'));assert(!calls.some(c=>c.url.includes('api.openai.com')));}
+mode='developer';calls.length=0;res=await run(undefined,undefined,'Bearer verified-token');assert.equal(res.statusCode,200);const devPayload=JSON.parse(calls.find(c=>c.url.includes('gdrb_chat_reserve_v2')).opt.body);assert.equal(devPayload.is_developer,true);
+mode='ok';calls.length=0;await run(undefined,undefined,'Bearer ordinary-token');const publicPayload=JSON.parse(calls.find(c=>c.url.includes('gdrb_chat_reserve_v2')).opt.body);assert.equal(publicPayload.is_developer,false);assert.notEqual(publicPayload.visitor_hash,devPayload.visitor_hash);
+mode='invalidAuth';calls.length=0;res=await run(undefined,undefined,'Bearer forged-token');assert.equal(res.statusCode,401);assert(!calls.some(c=>c.url.includes('gdrb_chat_reserve')));
+mode='budget';calls.length=0;res=await run();assert.equal(res.statusCode,429);
+console.log('PASS: distinct rate messages; server-verified administrator identity; ordinary/forged tokens cannot select developer rate pool; public sources remain anonymous.');
