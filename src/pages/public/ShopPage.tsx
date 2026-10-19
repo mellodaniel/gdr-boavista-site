@@ -740,7 +740,7 @@ export function ShopPage() {
         </div>
       </section>
 
-      <section className="bg-[#f6f2ec] py-14 md:py-20">
+      <section data-bo-public-info="true" className="bg-[#f6f2ec] py-14 md:py-20">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
             <div>
@@ -763,7 +763,7 @@ export function ShopPage() {
         </div>
       </section>
 
-      <section className="bg-white py-14 md:py-20">
+      <section data-bo-public-info="true" className="bg-white py-14 md:py-20">
         <div className="mx-auto max-w-7xl px-5 md:px-4">
           <div className="rounded-2xl md:rounded-[1.35rem] border border-zinc-200 bg-[#2f261e] p-6 text-white shadow-md md:shadow-xl md:p-10">
             <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">

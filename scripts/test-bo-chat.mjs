@@ -17,10 +17,16 @@ async function fetcher(url,opt={}){
   const sent=JSON.parse(opt.body);assert.equal(sent.store,false);assert.equal(sent.model,'gpt-6-luna');assert.equal(sent.max_output_tokens,1200);
   assert.match(sent.input[0].content,/'?needsRefresh"?:true/);
   assert.match(sent.input[0].content,/Official league/);
+  assert.match(sent.input[0].content,/Notícia pública do clube/);
+  assert.match(sent.input[0].content,/Cachecol publicado/);
+  assert(!sent.input[0].content.includes('PRIVATE_SENTINEL'));
+  assert(Buffer.byteLength(JSON.stringify(sent.input))<=100000);
   return json({status:'completed',usage:{input_tokens:1000,output_tokens:100},output:[{content:[{type:'output_text',text:JSON.stringify({text:'Resposta',matchIds:['match-1','fabricated'],scheduleNames:[],sourceIds:['S1','S999'],choices:[],page:'https://evil.invalid'})}]}]});
  }
  assert.equal(opt.headers.apikey,'public'); // All source reads must enforce RLS.
  if(mode==='source')return new Response('{}',{status:500});
+ if(path.startsWith('gdrb_news'))return json([{id:'00000000-0000-0000-0000-000000000001',title:'Notícia pública do clube',content:'Formação e comunidade',is_published:true,status:'published',internal_note:'PRIVATE_SENTINEL'},{title:'PRIVATE_SENTINEL',is_published:false,status:'draft'}]);
+ if(path.startsWith('gdrb_shop_products'))return json([{name:'Cachecol publicado',is_active:true,price:10,customer_email:'PRIVATE_SENTINEL'}]);
  if(path.startsWith('gdrb_matches'))return json(path.includes('match_date=gte.')?[match]:[]);
  if(path.startsWith('gdrb_competitions'))return json([{id:'comp-1',name:'Official league',season:'2026/27',team_name:'Seniores'}]);
  if(path.startsWith('gdrb_latest_standings'))return json([{id:'snapshot-1',competition_id:'comp-1',needs_refresh:true,as_of:'2026-10-01',source_name:'AFL',source_url:'https://afleiria.fpf.pt',checked_at:'2026-10-01T10:00:00Z'}]);

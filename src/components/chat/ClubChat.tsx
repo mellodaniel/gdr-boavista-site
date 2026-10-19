@@ -9,7 +9,7 @@ import type { GdrbMatch } from '../../types/database';
 import './clubChat.css';
 
 type Message = ChatAnswer & { id: number; role: 'user' | 'assistant'; retry?: string };
-const initial: Message = { id: 0, role: 'assistant', text: 'Olá! Sou o Bô, o assistente com inteligência artificial do Boavista. Posso ajudar com jogos, escalões, treinos e informação do clube.', choices: ['Próximo jogo dos Seniores', 'Jogos dos Juvenis este mês', 'Qual é o escalão do meu filho?', 'Horários de treino'] };
+const initial: Message = { id: 0, role: 'assistant', text: 'Olá! Sou o Bô, o assistente com inteligência artificial do Boavista. Posso ajudar com jogos, treinos, notícias, sócios, loja e informação do clube.', choices: ['Próximo jogo dos Seniores', 'Jogos dos Juvenis este mês', 'Qual é o escalão do meu filho?', 'Horários de treino'] };
 function MatchCard({ match }: { match: GdrbMatch }) {
   const teams = getResultTeams(match);
   const pending = match.status === 'agendado' && match.match_date < lisbonClock().date;

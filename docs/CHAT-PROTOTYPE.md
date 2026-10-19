@@ -31,3 +31,15 @@ O modelo escolhe referências, mas o servidor valida IDs de cartões, nomes de h
 - Testes reais do endpoint com contabilidade central, seguidos de verificação da versão alojada antes da promoção do domínio.
 
 A pasta `.chat-private`, ficheiros `.env*` e diretório `.git` estão excluídos da publicação. O aviso de bundles grandes é anterior ao chat; o chat é carregado separadamente.
+
+## Informação pública alargada — 19/10/2026
+
+`server/boPublicSources.js` consulta apenas campos explicitamente permitidos de notícias publicadas (is_published + status), produtos/parceiros/equipas/plantéis ativos, álbuns publicados e torneios públicos/visíveis não arquivados. Usa sempre a chave pública; nenhuma política de acesso ou permissão de Developer foi alterada. Pedidos de sócios, encomendas, mensagens, subscritores, notas do plantel e campos TV dos parceiros não são consultados. `notes` só é selecionado em gdrb_tournaments, onde é texto já apresentado na agenda pública.
+
+`npm run build` regenera `server/publicKnowledge.generated.json` renderizando as páginas Clube, Sócios, Contactos, App e as secções Como comprar/Pagamento da Loja. Renderização isolada, sem sessão, efeitos, rede ou chaves reais. A história é apenas a efetivamente publicada: não se inventam fundação ou palmarés. Para alterar a informação fixa, editar a página e publicar normalmente.
+
+Os dados dinâmicos são consultados em cada pergunta. Paginação máxima de 600 registos por coleção; seleção por relevância com pergunta e quatro mensagens recentes, até 12 documentos/24KB, reduzida se o contexto desportivo ocupar mais espaço. Textos longos usam excertos identificados. Os limites e falhas parciais são transmitidos ao modelo; não se garante exaustividade. Não há crawling externo, leitura de imagens, links arbitrários ou pesquisa em tabelas privadas. Torneios incluem apresentação, agenda e ligação para a página pública; detalhes internos de grupos/jogos/regulamentos são consultados nessa página, não calculados pelo Bô.
+
+O limite de 100KB de entrada, 1200 tokens de saída, reserva prévia e bloqueio central de 4,50 USD mantêm-se. Não foi aumentado o orçamento. Mais fontes podem aumentar o custo médio por resposta; seleção limita esse crescimento.
+
+Validação: `node scripts/test-bo-public-sources.mjs`, `node scripts/test-bo-chat.mjs`, `npm run build`. Testes verificam exclusão de rascunhos/privados, projeção defensiva de campos, fontes, pesquisa, falhas parciais, paginação/contexto limitados e bloqueio de chamadas quando o orçamento é atingido.
