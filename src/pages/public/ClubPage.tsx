@@ -73,6 +73,10 @@ export function ClubPage() {
               formação, à competição, à comunidade e aos valores que orientam o
               crescimento dos seus atletas.
             </p>
+
+            <p className="mt-5 text-base text-zinc-300">
+              Presidente do GDR Boavista: <strong className="text-white">André Gameiro</strong>.
+            </p>
           </div>
         </div>
       </section>
