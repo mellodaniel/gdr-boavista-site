@@ -60,3 +60,10 @@ Importação reexecutável e transacional em `supabase/data/20261019_bo_sports.s
 ### Proteção adicional das respostas sobre marcadores
 
 Os testes reais detetaram atribuição de um nome dos Juniores ao jogo sem marcador dos Sub-13 e um aviso incorreto de lista parcial quando havia autogolo. `server/boSportsAnswers.js` passa a construir as respostas sobre marcadores de um jogo diretamente dos registos confirmados, com equipa/data/adversário e total incluindo autogolos. Não chama a OpenAI para esses casos. Para perguntas que continuam a usar IA, os registos de marcadores ficam limitados ao escalão mencionado. Perguntas agregadas não são apresentadas como totais completos da época. Testes de regressão: `node scripts/test-bo-sports-answers.mjs`.
+
+
+## Histórico público e correção dos Seniores — 19/10/2026
+
+O utilizador confirmou que jogos arquivados com is_visible=true continuam a contar para o histórico e podem ser consultados pelo Bô. A migração 20261019190000 permite essa leitura e a publicação de marcadores de jogos arquivados com resultado confirmado, sem mudar o estado dos jogos. Jogos ocultos e marcadores em rascunho continuam protegidos. No contexto do Bô, estes jogos são tratados como terminados; o calendário mantém o estado arquivado na base. Arquivar um resultado confirmado não invalida os seus marcadores; corrigir golos ou escalão continua a invalidá-los.
+
+Confirmada a ficha FPF https://resultados.fpf.pt/Match/GetMatchInformation?matchId=2582729: GD Guiense 6–3 GDR Boavista, 27/09/2026. Golos Boavista: Alexandre Fernandes (40'), Romeu Neca (43') e Gabriel Santos (67'), um cada. Registos publicados ligados ao jogo existente b315a657-7c13-47b9-a937-1c95f9eeaf98. O teste transacional confirmou acesso anónimo aos três marcadores e ausência de jogos ocultos/rascunhos, com ROLLBACK antes da aplicação. A automatização semanal foi atualizada para incluir o histórico visível e auditar lacunas.

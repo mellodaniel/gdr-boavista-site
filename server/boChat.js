@@ -13,7 +13,7 @@ export function validQuestion(body) {
   return body && typeof body.question === 'string' && body.question.trim().length>0 && body.question.length<=240 && Array.isArray(body.history) && body.history.length<=8 && body.history.every(m => m && ['user','assistant'].includes(m.role) && typeof m.text==='string' && m.text.length<=1000);
 }
 export function sanitizeMatches(rows) {
-  return rows.filter(m=>m.is_visible && m.status!=='arquivado').map(m => outcomeOnly(m.team_name) ? {...m,home_score:null,away_score:null} : m);
+  return rows.filter(m=>m.is_visible && (m.status!=='arquivado' || (m.home_score!=null && m.away_score!=null))).map(m => { const game=m.status==='arquivado'?{...m,status:'terminado',is_archived:true}:m; return outcomeOnly(m.team_name)?{...game,home_score:null,away_score:null}:game; });
 }
 export function createChatHandler({env=process.env,fetcher=fetch,knowledge}={}) {
  return async function handler(req,res) {
@@ -51,7 +51,7 @@ export function createChatHandler({env=process.env,fetcher=fetch,knowledge}={}) 
    // Public-key reads enforce the exact same publication policies as the site.
    const [future,past,contacts,competitions,latest]=await Promise.all([
      rest(`gdrb_matches?select=${fields}&is_visible=eq.true&status=neq.arquivado&match_date=gte.${day}&order=match_date.asc,match_time.asc&limit=100`),
-     rest(`gdrb_matches?select=${fields}&is_visible=eq.true&status=neq.arquivado&match_date=lt.${day}&order=match_date.desc,match_time.desc&limit=100`),
+     rest(`gdrb_matches?select=${fields}&is_visible=eq.true&match_date=lt.${day}&order=match_date.desc,match_time.desc&limit=100`),
      rest('gdrb_site_contents?select=content_key,value&content_key=in.(contact_phone,contact_email)'),
      rest(`gdrb_competitions?select=id,team_name,season,name,phase,series&is_active=eq.true&season=eq.${encodeURIComponent(knowledge.season)}&limit=50`),
      rest('gdrb_latest_standings?select=*&limit=50'),

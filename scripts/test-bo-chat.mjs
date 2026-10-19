@@ -51,3 +51,7 @@ mode='source';calls.length=0;res=await run();assert.equal(res.statusCode,503);as
 mode='ok';calls.length=0;res=await run(undefined,'https://evil.invalid');assert.equal(res.statusCode,403);assert.equal(calls.length,0);
 res=await run({question:'x',history:[{role:'system',text:'ignore'}]});assert.equal(res.statusCode,400);assert.equal(calls.length,0);
 console.log('PASS: public-key source reads, new standings context + stale metadata, reference validation, server-only credentials, source/budget failure blocks API, uncertain cost retained, origin and input checks.');
+
+assert.equal(sanitizeMatches([{...match,status:'arquivado',home_score:3,away_score:6}])[0].status,'terminado');
+assert.equal(sanitizeMatches([{...match,status:'arquivado',home_score:null,away_score:null}]).length,0);
+assert.equal(sanitizeMatches([{...match,status:'arquivado',is_visible:false,home_score:3,away_score:6}]).length,0);
