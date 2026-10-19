@@ -46,3 +46,17 @@ A migração `20261019180000_bo_production_security_budget.sql` remove a escrita
 ## Validação
 
 Migração `20261019160000_bo_sports_sources.sql`. Teste `scripts/test-bo-sports-sources.sql`, executado na mesma transação da migração e revertido antes da aplicação definitiva: publicação incompleta bloqueada, versões publicadas protegidas contra edição de linhas, rascunhos privados, totais dos marcadores limitados ao resultado, invalidação após correção, histórico de horário e ausência de duplicações em updates sem mudança, escrita anónima e de utilizador normal bloqueada.
+
+## Primeira atualização real — 19/10/2026
+
+Fonte: Centro de Resultados da FPF, AF Leiria, época 2026/27. Cinco classificações completas publicadas (47 linhas): Seniores, Divisão de Honra/fase única (16.º, 0 pontos, 4 jogos); Juniores, 1.ª Divisão/1.ª fase/Série B (4.º empatado, 0 pontos, 1 jogo); Juvenis, 1.ª Divisão/1.ª fase/Série B (4.º, 0 pontos, 0 jogos); Iniciados, 1.ª Divisão/1.ª fase/Série C (2.º, 9 pontos, 3 jogos); Sub-13, Infantis F.9/fase única/Série C (3.º empatado, 0 pontos, 0 jogos na fonte). As posições empatadas e a equipa desistente dos Juvenis foram preservadas exatamente como publicadas. Não recalcular pontos nem retirar equipas manualmente.
+
+A tabela Sub-13 ainda não refletia o jogo de 17/10/2026 contra o Bolatangente. O resultado 1–4 do clube foi preservado. O utilizador confirmou que não sabe o marcador e pediu expressamente para deixar sem dados nesse jogo. O campo round_label comunica o atraso da fonte ao Bô. A FPF avisa que os resultados só se tornam oficiais quinze dias após cada encontro; essa ressalva também ficou guardada.
+
+Marcadores: 11 registos publicados em 3 jogos públicos terminados, cobrindo os 13 golos do clube nesses jogos. Juniores 17/10: Guilherme Silva e Tomas Coelho (1 cada). Iniciados 11/10: Tiago Lacerda (3), Ary Deus e Xavier Bento (1 cada). Iniciados 18/10: Guilherme Alberto, Ary Deus, Tiago Lacerda, Santiago Norte e Gustavo Martins (1 cada), mais 1 autogolo do adversário, sem nomear a atleta adversária. Seniores 18/10: derrota 0–4 confirmada na ficha FPF 2582754, portanto sem marcador do Boavista. Juvenis: nenhum jogo realizado registado na fonte. Não foram desarquivados jogos nem fabricadas linhas com zero golos; isto não constitui um histórico integral de marcadores da época.
+
+Importação reexecutável e transacional em `supabase/data/20261019_bo_sports.sql`, com validação prévia de IDs, equipa, data, adversário, estado e resultado dos jogos. Evidência consultada e linhas transcritas em `supabase/data/20261019_bo_sports.sources.json`. Foi testada com ROLLBACK antes da aplicação. As fontes são públicas e foram consultadas manualmente; não foi criada uma automatização semanal.
+
+### Proteção adicional das respostas sobre marcadores
+
+Os testes reais detetaram atribuição de um nome dos Juniores ao jogo sem marcador dos Sub-13 e um aviso incorreto de lista parcial quando havia autogolo. `server/boSportsAnswers.js` passa a construir as respostas sobre marcadores de um jogo diretamente dos registos confirmados, com equipa/data/adversário e total incluindo autogolos. Não chama a OpenAI para esses casos. Para perguntas que continuam a usar IA, os registos de marcadores ficam limitados ao escalão mencionado. Perguntas agregadas não são apresentadas como totais completos da época. Testes de regressão: `node scripts/test-bo-sports-answers.mjs`.

@@ -1,0 +1,722 @@
+{
+  "standings": [
+    {
+      "team": "Seniores",
+      "url": "https://resultados.fpf.pt/Competition/Details?competitionId=29885&seasonId=106#htmlSerieId_97965",
+      "classification": "POS\n \nJGS\nV\nE\nD\nGM\nGS\nPTS\n1\tUp - União De Pombal\t5\t4\t0\t1\t13\t2\t12\n2\tGd Guiense\t5\t4\t0\t1\t13\t7\t12\n3\tCcr Alqueidão Serra\t5\t4\t0\t1\t13\t9\t12\n4\tSce Bombarralense\t4\t3\t1\t0\t6\t1\t10\n5\tSc Pombal\t5\t3\t1\t1\t7\t4\t10\n6\tGd Peniche\t5\t2\t3\t0\t8\t4\t9\n7\tId Vieirense\t5\t2\t2\t1\t9\t8\t8\n8\tAd Portomosense\t5\t2\t2\t1\t8\t7\t8\n9\tGc Alcobaça\t5\t2\t1\t2\t10\t5\t7\n10\tS Lisboa E Marinha\t5\t1\t2\t2\t9\t9\t5\n11\tAc Marinhense\t5\t1\t1\t3\t3\t6\t4\n12\tA Beneditense Cd\t5\t1\t1\t3\t5\t10\t4\n13\tScl Marrazes\t5\t1\t1\t3\t4\t11\t4\n14\tCaldas Sc \"B\"\t5\t1\t0\t4\t5\t9\t3\n15\tGd Ilha\t5\t0\t1\t4\t4\t12\t1\n16\tGdr Boavista\t4\t0\t0\t4\t3\t16\t0",
+      "checkedAt": "2026-10-19T15:10:07.015Z",
+      "phase": "FASE ÚNICA",
+      "series": "",
+      "rows": [
+        [
+          1,
+          "Up - União De Pombal",
+          false,
+          5,
+          4,
+          0,
+          1,
+          13,
+          2,
+          12
+        ],
+        [
+          2,
+          "Gd Guiense",
+          false,
+          5,
+          4,
+          0,
+          1,
+          13,
+          7,
+          12
+        ],
+        [
+          3,
+          "Ccr Alqueidão Serra",
+          false,
+          5,
+          4,
+          0,
+          1,
+          13,
+          9,
+          12
+        ],
+        [
+          4,
+          "Sce Bombarralense",
+          false,
+          4,
+          3,
+          1,
+          0,
+          6,
+          1,
+          10
+        ],
+        [
+          5,
+          "Sc Pombal",
+          false,
+          5,
+          3,
+          1,
+          1,
+          7,
+          4,
+          10
+        ],
+        [
+          6,
+          "Gd Peniche",
+          false,
+          5,
+          2,
+          3,
+          0,
+          8,
+          4,
+          9
+        ],
+        [
+          7,
+          "Id Vieirense",
+          false,
+          5,
+          2,
+          2,
+          1,
+          9,
+          8,
+          8
+        ],
+        [
+          8,
+          "Ad Portomosense",
+          false,
+          5,
+          2,
+          2,
+          1,
+          8,
+          7,
+          8
+        ],
+        [
+          9,
+          "Gc Alcobaça",
+          false,
+          5,
+          2,
+          1,
+          2,
+          10,
+          5,
+          7
+        ],
+        [
+          10,
+          "S Lisboa E Marinha",
+          false,
+          5,
+          1,
+          2,
+          2,
+          9,
+          9,
+          5
+        ],
+        [
+          11,
+          "Ac Marinhense",
+          false,
+          5,
+          1,
+          1,
+          3,
+          3,
+          6,
+          4
+        ],
+        [
+          12,
+          "A Beneditense Cd",
+          false,
+          5,
+          1,
+          1,
+          3,
+          5,
+          10,
+          4
+        ],
+        [
+          13,
+          "Scl Marrazes",
+          false,
+          5,
+          1,
+          1,
+          3,
+          4,
+          11,
+          4
+        ],
+        [
+          14,
+          "Caldas Sc \"B\"",
+          false,
+          5,
+          1,
+          0,
+          4,
+          5,
+          9,
+          3
+        ],
+        [
+          15,
+          "Gd Ilha",
+          false,
+          5,
+          0,
+          1,
+          4,
+          4,
+          12,
+          1
+        ],
+        [
+          16,
+          "Gdr Boavista",
+          true,
+          4,
+          0,
+          0,
+          4,
+          3,
+          16,
+          0
+        ]
+      ],
+      "name": "CD LIZSPORT - DIV. HONRA - FUT.11",
+      "snapshotId": "90702a6d-8ac9-5f94-9328-d90ad922c977",
+      "roundLabel": "Consulta de 19/10/2026. A FPF indica que os resultados só se tornam oficiais quinze dias após cada encontro."
+    },
+    {
+      "team": "Juniores",
+      "url": "https://resultados.fpf.pt/Competition/Details?competitionId=30332&seasonId=106#htmlSerieId_99511",
+      "classification": "POS\n \nJGS\nV\nE\nD\nGM\nGS\nPTS\n1\tId Vieirense\t2\t2\t0\t0\t4\t2\t6\n2\tGd Guiense\t1\t1\t0\t0\t5\t0\t3\n2\tGd Santo Amaro\t1\t1\t0\t0\t3\t0\t3\n4\tCd Garcia\t1\t0\t0\t1\t0\t3\t0\n4\tGdr Boavista\t1\t0\t0\t1\t2\t3\t0\n4\tGdrc Unidos\t1\t0\t0\t1\t0\t5\t0\n4\tGrap\t0\t0\t0\t0\t0\t0\t0\n4\tMr Football Academy\t1\t0\t0\t1\t0\t1\t0",
+      "checkedAt": "2026-10-19T15:10:20.101Z",
+      "phase": "1ª FASE",
+      "series": "SERIE B",
+      "rows": [
+        [
+          1,
+          "Id Vieirense",
+          false,
+          2,
+          2,
+          0,
+          0,
+          4,
+          2,
+          6
+        ],
+        [
+          2,
+          "Gd Guiense",
+          false,
+          1,
+          1,
+          0,
+          0,
+          5,
+          0,
+          3
+        ],
+        [
+          2,
+          "Gd Santo Amaro",
+          false,
+          1,
+          1,
+          0,
+          0,
+          3,
+          0,
+          3
+        ],
+        [
+          4,
+          "Cd Garcia",
+          false,
+          1,
+          0,
+          0,
+          1,
+          0,
+          3,
+          0
+        ],
+        [
+          4,
+          "Gdr Boavista",
+          true,
+          1,
+          0,
+          0,
+          1,
+          2,
+          3,
+          0
+        ],
+        [
+          4,
+          "Gdrc Unidos",
+          false,
+          1,
+          0,
+          0,
+          1,
+          0,
+          5,
+          0
+        ],
+        [
+          4,
+          "Grap",
+          false,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          4,
+          "Mr Football Academy",
+          false,
+          1,
+          0,
+          0,
+          1,
+          0,
+          1,
+          0
+        ]
+      ],
+      "name": "JUNIORES / I DIVISÃO",
+      "snapshotId": "c479d17f-27ed-5661-afae-79eeb8c14506",
+      "roundLabel": "Consulta de 19/10/2026. A FPF indica que os resultados só se tornam oficiais quinze dias após cada encontro."
+    },
+    {
+      "team": "Juvenis",
+      "url": "https://resultados.fpf.pt/Competition/Details?competitionId=30345&seasonId=106#htmlSerieId_99608",
+      "classification": "POS\n \nJGS\nV\nE\nD\nGM\nGS\nPTS\n1\tCd Caranguejeira\t2\t2\t0\t0\t8\t2\t6\n2\tGd Ilha \"B\"\t2\t1\t1\t0\t8\t3\t4\n3\tId Vieirense \"B\"\t2\t1\t1\t0\t5\t3\t4\n4\tGdr Boavista\t0\t0\t0\t0\t0\t0\t0\n5\tGdrc Unidos\t1\t0\t0\t1\t1\t6\t0\n6\tGrap \"B\"\t1\t0\t0\t1\t2\t5\t0\n7\tGd Santo Amaro\t2\t0\t0\t2\t1\t6\t0\n8\tAcadémico De Pombal \"B\" (DS)\t0\t0\t0\t0\t0\t0\t0\n(DS) - Desistência",
+      "checkedAt": "2026-10-19T15:10:42.091Z",
+      "phase": "1ª FASE",
+      "series": "SERIE B",
+      "rows": [
+        [
+          1,
+          "Cd Caranguejeira",
+          false,
+          2,
+          2,
+          0,
+          0,
+          8,
+          2,
+          6
+        ],
+        [
+          2,
+          "Gd Ilha \"B\"",
+          false,
+          2,
+          1,
+          1,
+          0,
+          8,
+          3,
+          4
+        ],
+        [
+          3,
+          "Id Vieirense \"B\"",
+          false,
+          2,
+          1,
+          1,
+          0,
+          5,
+          3,
+          4
+        ],
+        [
+          4,
+          "Gdr Boavista",
+          true,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          5,
+          "Gdrc Unidos",
+          false,
+          1,
+          0,
+          0,
+          1,
+          1,
+          6,
+          0
+        ],
+        [
+          6,
+          "Grap \"B\"",
+          false,
+          1,
+          0,
+          0,
+          1,
+          2,
+          5,
+          0
+        ],
+        [
+          7,
+          "Gd Santo Amaro",
+          false,
+          2,
+          0,
+          0,
+          2,
+          1,
+          6,
+          0
+        ],
+        [
+          8,
+          "Académico De Pombal \"B\" (DS)",
+          false,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "name": "JUVENIS / I DIV. FUT.11",
+      "snapshotId": "7e9619a3-0c2a-56de-9d44-f9bb312774e5",
+      "roundLabel": "Consulta de 19/10/2026. A FPF indica que os resultados só se tornam oficiais quinze dias após cada encontro. O Boavista tem zero jogos contabilizados nesta classificação."
+    },
+    {
+      "team": "Iniciados",
+      "url": "https://resultados.fpf.pt/Competition/Details?competitionId=30379&seasonId=106#htmlSerieId_99756",
+      "classification": "POS\n \nJGS\nV\nE\nD\nGM\nGS\nPTS\n1\tId Vieirense \"B\"\t3\t3\t0\t0\t15\t2\t9\n2\tGdr Boavista\t3\t3\t0\t0\t14\t6\t9\n3\tMr Football Academy\t3\t2\t0\t1\t7\t6\t6\n4\tUd Leiria \"C\"\t1\t1\t0\t0\t5\t0\t3\n5\tGdrc Unidos\t1\t0\t0\t1\t1\t3\t0\n6\tScl Marrazes \"C\"\t2\t0\t0\t2\t4\t10\t0\n7\tGd Santo Amaro\t2\t0\t0\t2\t1\t8\t0\n8\tAcademia Ccmi Leiria Feminino (Extra-Competição)\t3\t0\t0\t3\t5\t17\t0",
+      "checkedAt": "2026-10-19T15:10:55.517Z",
+      "phase": "1ª FASE",
+      "series": "SERIE C",
+      "rows": [
+        [
+          1,
+          "Id Vieirense \"B\"",
+          false,
+          3,
+          3,
+          0,
+          0,
+          15,
+          2,
+          9
+        ],
+        [
+          2,
+          "Gdr Boavista",
+          true,
+          3,
+          3,
+          0,
+          0,
+          14,
+          6,
+          9
+        ],
+        [
+          3,
+          "Mr Football Academy",
+          false,
+          3,
+          2,
+          0,
+          1,
+          7,
+          6,
+          6
+        ],
+        [
+          4,
+          "Ud Leiria \"C\"",
+          false,
+          1,
+          1,
+          0,
+          0,
+          5,
+          0,
+          3
+        ],
+        [
+          5,
+          "Gdrc Unidos",
+          false,
+          1,
+          0,
+          0,
+          1,
+          1,
+          3,
+          0
+        ],
+        [
+          6,
+          "Scl Marrazes \"C\"",
+          false,
+          2,
+          0,
+          0,
+          2,
+          4,
+          10,
+          0
+        ],
+        [
+          7,
+          "Gd Santo Amaro",
+          false,
+          2,
+          0,
+          0,
+          2,
+          1,
+          8,
+          0
+        ],
+        [
+          8,
+          "Academia Ccmi Leiria Feminino (Extra-Competição)",
+          false,
+          3,
+          0,
+          0,
+          3,
+          5,
+          17,
+          0
+        ]
+      ],
+      "name": "CD - 1ª DIVISÃO INICIADOS",
+      "snapshotId": "e9712bc4-3f10-503e-87f5-c3af3dc0dc02",
+      "roundLabel": "Consulta de 19/10/2026. A FPF indica que os resultados só se tornam oficiais quinze dias após cada encontro."
+    },
+    {
+      "team": "Sub-13",
+      "url": "https://resultados.fpf.pt/Competition/Details?competitionId=30444&seasonId=106#htmlSerieId_99984",
+      "classification": "POS\n \nJGS\nV\nE\nD\nGM\nGS\nPTS\n1\tScl Marrazes \"A\"\t1\t1\t0\t0\t5\t2\t3\n2\tBolatangente\t1\t1\t0\t0\t3\t1\t3\n3\tGdr Boavista\t0\t0\t0\t0\t0\t0\t0\n3\tUd Batalha\t0\t0\t0\t0\t0\t0\t0\n3\tUd Leiria \"A\"\t0\t0\t0\t0\t0\t0\t0\n6\tGrap \"A\"\t1\t0\t0\t1\t1\t3\t0\n7\tAcademia Ccmi Leiria \"A\"\t1\t0\t0\t1\t2\t5\t0",
+      "checkedAt": "2026-10-19T15:12:12.815Z",
+      "phase": "FASE ÚNICA",
+      "series": "SERIE C",
+      "note": "A classificação FPF consultada ainda apresenta o Boavista com zero jogos; o resultado de 17/10/2026, já registado pelo clube, ainda não está refletido nesta classificação.",
+      "rows": [
+        [
+          1,
+          "Scl Marrazes \"A\"",
+          false,
+          1,
+          1,
+          0,
+          0,
+          5,
+          2,
+          3
+        ],
+        [
+          2,
+          "Bolatangente",
+          false,
+          1,
+          1,
+          0,
+          0,
+          3,
+          1,
+          3
+        ],
+        [
+          3,
+          "Gdr Boavista",
+          true,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          "Ud Batalha",
+          false,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          "Ud Leiria \"A\"",
+          false,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          6,
+          "Grap \"A\"",
+          false,
+          1,
+          0,
+          0,
+          1,
+          1,
+          3,
+          0
+        ],
+        [
+          7,
+          "Academia Ccmi Leiria \"A\"",
+          false,
+          1,
+          0,
+          0,
+          1,
+          2,
+          5,
+          0
+        ]
+      ],
+      "name": "CAMP. DIST. INFANTIS F.9",
+      "snapshotId": "84354a44-90f8-5398-a7a1-0610c6894d67",
+      "roundLabel": "Consulta de 19/10/2026. A FPF indica que os resultados só se tornam oficiais quinze dias após cada encontro. A classificação FPF consultada ainda apresenta o Boavista com zero jogos; o resultado de 17/10/2026, já registado pelo clube, ainda não está refletido nesta classificação."
+    }
+  ],
+  "scorers": [
+    {
+      "team": "Juniores",
+      "date": "2026-10-17",
+      "opponent": "ID Vieirense",
+      "boavistaGoals": 2,
+      "opponentGoals": 3,
+      "url": "https://resultados.fpf.pt/Match/GetMatchInformation?matchId=2687162",
+      "checkedAt": "2026-10-19T15:10:28.189Z",
+      "scorers": [
+        {
+          "name": "Guilherme Silva",
+          "goals": 1
+        },
+        {
+          "name": "Tomas Coelho",
+          "goals": 1
+        }
+      ],
+      "matchId": "041930f4-c565-4214-9a6f-cd64c2798809"
+    },
+    {
+      "team": "Iniciados",
+      "date": "2026-10-18",
+      "opponent": "Academia CCMI Leiria Feminino (Extra-Competição)",
+      "boavistaGoals": 6,
+      "opponentGoals": 3,
+      "url": "https://resultados.fpf.pt/Match/GetMatchInformation?matchId=2684770",
+      "checkedAt": "2026-10-19T15:11:15.705Z",
+      "scorers": [
+        {
+          "name": "Autogolo do adversário",
+          "goals": 1,
+          "kind": "opponent_own_goal"
+        },
+        {
+          "name": "Guilherme Alberto",
+          "goals": 1
+        },
+        {
+          "name": "Ary Deus",
+          "goals": 1
+        },
+        {
+          "name": "Tiago Lacerda",
+          "goals": 1
+        },
+        {
+          "name": "Santiago Norte",
+          "goals": 1
+        },
+        {
+          "name": "Gustavo Martins",
+          "goals": 1
+        }
+      ],
+      "matchId": "dca9f512-d2df-4c07-9fde-452bbb8a07ac"
+    },
+    {
+      "team": "Iniciados",
+      "date": "2026-10-11",
+      "opponent": "SCL Marrazes \"C\"",
+      "boavistaGoals": 5,
+      "opponentGoals": 2,
+      "url": "https://resultados.fpf.pt/Match/GetMatchInformation?matchId=2684740",
+      "checkedAt": "2026-10-19T15:12:57.735Z",
+      "scorers": [
+        {
+          "name": "Tiago Lacerda",
+          "goals": 3
+        },
+        {
+          "name": "Ary Deus",
+          "goals": 1
+        },
+        {
+          "name": "Xavier Bento",
+          "goals": 1
+        }
+      ],
+      "matchId": "09d5ee35-baaf-4dfa-8ccf-cfe00dacfb4e"
+    }
+  ],
+  "notes": [
+    "Sub-13 17/10: scorer unknown; user explicitly requested leaving it empty.",
+    "Seniores 18/10: 0-4 confirmed in FPF match 2582754, no club scorers.",
+    "No archived matches republished; no fabricated zero-goal scorer rows."
+  ]
+}
