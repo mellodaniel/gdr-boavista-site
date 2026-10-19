@@ -54,7 +54,7 @@ export async function loadPublicKnowledge({read,question,history=[],sourceId,max
    status.push({category:spec.title,available:true,records:loaded.length,mayBeTruncated:limited});
   } catch { status.push({category:spec.title,available:false,records:null}); }
  }));
- const ranked=docs.map((doc,index)=>({...doc,index,rank:score(doc.title,terms)*5+score(doc.category,terms)*2+score(doc.text,terms)})).sort((a,b)=>b.rank-a.rank||a.index-b.index);
+ const ranked=docs.map((doc,index)=>({...doc,index,rank:(doc.path==='/contactos'&&terms.some(t=>/morada|endereco|localiza|chegar|campo/.test(t))?100:0)+score(doc.title,terms)*5+score(doc.category,terms)*2+score(doc.text,terms)})).sort((a,b)=>b.rank-a.rank||a.index-b.index);
  const selected=[];
  let bytes=2;
  for(const doc of ranked) {

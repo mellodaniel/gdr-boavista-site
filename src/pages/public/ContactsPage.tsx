@@ -40,9 +40,9 @@ const contactItems = [
   },
   {
     icon: MapPin,
-    title: 'Localização',
-    description: 'Leiria, Portugal',
-    href: null,
+    title: 'Morada do campo',
+    description: 'Rua Campo da Bola, 18, Boa Vista, Leiria, Portugal',
+    href: 'https://www.google.com/maps/search/?api=1&query=Campo+do+Grupo+Desportivo+e+Recreativo+da+Boavista&query_place_id=ChIJ1yyGOodxIg0RoraSFKyQWFc',
   },
   {
     icon: Clock,
