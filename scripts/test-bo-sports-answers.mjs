@@ -26,6 +26,16 @@ a=answer('Quem marcou nos Juniores contra o Vieirense?');assert.match(a.text,/Gu
 a=answer('Quem marcou nos Iniciados em 11/10?');assert.match(a.text,/Tiago \(3\)/);assert.match(a.text,/parcial/);assert.equal(a.matches[0].id,'old');
 a=answer('Quem marcou nos Iniciados contra o Clube inexistente?');assert.match(a.text,/Não encontrei/);assert.equal(a.matches.length,0);
 a=answer('E quem marcou?', [{role:'user',text:'Qual o último jogo dos Sub-13?'}]);assert.match(a.text,/ainda não estão disponíveis/);
-assert.deepEqual(requestedTeams('E os Juniores?',[{text:'Seniores'}]),['Juniores']);
-assert.equal(answer('Quem é o melhor marcador dos Iniciados nesta época?'),null);
+assert.deepEqual(requestedTeams('E os Juniores?',[{role:'user',text:'Seniores'}]),['Juniores']);
+a=answer('Quem é o melhor marcador dos Iniciados nesta época?');assert.match(a.text,/Tiago — Iniciados: 4 golos/);assert.match(a.text,/Lista parcial/);
+a=answer('Quais são os marcadores do boavista na época 26/27?');assert.match(a.text,/De que escalão/);assert(!a.text.includes('Tiago'));
+a=answer('Todos os escalões',[{role:'user',text:'Quais são os marcadores do boavista na época 26/27?'}]);assert.match(a.text,/Tiago — Iniciados: 4 golos/);assert.match(a.text,/Guilherme Silva — Juniores: 1 golo/);assert(!a.text.includes('Autogolo do adversário —'));
+a=answer('Me de uma lista dos top 3 marcadores desta epoca',[{role:'user',text:'Marcadores do Boavista na época 26/27?'},{role:'assistant',text:'Resultados dos Seniores, Juniores e Iniciados'}]);assert.match(a.text,/De que escalão/);
+a=answer('Todos os escalões',[{role:'user',text:'Me de uma lista dos top 3 marcadores desta epoca'}]);assert.match(a.text,/Tiago — Iniciados: 4 golos/);assert.match(a.text,/empatados/);assert.match(a.text,/ranking definitivo/);
+a=answer('Lista dos marcadores dos Juniores nesta época');assert(!a.text.includes('Tiago'));assert.match(a.text,/Tomas Coelho/);
+a=answer('Lista de marcadores dos Iniciados na época 25/26');assert.match(a.text,/Ainda não há nomes/);assert(!a.text.includes('Tiago'));
+a=answer('Marcadores de todos os escalões nesta época',[{role:'user',text:'Iniciados'}]);assert.match(a.text,/Juniores/);
+assert.deepEqual(requestedTeams('E quem marcou?',[{role:'user',text:'Sub-13'},{role:'assistant',text:'Juniores'}]),['Sub-13']);
 console.log('PASS: scorer names bound to exact match; missing Sub-13 never borrows junior names; own goals count toward completeness; zero goals; dated match; follow-up; stale/tied standings.');
+
+a=answer('Iniciados',[{role:'user',text:'Me de uma lista dos top 3 marcadores desta epoca'},{role:'assistant',text:'De que escalão?'}]);assert.match(a.text,/Tiago — Iniciados: 4 golos/);assert(!a.text.includes('Juniores'));
