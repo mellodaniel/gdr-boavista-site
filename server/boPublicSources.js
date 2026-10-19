@@ -19,7 +19,7 @@ export const publicCollections=[
 
 function termsFor(question,history) {
  const stop=new Set(['qual','quais','como','onde','quando','quem','para','pelo','pela','com','uma','uns','das','dos','que','tem','sao','esta','este','esse','isso','mais','sobre','quero','saber','boavista','clube']);
- const terms=normalize([question,...history.slice(-4).map(m=>m.text)].join(' ')).match(/[a-z0-9-]{3,}/g)||[];
+ const terms=normalize([question,...history.filter(m=>m.role==='user').slice(-3).map(m=>m.text)].join(' ')).match(/[a-z0-9-]{3,}/g)||[];
  return [...new Set(terms.filter(t=>!stop.has(t)))].slice(0,60);
 }
 const score=(text,terms)=>terms.reduce((s,t)=>s+(normalize(text).includes(t)?1:0),0);
@@ -32,6 +32,10 @@ function excerpt(text,terms,max=4200) {
 
 export async function loadPublicKnowledge({read,question,history=[],sourceId,maxBytes=24000}) {
  const terms=termsFor(question,history);
+ const currentTerms=termsFor(question,[]);
+ const teamQuestion=normalize([question,...history.filter(m=>m.role==='user').toReversed().map(m=>m.text)].find(t=>/seniores|senior|juniores|junior/.test(normalize(t)))||'');
+ const teamScope=/seniores|senior/.test(teamQuestion)?'senior':/juniores|junior/.test(teamQuestion)?'junior':null;
+ const wantsCoach=/treinador|equipa tecnica/.test(normalize(question));
  const status=[];
  const docs=staticPages.map(p=>({title:p.title,path:p.path,text:p.text,category:p.title}));
  await Promise.all(publicCollections.map(async spec=>{
@@ -44,7 +48,7 @@ export async function loadPublicKnowledge({read,question,history=[],sourceId,max
     for(const row of rows.filter(spec.valid)) {
      // Project again: a mocked/misconfigured upstream must never smuggle extra columns.
      const safe=Object.fromEntries(spec.fields.split(',').filter(k=>k!=='id'&&!/^is_/.test(k)).map(k=>[k, row[k]??null]));
-     loaded.push({title:plain(spec.name?spec.name(row):row.name),path:spec.path?spec.path(row):spec.route,category:spec.title,text:JSON.stringify(safe)});
+     loaded.push({title:plain(spec.name?spec.name(row):row.name),path:spec.path?spec.path(row):spec.route,category:spec.title,text:JSON.stringify(safe),teamKey:spec.table==='gdrb_roster_players'?row.team_key:null,position:spec.table==='gdrb_roster_players'?row.position:null});
     }
     count+=rows.length;
     if(rows.length<200)break;
@@ -54,7 +58,7 @@ export async function loadPublicKnowledge({read,question,history=[],sourceId,max
    status.push({category:spec.title,available:true,records:loaded.length,mayBeTruncated:limited});
   } catch { status.push({category:spec.title,available:false,records:null}); }
  }));
- const ranked=docs.map((doc,index)=>({...doc,index,rank:(doc.path==='/contactos'&&terms.some(t=>/morada|endereco|localiza|chegar|campo/.test(t))?100:0)+score(doc.title,terms)*5+score(doc.category,terms)*2+score(doc.text,terms)})).sort((a,b)=>b.rank-a.rank||a.index-b.index);
+ const ranked=docs.map((doc,index)=>({...doc,index,rank:(doc.teamKey&&teamScope?(doc.teamKey===teamScope?25:-100):0)+(wantsCoach&&/treinador/i.test(doc.position||'')?50:0)+score(doc.title,currentTerms)*12+score(doc.text,currentTerms)*3+(doc.path==='/contactos'&&terms.some(t=>/morada|endereco|localiza|chegar|campo/.test(t))?100:0)+score(doc.title,terms)*5+score(doc.category,terms)*2+score(doc.text,terms)})).sort((a,b)=>b.rank-a.rank||a.index-b.index);
  const selected=[];
  let bytes=2;
  for(const doc of ranked) {

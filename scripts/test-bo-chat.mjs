@@ -22,7 +22,7 @@ async function fetcher(url,opt={}){
   assert.match(sent.input[0].content,/Cachecol publicado/);
   assert(!sent.input[0].content.includes('PRIVATE_SENTINEL'));
   assert(Buffer.byteLength(JSON.stringify(sent.input))<=100000);
-  return json({status:'completed',usage:{input_tokens:1000,output_tokens:100},output:[{content:[{type:'output_text',text:JSON.stringify({text:'Resposta',matchIds:['match-1','fabricated'],scheduleNames:[],sourceIds:['S1','S999'],choices:[],page:'https://evil.invalid'})}]}]});
+  return json({status:'completed',usage:{input_tokens:1000,output_tokens:100},output:[{content:[{type:'output_text',text:JSON.stringify({text:'Resposta',needsClarification:mode==='clarify',matchIds:['match-1','fabricated'],scheduleNames:[],sourceIds:['S1','S999'],choices:[],page:'https://evil.invalid'})}]}]});
  }
  assert.equal(opt.headers.apikey,'public'); // All source reads must enforce RLS.
  if(mode==='source')return new Response('{}',{status:500});
@@ -45,6 +45,7 @@ assert.equal(sanitizeMatches([{...match,team_name:'Benjamins A',home_score:5,awa
 assert.equal(sanitizeMatches([{...match,is_visible:false}]).length,0);
 let res=await run();assert.equal(res.statusCode,200);assert.equal(res.body.matches.length,1);assert.equal(res.body.sources.length,1);assert.equal(res.body.href,undefined);
 assert.equal(calls.filter(c=>c.url.includes('gdrb_chat_settle')).length,1);
+mode='clarify';res=await run();assert.equal(res.body.source,undefined);assert.equal(res.body.consultedAt,undefined);assert.equal(res.body.matches.length,0);assert.equal(res.body.sources.length,0);assert.equal(res.body.href,undefined);
 mode='budget';calls.length=0;res=await run();assert.equal(res.statusCode,429);assert.equal(calls.some(c=>c.url.includes('api.openai.com')),false);
 mode='timeout';calls.length=0;res=await run();assert.equal(res.statusCode,503);assert.equal(calls.some(c=>c.url.includes('gdrb_chat_settle')),false);
 mode='source';calls.length=0;res=await run();assert.equal(res.statusCode,503);assert.equal(calls.some(c=>c.url.includes('gdrb_chat_reserve')),false);

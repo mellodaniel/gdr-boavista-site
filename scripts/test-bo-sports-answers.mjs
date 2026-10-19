@@ -39,3 +39,12 @@ assert.deepEqual(requestedTeams('E quem marcou?',[{role:'user',text:'Sub-13'},{r
 console.log('PASS: scorer names bound to exact match; missing Sub-13 never borrows junior names; own goals count toward completeness; zero goals; dated match; follow-up; stale/tied standings.');
 
 a=answer('Iniciados',[{role:'user',text:'Me de uma lista dos top 3 marcadores desta epoca'},{role:'assistant',text:'De que escalão?'}]);assert.match(a.text,/Tiago — Iniciados: 4 golos/);assert(!a.text.includes('Juniores'));
+
+a=answer('E dos Iniciados?',[{role:'user',text:'Quero o top 3 de marcadores desta época'},{role:'assistant',text:'De que escalão?'},{role:'user',text:'Seniores'},{role:'assistant',text:'Sem nomes nesta amostra'}]);assert.match(a.text,/Tiago — Iniciados: 4 golos/);assert(!a.text.includes('Juniores'));
+a=answer('Marcadores dos Iniciados nesta época',[{role:'user',text:'Época 25/26'}]);assert.match(a.text,/2026\/27/);
+a=answer('Marcadores dos Iniciados na época passada');assert.match(a.text,/2025\/26/);assert(!a.text.includes('Tiago'));
+a=answer('Quem marcou?',[{role:'user',text:'Como ficou o jogo dos Iniciados em 11/10?'}]);assert.equal(a,null);
+a=answer('Quero saber os marcadores');assert.equal(a.source,undefined);
+console.log('PASS: scope switches retain ranking intent; current/past season; dated follow-up does not default to last game; clarification has no false source.');
+
+a=answer('Quem marcou mais golos nos Iniciados?');assert.match(a.text,/Tiago — Iniciados: 4 golos/);assert.match(a.text,/Lista parcial/);
