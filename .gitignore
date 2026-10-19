@@ -30,3 +30,6 @@ android/keystores/*.properties
 *.zip
 .vercel
 .env*
+
+# Local chat budget ledger (never serve or publish)
+.chat-private/

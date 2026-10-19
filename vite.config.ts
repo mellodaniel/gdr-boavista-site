@@ -1,3 +1,4 @@
+import { chatPrototype } from './server/chatPrototype';
 import { defineConfig, loadEnv } from 'vite';
 import { readFile } from 'node:fs/promises';
 import { pageResponse, publicReader, sitemapXml } from './api/_public-seo.js';
@@ -14,7 +15,9 @@ export default defineConfig({
         ?? '',
     ),
   },
+  server: { fs: { deny: ['**/.env*', '**/*.{crt,pem}', '**/.git/**', '**/.chat-private/**', '**/server/**'] } },
   plugins: [
+    chatPrototype(),
     {
       name: 'public-seo-development',
       configureServer(server) {

@@ -2,6 +2,9 @@
   "functions": {
     "api/public-page.js": {
       "includeFiles": "dist/index.html"
+    },
+    "api/chat.ts": {
+      "maxDuration": 60
     }
   },
   "routes": [

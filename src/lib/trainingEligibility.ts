@@ -1,4 +1,4 @@
-import { formationSchedules, footballElevenSchedules } from './trainingSchedules';
+import { formationSchedules, footballElevenSchedules } from './trainingSchedules.js';
 
 // 2026/27 age bands, cross-checked with https://www.cri.pt/?page_id=207
 // and FPF's 2025/26 CO1 https://www.fpf.pt/DownloadDocument.ashx?id=30965.

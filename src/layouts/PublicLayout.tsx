@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   ChevronRight,
@@ -14,6 +14,9 @@ import { AnalyticsTracker } from '../components/public/AnalyticsTracker';
 import { CookieConsentBanner } from '../components/public/CookieConsentBanner';
 import { MobileBottomNavigation } from '../components/public/MobileBottomNavigation';
 import { trackAnalyticsEvent } from '../lib/analytics';
+
+// Public assistant; private credentials and budget enforcement live on the server.
+const ChatPrototype = lazy(() => import('../components/chat/ClubChat'));
 
 const navigation = [
   { label: 'Clube', path: '/clube' },
@@ -474,6 +477,7 @@ export function PublicLayout() {
       </footer>
 
       <MobileBottomNavigation onOpenMenu={() => setIsMenuOpen(true)} />
+      {ChatPrototype && <Suspense fallback={null}><ChatPrototype /></Suspense>}
       <CookieConsentBanner />
       <PresentationGamesPopup />
     </div>

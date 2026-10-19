@@ -1,0 +1,8 @@
+.git
+.env*
+.chat-private
+output
+outputs
+docs
+scripts
+supabase
