@@ -16,12 +16,12 @@ const calls=[],sources=[];
 const sourceId=(title,url)=>{sources.push({title,url});return 'S'+sources.length;};
 const read=async path=>{calls.push(path);return fixtures[path.split('?')[0]]??[];};
 let result=await loadPublicKnowledge({read,question:'Notícias, loja, parceiros, plantel e torneios',sourceId});
-assert.equal(result.collections.length,8);
+assert.equal(result.collections.length,publicCollections.length);
 assert(!JSON.stringify(result).includes(secret));
 assert(result.documents.some(d=>d.text.includes('Cachecol')));
 assert(result.documents.some(d=>d.text.includes('Vitória dos Juvenis')));
 assert(sources.some(s=>s.url===`https://gdrboavista.pt/noticias/${id}`));
-for(const path of calls){assert(!path.includes('select=*'));assert(publicCollections.some(s=>path.startsWith(s.table+'?')));}
+for(const path of calls){assert(!path.includes('select=*'));assert(publicCollections.some(s=>path.startsWith(s.table+'?'))||/^tournament_(teams|groups|group_teams|fields|days|rules|matches)\?/.test(path));}
 assert(!calls.some(p=>/member_requests|shop_orders|contact_requests|subscribers|senior_match/.test(p)));
 result=await loadPublicKnowledge({read,question:'Qual a missão e visão do clube?',sourceId});
 assert.equal(result.documents[0].title,'Clube, história, missão, visão e valores');

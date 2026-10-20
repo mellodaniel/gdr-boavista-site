@@ -1,4 +1,5 @@
 import { groundedScorerAnswer, requestedTeams, scorerTotalsForMatches } from './boSportsAnswers.js';
+import { directoryAnswer } from './boDirectoryAnswers.js';
 import { loadPublicKnowledge, publicRoutes } from './boPublicSources.js';
 import { createHmac, randomUUID } from 'node:crypto';
 
@@ -62,6 +63,8 @@ export function createChatHandler({env=process.env,fetcher=fetch,knowledge}={}) 
      if(!r.ok){let data;try{data=await r.json();}catch{data={};}throw Error(['CHAT_BUDGET','CHAT_RATE','CHAT_RATE_MINUTE','CHAT_RATE_DAILY','CHAT_RATE_BUSY'].includes(data.message)?data.message:'CHAT_SOURCE');}
      return r.status===204?null:r.json();
    }
+   const directory=await directoryAnswer({read:rest,question:body.question,history:body.history,now});
+   if(directory)return reply(200,directory);
    // Public-key reads enforce the exact same publication policies as the site.
    const [future,past,contacts,competitions,latest]=await Promise.all([
      rest(`gdrb_matches?select=${fields}&is_visible=eq.true&status=neq.arquivado&match_date=gte.${day}&order=match_date.asc,match_time.asc&limit=100`),

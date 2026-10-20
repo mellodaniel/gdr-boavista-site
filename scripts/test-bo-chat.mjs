@@ -65,3 +65,4 @@ mode='ok';calls.length=0;await run(undefined,undefined,'Bearer ordinary-token');
 mode='invalidAuth';calls.length=0;res=await run(undefined,undefined,'Bearer forged-token');assert.equal(res.statusCode,401);assert(!calls.some(c=>c.url.includes('gdrb_chat_reserve')));
 mode='budget';calls.length=0;res=await run();assert.equal(res.statusCode,429);
 console.log('PASS: distinct rate messages; server-verified administrator identity; ordinary/forged tokens cannot select developer rate pool; public sources remain anonymous.');
+mode='ok';calls.length=0;res=await run({question:'Quero uma lista completa do plantel dos Seniores',history:[]});assert.equal(res.statusCode,200);assert(!calls.some(c=>c.url.includes('api.openai.com')));assert(!calls.some(c=>c.url.includes('gdrb_chat_reserve')));assert(calls.some(c=>c.url.includes('gdrb_roster_players')));console.log('PASS: full roster response reads public database directly, without OpenAI calls or budget reservation.');
