@@ -24,6 +24,7 @@ function normalizeText(value: string | null | undefined) {
 
 function getRosterPath(team: GdrbTeam) {
   const name = normalizeText(team.name);
+  if (name === 'juvenis' || name === 'juvenis a') return '/equipas/juvenis/plantel';
   if (name.includes('junior')) return '/equipas/juniores/plantel';
   if (name.includes('senior')) return '/equipas/seniores/plantel-2026-gdrb-7f4k';
   return null;

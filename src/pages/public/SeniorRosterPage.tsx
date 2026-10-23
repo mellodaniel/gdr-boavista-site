@@ -226,8 +226,14 @@ export function JuniorRosterPage() {
   return <RosterPage key="junior" teamKey="junior" />;
 }
 
-function RosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
-  const isJunior = teamKey === 'junior';
+export function JuvenileRosterPage() {
+  return <RosterPage key="juvenil" teamKey="juvenil" />;
+}
+
+function RosterPage({ teamKey }: { teamKey: 'senior' | 'junior' | 'juvenil' }) {
+  const isFormation = teamKey !== 'senior';
+  const teamName = { senior: 'Sénior', junior: 'Juniores', juvenil: 'Juvenis' }[teamKey];
+  const footballLabel = { senior: 'Futebol sénior', junior: 'Futebol júnior', juvenil: 'Futebol juvenil' }[teamKey];
   const [errorMessage, setErrorMessage] = useState('');
   const [players, setPlayers] = useState<GdrbRosterPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -310,16 +316,16 @@ function RosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
             <div>
               <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-5 md:px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-red-200 backdrop-blur">
                 <Sparkles size={16} />
-                {isJunior ? 'Plantel oficial' : 'Plantel privado'}
+                {isFormation ? 'Plantel oficial' : 'Plantel privado'}
               </div>
 
               <h1 className="mt-7 max-w-4xl font-serif text-4xl font-light leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
-                {isJunior ? 'Equipa de Juniores' : 'Equipa Sénior'}
+                {isFormation ? `Equipa de ${teamName}` : 'Equipa Sénior'}
                 <span className="block text-red-300">GDR Boavista.</span>
               </h1>
 
               <p className="mt-7 max-w-2xl text-lg leading-8 text-zinc-300">
-                Plantel oficial {isJunior ? 'dos juniores' : 'da equipa principal'} para a época 2026/2027.
+                Plantel oficial {isFormation ? `dos ${teamName.toLowerCase()}` : 'da equipa principal'} para a época 2026/2027.
                 Uma apresentação moderna para valorizar quem representa a
                 camisola do GDR Boavista dentro e fora de campo.
               </p>
@@ -329,10 +335,10 @@ function RosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
                   Época 2026/2027
                 </span>
                 <span className="rounded-full border border-white/15 px-5 md:px-4 py-2">
-                  {isJunior ? 'Futebol júnior' : 'Futebol sénior'}
+                  {footballLabel}
                 </span>
                 <span className="rounded-full border border-white/15 px-5 md:px-4 py-2">
-                  {isJunior ? 'Formação e competição' : 'Página por link direto'}
+                  {isFormation ? 'Formação e competição' : 'Página por link direto'}
                 </span>
               </div>
             </div>
@@ -383,7 +389,7 @@ function RosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
                       Plantel oficial
                     </p>
                     <h2 className="mt-2 font-serif text-4xl font-light text-[#24180f] md:text-5xl">
-                      Conhece {isJunior ? 'os Juniores' : 'a equipa Sénior'}
+                      Conhece {isFormation ? `os ${teamName}` : 'a equipa Sénior'}
                     </h2>
                   </div>
 
