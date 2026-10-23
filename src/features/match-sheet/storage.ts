@@ -1,5 +1,5 @@
 import { MatchSheetRepository } from './repository.js';
-import { supabase } from '../../lib/supabase';
+import { workspaceRequest, type SharedAccess } from './shared-access';
 import type { SheetRow, StoredSheet } from './types';
 
 let database: Promise<IDBDatabase> | undefined;
@@ -21,15 +21,18 @@ export async function localClear(userId:string) {
   const store=await db();return new Promise<void>((resolve,reject)=>{const tx=store.transaction('records','readwrite');const r=tx.objectStore('records').openCursor();r.onsuccess=()=>{const c=r.result;if(c){if(String(c.key).startsWith(userId+':'))c.delete();c.continue();}};tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});
 }
 export class SheetRepository extends MatchSheetRepository {
-  constructor(userId:string){
+  constructor(access:SharedAccess){
+    const userId=access.scope;
+    const own=(row:SheetRow)=>({...row,recorder_id:userId});
     super(userId,{
       read:()=>localRead<StoredSheet[]>(userId+':sheets'),
       write:records=>localWrite(userId+':sheets',records),
       online:()=>navigator.onLine,
-      user:async()=>{const {data:{session}}=await supabase.auth.getSession();return session?.user.id;},
-      list:async()=>{const {data,error}=await supabase.from('gdrb_match_sheets').select('*').order('updated_at',{ascending:false}).limit(200);if(error)throw new Error('Não foi possível carregar as fichas. Confirma a ligação e a ativação do módulo.');return data as SheetRow[];},
-      get:async id=>{const {data,error}=await supabase.from('gdrb_match_sheets').select('*').eq('id',id).single();if(error)throw new Error('Não foi possível obter a versão do servidor.');return data as SheetRow;},
-      upload:async record=>{const {data,error}=await supabase.rpc('gdrb_save_match_sheet',{p_document:record.document,p_revision:record.revision});return error?{error}:{revision:Number(data)};},
+      user:async()=>access.scope,
+      list:async()=>{const rows:SheetRow[]=[];for(let offset=0;;offset+=200){const page=await workspaceRequest<SheetRow[]>(access,{action:'list',offset});rows.push(...page.map(own));if(page.length<200)break;}return rows;},
+      get:async id=>own(await workspaceRequest<SheetRow>(access,{action:'get',id})),
+      upload:async record=>{try{return await workspaceRequest<{revision:number}>(access,{action:'save',document:record.document,revision:record.revision});}catch(error){return {error:{code:(error as {code?:string}).code||'NETWORK',message:(error as Error).message}};}},
+      manage:async(id,revision,operation)=>own(await workspaceRequest<SheetRow>(access,{action:'manage',id,revision,operation})),
     });
   }
 }

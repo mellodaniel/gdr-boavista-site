@@ -10,3 +10,22 @@ test('storage failures are surfaced before a document is marked saved',async()=>
 test('switching account cannot send the previous account’s pending records',async()=>{const t=setup();await t.repo.save(t.doc);t.setUser('another-user');await t.repo.sync();assert.equal(t.calls.length,0);assert.equal(t.repo.records[0].dirty,true);});
 test('refresh cannot replace a dirty local record with an older server version',async()=>{const t=setup();await t.repo.save({...t.doc,notes:'local'});t.io.list=async()=>[{id:t.doc.id,document:{...t.doc,notes:'remote'},recorder_id:'owner',revision:10,updated_at:'2026-10-23'}];await t.repo.refresh();assert.equal(t.repo.records[0].document.notes,'local');assert.equal(t.repo.records[0].revision,0);});
 test('incomplete preparation is saved locally without an invalid remote write',async()=>{const t=setup();t.doc.opponent='';await t.repo.save(t.doc);await t.repo.sync();assert.equal(t.disk()[0].document.opponent,'');assert.equal(t.calls.length,0);});
+test('an incomplete local draft can be trashed offline, survives reopening and can be restored',async()=>{
+ const t=setup();t.setOnline(false);t.doc.opponent='';await t.repo.save(t.doc);await t.repo.manage(t.doc.id,'trash');assert.ok(t.disk()[0].deletedAt);
+ const reopened=new MatchSheetRepository('owner',t.io);await reopened.load();assert.ok(reopened.records[0].deletedAt);await assert.rejects(reopened.save(t.doc),/Restaura/);await reopened.manage(t.doc.id,'restore');assert.equal(reopened.records[0].deletedAt,null);assert.equal(reopened.records[0].document.opponent,'');
+});
+test('a trashed local draft never gets uploaded when the network returns',async()=>{const t=setup();await t.repo.save(t.doc);await t.repo.manage(t.doc.id,'trash');await t.repo.sync();assert.equal(t.calls.length,0);});
+test('archiving uses the server revision, preserves history metadata and prevents editing',async()=>{
+ const t=setup();await t.repo.save(t.doc);await t.repo.sync();let requested;
+ t.io.manage=async(id,revision,action)=>{requested={id,revision,action};return {id,revision:2,document:t.doc,recorder_id:'owner',updated_at:'2026-10-23',archived_at:'2026-10-23'};};
+ await t.repo.manage(t.doc.id,'archive');assert.equal(requested.revision,1);assert.equal(t.repo.records[0].revision,2);assert.ok(t.repo.records[0].archivedAt);await assert.rejects(t.repo.save(t.doc),/Restaura/);
+});
+test('unsynced changes and offline devices cannot manage a server record',async()=>{
+ const t=setup();await t.repo.save(t.doc);await t.repo.sync();await t.repo.save({...t.doc,notes:'Por sincronizar'});await assert.rejects(t.repo.manage(t.doc.id,'trash'),/Sincroniza/);await t.repo.sync();t.setOnline(false);await assert.rejects(t.repo.manage(t.doc.id,'trash'),/internet/);
+});
+test('remote tombstones replace clean cached sheets and block stale local writes',async()=>{
+ const t=setup();await t.repo.save(t.doc);await t.repo.sync();t.io.list=async()=>[{id:t.doc.id,document:t.doc,recorder_id:'owner',revision:2,updated_at:'2026-10-23',deleted_at:'2026-10-23'}];await t.repo.refresh();assert.ok(t.repo.records[0].deletedAt);await assert.rejects(t.repo.save(t.doc),/Restaura/);
+});
+test('a management conflict preserves the local copy and existing lifecycle',async()=>{
+ const t=setup();await t.repo.save(t.doc);await t.repo.sync();t.io.manage=async()=>{throw new Error('Conflito');};await assert.rejects(t.repo.manage(t.doc.id,'trash'),/Conflito/);assert.equal(t.repo.records[0].revision,1);assert.ok(!t.repo.records[0].deletedAt);
+});

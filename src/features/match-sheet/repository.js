@@ -12,13 +12,14 @@ export class MatchSheetRepository {
     const remote=await this.io.list();
     return this.enqueue(async()=>{let records=[...this.records];for(const row of remote){const local=records.find(r=>r.document.id===row.id);if(!local||(!local.dirty&&row.revision>local.revision))records=records.filter(r=>r.document.id!==row.id).concat(this.fromRemote(row));}await this.commit(records);});
   }
-  fromRemote(row){return {document:row.document,revision:row.revision,localVersion:0,dirty:false,owner:row.recorder_id,updatedAt:row.updated_at};}
+  fromRemote(row){return {document:row.document,revision:row.revision,localVersion:0,dirty:false,owner:row.recorder_id,updatedAt:row.updated_at,archivedAt:row.archived_at||null,deletedAt:row.deleted_at||null};}
   save(document){
     const snapshot=structuredClone(document);
     return this.enqueue(async()=>{
       const old=this.records.find(r=>r.document.id===snapshot.id);
       if(old&&old.owner!==this.userId)throw new Error('Esta ficha está a ser registada por outro responsável.');
-      const record={document:snapshot,revision:old?.revision||0,localVersion:(old?.localVersion||0)+1,dirty:true,owner:this.userId,updatedAt:new Date().toISOString(),error:old?.error,conflict:old?.conflict};
+      if(old?.archivedAt||old?.deletedAt)throw new Error('Restaura a ficha antes de a editar.');
+      const record={...old,document:snapshot,revision:old?.revision||0,localVersion:(old?.localVersion||0)+1,dirty:true,owner:this.userId,updatedAt:new Date().toISOString(),error:old?.error,conflict:old?.conflict};
       await this.commit(this.records.filter(r=>r.document.id!==snapshot.id).concat(record));this.schedule();
     });
   }
@@ -28,7 +29,7 @@ export class MatchSheetRepository {
     this.syncing=true;
     try{
       if(await this.io.user()!==this.userId)return;
-      for(const id of this.records.filter(r=>r.dirty&&!r.conflict&&r.owner===this.userId&&!validateSheet(r.document)).map(r=>r.document.id)){
+      for(const id of this.records.filter(r=>r.dirty&&!r.conflict&&!r.archivedAt&&!r.deletedAt&&r.owner===this.userId&&!validateSheet(r.document)).map(r=>r.document.id)){
         if(this.stopped)return;
         const attempt=structuredClone(this.records.find(r=>r.document.id===id));
         const result=await this.io.upload(attempt).catch(()=>({error:{code:'NETWORK'}}));
@@ -41,7 +42,24 @@ export class MatchSheetRepository {
         });
       }
     }finally{this.syncing=false;}
-    if(this.records.some(r=>r.dirty&&!r.error&&!validateSheet(r.document)))this.schedule();
+    if(this.records.some(r=>r.dirty&&!r.error&&!r.archivedAt&&!r.deletedAt&&!validateSheet(r.document)))this.schedule();
+  }
+  manage(id,action){
+    return this.enqueue(async()=>{
+      const record=this.records.find(r=>r.document.id===id);
+      if(!record||record.owner!==this.userId)throw new Error('Ficha não encontrada.');
+      if(!['archive','unarchive','trash','restore'].includes(action))throw new Error('Ação inválida.');
+      if(this.syncing)throw new Error('Aguarda a sincronização em curso.');
+      if(record.revision===0&&['trash','restore'].includes(action)){
+        const next={...record,deletedAt:action==='trash'?new Date().toISOString():null};
+        await this.commit(this.records.map(r=>r.document.id===id?next:r));
+        if(action==='restore')this.schedule();return next.document;
+      }
+      if(!this.io.online())throw new Error('Liga-te à internet para gerir esta ficha.');
+      if(record.dirty||record.conflict)throw new Error('Sincroniza ou resolve as alterações antes de gerir a ficha.');
+      const row=await this.io.manage(id,record.revision,action);
+      await this.commit(this.records.map(r=>r.document.id===id?this.fromRemote(row):r));return row.document;
+    });
   }
   async replaceFromServer(id){
     await this.saving.catch(()=>{});if(this.syncing)throw new Error('Aguarda a sincronização em curso.');

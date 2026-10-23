@@ -4,5 +4,6 @@
 output
 outputs
 docs
-scripts
+scripts/*
+!scripts/build-match-sheet-offline.mjs
 supabase

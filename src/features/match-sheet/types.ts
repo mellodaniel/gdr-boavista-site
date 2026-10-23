@@ -11,6 +11,7 @@ export type MatchSheet = {
   clock: { period: number; elapsedMs: number; startedAt: number | null };
   squad: SquadPlayer[]; events: SheetEvent[];
 };
-export type StoredSheet = { document: MatchSheet; revision: number; localVersion: number; dirty: boolean; owner: string; updatedAt: string; error?: string; conflict?: boolean };
-export type SheetRow = { id: string; age_group: string; recorder_id: string; revision: number; document: MatchSheet; updated_at: string };
+export type SheetAction = 'archive' | 'unarchive' | 'trash' | 'restore';
+export type StoredSheet = { document: MatchSheet; revision: number; localVersion: number; dirty: boolean; owner: string; updatedAt: string; archivedAt?: string | null; deletedAt?: string | null; error?: string; conflict?: boolean };
+export type SheetRow = { id: string; age_group: string; recorder_id: string; revision: number; document: MatchSheet; updated_at: string; archived_at?: string | null; deleted_at?: string | null };
 export type SheetDelivery = { id: string; revision: number; recipients: string[]; status: string; created_at: string };

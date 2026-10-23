@@ -1,137 +1,145 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowLeftRight, Check, ChevronRight, ClipboardList, Download, Flag, Goal, LogOut, Mail, Pause, Pencil, Play, Plus, Printer, RefreshCw, Settings, StickyNote, Trash2, Users, WifiOff, X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ArrowLeftRight, Check, ChevronRight, ClipboardList, Download, Flag, Goal, Link, Archive, RotateCcw, Search, Mail, Pause, Pencil, Play, Plus, Printer, RefreshCw, StickyNote, Trash2, Users, WifiOff, X } from 'lucide-react';
 import type { GdrbMatch } from '../../types/database';
-import type { EventKind, MatchSheet, RosterPlayer, SheetDelivery, SheetEvent, SheetTeam } from './types';
+import type { EventKind, MatchSheet, RosterPlayer, SheetDelivery, SheetEvent, SheetTeam, SheetAction, StoredSheet } from './types';
 import { clockAt, eventDescription, eventLabels, eventMinute, lineup, newSheet, orderedEvents, score, validateSheet } from './model.js';
-import { localClear, localRead, localWrite, SheetRepository } from './storage';
+import { localRead, localWrite, SheetRepository } from './storage';
+import { accessFromLink, workspaceRequest, type SharedAccess } from './shared-access';
 import './match-sheet.css';
 
 const logo='/logo-gdr-boavista-clean-1024.png';
 const readableError=(e:unknown)=>e instanceof Error?e.message:'Não foi possível concluir. Tenta novamente.';
 function Brand(){return <div className="ms-brand"><img src={logo} alt="Emblema do GDR Boavista" width="64" height="72"/><div><strong>GDR BOAVISTA</strong><span>Ficha de jogo</span></div></div>;}
 function download(blob:Blob,name:string){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-async function apiRequest(id:string,revision:number,body?:object){
-  const {data:{session}}=await supabase.auth.getSession();if(!session)throw new Error('Entra novamente para continuar.');
-  const response=await fetch(body?'/api/match-sheet':`/api/match-sheet?id=${encodeURIComponent(id)}&revision=${revision}`,{method:body?'POST':'GET',headers:{Authorization:`Bearer ${session.access_token}`,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify({id,revision,...body}):undefined});
+async function apiRequest(access:SharedAccess,id:string,revision:number,body?:object){
+  const response=await fetch(body?'/api/match-sheet':`/api/match-sheet?id=${encodeURIComponent(id)}&revision=${revision}`,{method:body?'POST':'GET',headers:{'X-Match-Sheet-Key':access.key,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify({id,revision,...body}):undefined,cache:'no-store',referrerPolicy:'no-referrer'});
   if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error||'Não foi possível concluir. Verifica a ligação.');}
   return response;
 }
 export default function MatchSheetPage(){
   useEffect(()=>{if(import.meta.env.PROD&&'serviceWorker' in navigator)void navigator.serviceWorker.register('/ficha-sw.js',{scope:'/ficha-de-jogo'}).catch(()=>{});},[]);
-  const [session,setSession]=useState<Session|null>(null),[ready,setReady]=useState(false);
-  const [username,setUsername]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
-  useEffect(()=>{void supabase.auth.getSession().then(({data})=>{setSession(data.session);setReady(true);}).catch(()=>{setError('Não foi possível recuperar a sessão. Tenta entrar novamente.');setReady(true);});const {data}=supabase.auth.onAuthStateChange((_e,s)=>{setSession(s);setReady(true);});return()=>data.subscription.unsubscribe();},[]);
-  async function login(e:FormEvent){e.preventDefault();setBusy(true);setError('');const email=username.trim().includes('@')?username.trim():`${username.trim().toLowerCase()}@gdrboavista.local`;try{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw new Error('Verifica o utilizador e a palavra-passe.');setPassword('');}catch(e){setError(readableError(e));}finally{setBusy(false);}}
-  if(!ready)return <main className="ms-app"><div className="ms-loading">A abrir a ficha de jogo…</div></main>;
-  if(!session)return <main className="ms-app ms-login"><form onSubmit={login} className="ms-panel"><Brand/><div className="ms-eyebrow">ÁREA RESERVADA</div><h1>O jogo começa aqui.</h1><p>Convocatória, eventos e relatório num só lugar.</p><label>Utilizador<input autoComplete="username" value={username} onChange={e=>setUsername(e.target.value)} required/></label><label>Palavra-passe<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} required/></label>{error&&<p className="ms-error" role="alert">{error}</p>}<button className="ms-primary" disabled={busy}>{busy?'A entrar…':'Entrar na ficha'}<ChevronRight size={18}/></button><p className="ms-small">Usa a conta atribuída pelo clube. Prepara o jogo com ligação antes de ir para o campo.</p></form></main>;
-  return <MatchWorkspace key={session.user.id} session={session}/>;
+  const [access,setAccess]=useState<SharedAccess|null>(null),[ready,setReady]=useState(false);
+  useEffect(()=>{let active=true;void accessFromLink().then(value=>{if(active)setAccess(value);}).finally(()=>{if(active)setReady(true);});return()=>{active=false;};},[]);
+  if(!ready)return <main className="ms-app"><div className="ms-loading">A abrir as fichas de jogo…</div></main>;
+  if(!access)return <main className="ms-app ms-login"><section className="ms-panel"><Brand/><div className="ms-eyebrow">ACESSO POR LINK</div><h1>As fichas da tua equipa.</h1><p>Abre o link completo partilhado pelo clube para criar e gerir as fichas, sem login.</p><p className="ms-small">Guarda esse link nos favoritos do telemóvel para o próximo jogo.</p></section></main>;
+  return <MatchWorkspace key={access.scope} access={access}/>;
 }
 type Access={age_group:string;can_edit:boolean};
 type Context={teams:SheetTeam[];admin:boolean;access:Access[]};
-function MatchWorkspace({session}:{session:Session}){
-  const repository=useMemo(()=>new SheetRepository(session.user.id),[session.user.id]);
+function MatchWorkspace({access}:{access:SharedAccess}){
+  const repository=useMemo(()=>new SheetRepository(access),[access]);
   const [context,setContext]=useState<Context>({teams:[],admin:false,access:[]});
-  const [params,setParams]=useSearchParams();const selected=params.get('ficha');
-  const [sheet,setSheet]=useState<MatchSheet|null>(null),current=useRef<MatchSheet|null>(null);
+  const [params]=useSearchParams(),navigate=useNavigate();const selected=params.get('ficha');
+  const setParams=(values:Record<string,string>)=>navigate({search:new URLSearchParams(values).toString(),hash:window.location.hash});
+  const [sheet,setSheet]=useState<MatchSheet|null>(null),current=useRef<MatchSheet|null>(null),loadedRevision=useRef(-1);
   const [,redraw]=useState(0);const [ready,setReady]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
   const [online,setOnline]=useState(navigator.onLine),[tab,setTab]=useState<'prepare'|'live'|'report'>('prepare');
   const [teamName,setTeamName]=useState(''),[roster,setRoster]=useState<RosterPlayer[]>([]),[rosterLoading,setRosterLoading]=useState(false);
-  const [calendar,setCalendar]=useState<GdrbMatch[]>([]),[event,setEvent]=useState<SheetEvent|null>(null),[settings,setSettings]=useState(false);
+  const [calendar,setCalendar]=useState<GdrbMatch[]>([]),[event,setEvent]=useState<SheetEvent|null>(null);
   const [mailOpen,setMailOpen]=useState(false),[recipients,setRecipients]=useState(''),[sending,setSending]=useState(false),[deliveries,setDeliveries]=useState<SheetDelivery[]>([]);
   const [localSaving,setLocalSaving]=useState(0),[storageError,setStorageError]=useState(false);
+  const [filter,setFilter]=useState('active'),[query,setQuery]=useState(''),[groupFilter,setGroupFilter]=useState('');
+  const [manageTarget,setManageTarget]=useState<{id:string;action:SheetAction}|null>(null),[managing,setManaging]=useState(false);
   const mailAttempt=useRef<{key:string;id:string}|null>(null);
   const canCreate=(name:string)=>context.admin||context.access.some(a=>a.age_group===name&&a.can_edit);
   const stored=repository.records.find(r=>r.document.id===sheet?.id);
-  const owned=!stored||stored.owner===session.user.id;
-  const editable=Boolean(sheet&&owned&&canCreate(sheet.ageGroup)&&sheet.status!=='finished'&&!stored?.conflict);
+  const owned=!stored||stored.owner===access.scope;
+  const editable=Boolean(sheet&&owned&&canCreate(sheet.ageGroup)&&sheet.status!=='finished'&&!stored?.conflict&&!stored?.archivedAt&&!stored?.deletedAt&&!managing);
   const [now,setNow]=useState(Date.now());
   useEffect(()=>{const tick=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(tick);},[]);
   const reloadContext=useCallback(async()=>{
-    const [teams,admin,access]=await Promise.all([supabase.from('gdrb_match_sheet_teams').select('*').order('age_group'),supabase.rpc('gdrb_gallery_is_admin'),supabase.from('gdrb_match_sheet_access').select('age_group,can_edit').eq('user_id',session.user.id)]);
-    if(teams.error||admin.error||access.error)throw new Error('Não foi possível carregar o módulo. Verifica a ligação e se a atualização da base de dados já foi aplicada.');
-    const c:Context={teams:teams.data||[],admin:admin.data===true,access:access.data||[]};await localWrite(session.user.id+':context',c);setContext(c);
-  },[session.user.id]);
+    const c=await workspaceRequest<Context>(access,{action:'context'});await localWrite(access.scope+':context',c);setContext(c);
+  },[access]);
   useEffect(()=>{
     let active=true;const unsub=repository.subscribe(()=>{if(active)redraw(n=>n+1);});
-    const connection=()=>{setOnline(navigator.onLine);if(navigator.onLine)void repository.sync().catch(e=>setError(readableError(e)));};
+    const connection=()=>{setOnline(navigator.onLine);if(navigator.onLine)void repository.sync().then(()=>repository.refresh()).catch(e=>setError(readableError(e)));};
     const interval=setInterval(connection,15000);window.addEventListener('online',connection);window.addEventListener('offline',connection);
     void (async()=>{
-      try {await repository.load();const cache=await localRead<Context>(session.user.id+':context');if(cache&&active)setContext(cache);if(active)setReady(true);if(navigator.onLine){await reloadContext();await repository.sync();await repository.refresh();}}
+      try {await repository.load();const cache=await localRead<Context>(access.scope+':context');if(cache&&active)setContext(cache);if(active)setReady(true);if(navigator.onLine){await reloadContext();await repository.sync();await repository.refresh();}}
       catch(e){if(active){setError(readableError(e));setReady(true);}}
     })();
     return()=>{active=false;unsub();clearInterval(interval);window.removeEventListener('online',connection);window.removeEventListener('offline',connection);};
-  },[repository,reloadContext,session.user.id]);
+  },[repository,reloadContext,access.scope]);
   // Load a selected document only on navigation; acknowledgements never replace current edits.
   useEffect(()=>{
     if(!ready)return;
     if(!selected){current.current=null;setSheet(null);return;}
-    if(current.current?.id===selected)return;
     const record=repository.records.find(r=>r.document.id===selected);
-    if(record){const document=structuredClone(record.document);current.current=document;setSheet(document);setTab(document.status==='draft'?'prepare':document.status==='finished'?'report':'live');}
+    if(current.current?.id===selected&&(record?.dirty||record?.localVersion!==0||loadedRevision.current===record?.revision))return;
+    if(record){const document=structuredClone(record.document);current.current=document;loadedRevision.current=record.revision;setSheet(document);setTab(document.status==='draft'?'prepare':document.status==='finished'?'report':'live');}
   },[selected,ready,repository,repository.records]);
   useEffect(()=>{
     if(!sheet)return;let active=true;setRoster([]);setCalendar([]);setRosterLoading(true);
-    const group=sheet.ageGroup,key=session.user.id+':roster:'+group;
+    const group=sheet.ageGroup,key=access.scope+':roster:'+group;
     void (async()=>{
       try{const cached=await localRead<RosterPlayer[]>(key);if(cached&&active)setRoster(cached);
-        if(navigator.onLine){const [r,c]=await Promise.all([supabase.rpc('gdrb_sheet_roster',{p_group:group}),supabase.from('gdrb_matches').select('*').eq('team_name',group).order('match_date',{ascending:false}).limit(50)]);
-          if(r.error)throw new Error('Não foi possível carregar o plantel.');await localWrite(key,r.data);if(active){setRoster(r.data||[]);setCalendar(c.data||[]);}}
+        if(navigator.onLine){const data=await workspaceRequest<{players:RosterPlayer[];calendar:GdrbMatch[]}>(access,{action:'roster',group});
+          await localWrite(key,data.players);if(active){setRoster(data.players);setCalendar(data.calendar);}}
+
       }catch(e){if(active)setError(readableError(e));}finally{if(active)setRosterLoading(false);}
     })();return()=>{active=false;};
-  },[sheet?.ageGroup,session.user.id]);
+  },[sheet?.ageGroup,access.scope]);
   useEffect(()=>{
     if(!sheet||tab!=='report'||!online)return;let active=true;
-    void supabase.from('gdrb_match_sheet_deliveries').select('id,revision,recipients,status,created_at').eq('sheet_id',sheet.id).order('created_at',{ascending:false}).limit(8).then(({data})=>{if(active)setDeliveries(data||[]);});return()=>{active=false;};
+    void workspaceRequest<SheetDelivery[]>(access,{action:'deliveries',id:sheet.id}).then(data=>{if(active)setDeliveries(data);}).catch(e=>{if(active)setError(readableError(e));});return()=>{active=false;};
   },[sheet?.id,tab,online,notice]);
   useEffect(()=>{
     const warn=(e:BeforeUnloadEvent)=>{if(localSaving||storageError){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);
   },[localSaving,storageError]);
   function change(fn:(doc:MatchSheet)=>MatchSheet,validate=false){
-    if(!current.current)return false;
+    if(!current.current||stored?.archivedAt||stored?.deletedAt||managing)return false;
     const next=fn(structuredClone(current.current));const issue=validate?validateSheet(next):null;if(issue){setError(issue);return false;}
     current.current=next;setSheet(next);setError('');setStorageError(false);setLocalSaving(n=>n+1);
     void repository.save(next).catch(e=>{setStorageError(true);setError(`Não foi possível guardar neste dispositivo. Mantém esta página aberta e guarda uma cópia. ${readableError(e)}`);}).finally(()=>setLocalSaving(n=>n-1));return true;
   }
-  function create(){if(navigator.storage?.persist)void navigator.storage.persist();const team=context.teams.find(t=>t.age_group===teamName);if(!team||!canCreate(teamName))return;if(!team.roster_key){setError('Este escalão ainda não tem plantel associado. O administrador pode associá-lo em Configuração.');return;}const doc=newSheet(team,session.user.user_metadata?.full_name||'');current.current=doc;setSheet(doc);setTab('prepare');setParams({ficha:doc.id});change(d=>d);}
+  function create(){if(navigator.storage?.persist)void navigator.storage.persist();const team=context.teams.find(t=>t.age_group===teamName);if(!team||!canCreate(teamName))return;if(!team.roster_key){setError('Este escalão ainda não tem plantel associado. O administrador pode associá-lo em Configuração.');return;}const doc=newSheet(team,'');current.current=doc;setSheet(doc);setTab('prepare');setParams({ficha:doc.id});change(d=>d);}
   async function sync(){setError('');try{await repository.sync();if(!sheet)await repository.refresh();}catch(e){setError(readableError(e));}}
   function exportBackup(){if(sheet)download(new Blob([JSON.stringify({document:sheet,revision:stored?.revision||0},null,2)],{type:'application/json'}),`ficha-${sheet.date}-${sheet.id.slice(0,8)}.json`);}
-  async function signOut(){if(repository.records.some(r=>r.dirty)||localSaving||storageError){setError('Existem fichas por sincronizar. Sincroniza-as antes de terminar sessão.');return;}await localClear(session.user.id);repository.stop();await supabase.auth.signOut();}
+  async function shareLink(){try{await navigator.clipboard.writeText(`${window.location.origin}/ficha-de-jogo#acesso=${access.key}`);setNotice('Link copiado. Quem receber o link pode criar, editar e gerir as fichas.');}catch{setError('Não foi possível copiar. Podes copiar o link completo na barra de endereços.');}}
+  async function manage(){if(!manageTarget)return;setManaging(true);setError('');try{await repository.manage(manageTarget.id,manageTarget.action);setNotice(manageTarget.action==='trash'?'Ficha movida para o lixo. Podes restaurá-la no separador Lixo.':manageTarget.action==='archive'?'Ficha arquivada.':'Ficha restaurada.');setParams({});setManageTarget(null);}catch(e){setError(readableError(e));setManageTarget(null);}finally{setManaging(false);}}
   function openEvent(kind:EventKind,side:'club'|'opponent'='club'){if(!sheet)return;const time=clockAt(sheet);setEvent({id:crypto.randomUUID(),kind,side,period:time.period,minute:time.minute,added:time.added,player:'',incoming:'',ownGoal:false,note:'',createdAt:new Date().toISOString()});}
   function saveEvent(e:SheetEvent){if(change(d=>({...d,events:[...d.events.filter(x=>x.id!==e.id),e]}),true)){setEvent(null);setNotice(`${eventLabels[e.kind]} registado.`);}}
   function removeEvent(id:string){if(!confirm('Remover este evento? A alteração fica no histórico da ficha.'))return;change(d=>({...d,events:d.events.filter(e=>e.id!==id)}),true);}
   function setClock(action:'start'|'pause'|'interval'|'next'){
     change(d=>{const elapsed=clockAt(d).elapsedMs;if(action==='start'){d.status='live';d.clock.startedAt=Date.now();}if(action==='pause'){d.clock.elapsedMs=elapsed;d.clock.startedAt=null;}if(action==='interval'){d.status='interval';d.clock.elapsedMs=elapsed;d.clock.startedAt=null;}if(action==='next'){if(d.clock.period>=d.rules.periods)return d;d.clock={period:d.clock.period+1,elapsedMs:0,startedAt:Date.now()};d.status='live';}return d;},true);
   }
-  async function pdf(){if(!sheet||!stored)return;setSending(true);try{const response=await apiRequest(sheet.id,stored.revision);download(await response.blob(),`GDRBoavista-Ficha-${sheet.date}-v${stored.revision}.pdf`);}catch(e){setError(readableError(e));}finally{setSending(false);}}
+  async function pdf(){if(!sheet||!stored)return;setSending(true);try{const response=await apiRequest(access,sheet.id,stored.revision);download(await response.blob(),`GDRBoavista-Ficha-${sheet.date}-v${stored.revision}.pdf`);}catch(e){setError(readableError(e));}finally{setSending(false);}}
   async function sendEmail(e:FormEvent){e.preventDefault();if(!sheet||!stored)return;setSending(true);setError('');try{
     const list=[...new Set(recipients.split(/[;,\n]/).map(x=>x.trim().toLowerCase()).filter(Boolean))];if(!list.length||list.length>5)throw new Error('Indica entre 1 e 5 endereços de email.');
-    const key=JSON.stringify([sheet.id,stored.revision,list]);const savedAttempt=await localRead<{key:string;id:string}>(session.user.id+':email:'+key);if(mailAttempt.current?.key!==key)mailAttempt.current=savedAttempt||{key,id:crypto.randomUUID()};await localWrite(session.user.id+':email:'+key,mailAttempt.current);
-    await apiRequest(sheet.id,stored.revision,{recipients:list,requestId:mailAttempt.current.id});
-    setNotice('Ficha aceite pelo serviço de email. Consulta os destinatários no histórico de envios.');setMailOpen(false);await localWrite(session.user.id+':email:'+key,null);mailAttempt.current=null;
+    const key=JSON.stringify([sheet.id,stored.revision,list]);const savedAttempt=await localRead<{key:string;id:string}>(access.scope+':email:'+key);if(mailAttempt.current?.key!==key)mailAttempt.current=savedAttempt||{key,id:crypto.randomUUID()};await localWrite(access.scope+':email:'+key,mailAttempt.current);
+    await apiRequest(access,sheet.id,stored.revision,{recipients:list,requestId:mailAttempt.current.id});
+    setNotice('Ficha aceite pelo serviço de email. Consulta os destinatários no histórico de envios.');setMailOpen(false);await localWrite(access.scope+':email:'+key,null);mailAttempt.current=null;
   }catch(e){setError(readableError(e));}finally{setSending(false);}}
   const live=sheet?clockAt(sheet,now):null,tally=sheet?score(sheet):null;
   const syncLabel=storageError?'Falha ao guardar':localSaving?'A guardar…':stored?.conflict?'Conflito entre dispositivos':stored?.dirty?'Guardado no dispositivo · por sincronizar':stored?'Sincronizado':'A preparar';
-  const savedReady=Boolean(stored&&!stored.dirty&&!localSaving&&!storageError&&online);
+  const savedReady=Boolean(stored&&!stored.dirty&&!stored.deletedAt&&!localSaving&&!storageError&&online);
+  const buckets=[['active','Todas'],['draft','Em preparação'],['live','Em curso'],['finished','Finalizadas'],['archive','Arquivo'],['trash','Lixo']];
+  const inBucket=(r:StoredSheet,b:string)=>b==='trash'?Boolean(r.deletedAt):b==='archive'?!r.deletedAt&&Boolean(r.archivedAt):!r.deletedAt&&!r.archivedAt&&(b==='active'||(b==='live'?['live','interval'].includes(r.document.status):r.document.status===b));
+  const normalized=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const filtered=repository.records.filter(r=>inBucket(r,filter)&&(!groupFilter||r.document.ageGroup===groupFilter)&&normalized(`${r.document.opponent} ${r.document.recorder} ${r.document.competition} ${r.document.date}`).includes(normalized(query.trim()))).sort((a,b)=>b.document.date.localeCompare(a.document.date)||b.updatedAt.localeCompare(a.updatedAt));
+  const actionTarget=repository.records.find(r=>r.document.id===manageTarget?.id);
   return <main className="ms-app">
-    <header className="ms-top"><Brand/><div className="ms-top-actions">{!online&&<span className="ms-offline"><WifiOff size={16}/>Sem ligação</span>}{context.admin&&<button className="ms-icon" onClick={()=>setSettings(s=>!s)} aria-label="Configuração"><Settings size={20}/></button>}<button className="ms-icon" onClick={()=>void signOut()} aria-label="Terminar sessão"><LogOut size={20}/></button></div></header>
+    <header className="ms-top"><Brand/><div className="ms-top-actions">{!online&&<span className="ms-offline"><WifiOff size={16}/>Sem ligação</span>}<button className="ms-icon" onClick={()=>void shareLink()} aria-label="Copiar link de acesso"><Link size={20}/></button></div></header>
     <div className="ms-container">
       {error&&<div className="ms-error ms-alert" role="alert"><span>{error}</span><button className="ms-icon" aria-label="Fechar aviso" onClick={()=>setError('')}><X size={18}/></button></div>}
       {notice&&<div className="ms-notice" role="status">{notice}</div>}
-      {settings&&context.admin&&<SettingsPanel context={context} onSaved={()=>void reloadContext()} onError={setError}/>}
       {!ready?<div className="ms-panel">A carregar as fichas…</div>:!sheet?<>
-        <div className="ms-page-title"><div className="ms-eyebrow">DIA DE JOGO</div><h1>Da convocatória ao apito final.</h1><p>Tudo o que precisas para acompanhar a tua equipa.</p></div>
+        <div className="ms-page-title"><div className="ms-eyebrow">DIA DE JOGO</div><h1>Fichas de jogo.</h1><p>Prepara o próximo jogo e mantém o histórico da tua equipa organizado.</p></div>
         <section className="ms-panel ms-new"><label>Escalão<select value={teamName} onChange={e=>setTeamName(e.target.value)}><option value="">Selecionar escalão</option>{context.teams.filter(t=>canCreate(t.age_group)).map(t=><option key={t.age_group}>{t.age_group}</option>)}</select></label><button className="ms-primary" disabled={!teamName} onClick={create}><Plus size={20}/>Nova ficha</button></section>
-        {!context.teams.length&&<p className="ms-empty">Ainda não há escalões disponíveis para esta conta. O administrador pode atribuir o acesso após ativar o módulo.</p>}
+        {!context.teams.length&&<p className="ms-empty">Ainda não foi possível carregar os escalões. Confirma a ligação e se estás a usar o link completo.</p>}
         <div className="ms-section-heading"><h2>As fichas de jogo</h2><button onClick={()=>void sync()} disabled={!online}><RefreshCw size={16}/>Atualizar</button></div>
-        <div className="ms-sheets">{[...repository.records].sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).map(r=><button className="ms-sheet-card" key={r.document.id} onClick={()=>{setParams({ficha:r.document.id});setNotice('');setError('');}}><div><span className="ms-eyebrow">{r.document.ageGroup} · {r.document.date.split('-').reverse().join('/')}</span><strong>Boavista × {r.document.opponent||'Adversário por definir'}</strong><small>{r.document.status==='finished'?'Finalizada':r.document.status==='draft'?'Em preparação':'Jogo em curso'} · {r.dirty?'Por sincronizar':`Versão ${r.revision}`}</small></div><ChevronRight size={22}/></button>)}</div>
-        {!repository.records.length&&<div className="ms-empty"><ClipboardList size={32}/><p>Começa por escolher o escalão e criar a primeira ficha.</p></div>}
+        <nav className="ms-filters" aria-label="Estado das fichas">{buckets.map(([id,label])=><button key={id} onClick={()=>setFilter(id)} aria-pressed={filter===id}>{label}<span>{repository.records.filter(r=>inBucket(r,id)).length}</span></button>)}</nav>
+        <div className="ms-search-row"><label><span><Search size={15}/> Pesquisar fichas</span><input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Adversário, responsável ou data"/></label><label>Escalão<select value={groupFilter} onChange={e=>setGroupFilter(e.target.value)}><option value="">Todos os escalões</option>{context.teams.map(t=><option key={t.age_group}>{t.age_group}</option>)}</select></label></div>
+        {filter==='trash'&&<p className="ms-small">As fichas apagadas ficam aqui e podem ser restauradas. Não são eliminadas automaticamente.</p>}
+        <div className="ms-sheets">{filtered.map(r=><article className="ms-sheet-item" key={r.document.id}><button className="ms-sheet-card" onClick={()=>{setParams({ficha:r.document.id});setNotice('');setError('');}}><div><span className="ms-eyebrow">{r.document.ageGroup} · {r.document.date.split('-').reverse().join('/')}</span><strong>Boavista × {r.document.opponent||'Adversário por definir'}</strong><small>{r.deletedAt?'No lixo':r.archivedAt?'Arquivada':r.document.status==='finished'?'Finalizada':r.document.status==='draft'?'Em preparação':'Jogo em curso'} · {r.dirty?'Guardada neste dispositivo':`Versão ${r.revision}`}</small><small>{r.document.recorder||'Responsável por indicar'}</small>{r.error&&<span className="ms-card-error">{r.error}</span>}</div><ChevronRight size={22}/></button><SheetActions record={r} online={online} busy={managing||Boolean(localSaving)||storageError} onAction={action=>setManageTarget({id:r.document.id,action})}/></article>)}</div>
+        {!filtered.length&&<div className="ms-empty"><ClipboardList size={32}/><p>{repository.records.length?'Não há fichas com estes filtros.':'Começa por escolher o escalão e criar a primeira ficha.'}</p></div>}
       </>:<>
         <div className="ms-sheet-heading"><button className="ms-back" onClick={()=>{if(localSaving||storageError){setError('Aguarda a gravação. Se existir uma falha, guarda uma cópia e mantém esta página aberta.');return;}setParams({});setNotice('');}}><ArrowLeft size={17}/>Fichas</button><span className="ms-save-state" aria-live="polite">{syncLabel}</span><button className="ms-icon" aria-label="Sincronizar ficha" onClick={()=>void sync()} disabled={!online}><RefreshCw size={18}/></button></div>
         {(stored?.error||storageError)&&<div className="ms-error"><p>{stored?.error||'Guarda uma cópia antes de fechar.'}</p><div className="ms-actions"><button onClick={exportBackup}><Download size={17}/>Guardar cópia</button>{stored?.conflict&&<button onClick={()=>{if(confirm('Já guardaste a cópia? Carregar o servidor substitui as alterações locais desta ficha.'))void repository.replaceFromServer(sheet.id).then(d=>{current.current=d;setSheet(d);}).catch(e=>setError(readableError(e)));}}>Carregar servidor</button>}</div></div>}
+        {stored&&(stored.archivedAt||stored.deletedAt)&&<p className="ms-notice">{stored.deletedAt?'Esta ficha está no lixo. Restaura-a para voltar a utilizá-la.':'Esta ficha está arquivada e pode ser consultada ou impressa.'}</p>}
+        {stored&&<SheetActions record={stored} online={online} busy={managing||Boolean(localSaving)||storageError} onAction={action=>setManageTarget({id:stored.document.id,action})}/>}
         {!owned&&<p className="ms-notice">Modo de consulta. Esta ficha pertence a outro responsável.</p>}
         <div className="ms-title-row"><div><div className="ms-eyebrow">{sheet.ageGroup} · {sheet.season}</div><h1>Boavista × {sheet.opponent||'Adversário'}</h1><p>{sheet.home?'Em casa':'Fora'} · {sheet.date.split('-').reverse().join('/')} {sheet.time&&`· ${sheet.time}`}</p></div><span className="ms-status">{sheet.status==='finished'?'Finalizada':sheet.status==='draft'?'Preparação':sheet.status==='interval'?'Intervalo':'Em jogo'}</span></div>
         <nav className="ms-tabs" aria-label="Etapas da ficha">{([['prepare','Preparar',Users],['live','Jogo',Goal],['report','Ficha',ClipboardList]] as const).map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} aria-current={tab===id?'page':undefined}><Icon size={18}/>{label}</button>)}</nav>
@@ -160,7 +168,7 @@ function MatchWorkspace({session}:{session:Session}){
         </div><section className="ms-panel ms-timeline"><h2>Eventos do jogo</h2>{!sheet.events.length&&<p className="ms-empty">Os registos aparecem aqui, por minuto de jogo.</p>}{orderedEvents(sheet).reverse().map(e=><article key={e.id}><time>{eventMinute(e)}<small>{e.period}.º P</small></time><div><strong>{eventLabels[e.kind]}</strong><p>{eventDescription(sheet,e)}</p></div>{editable&&<div className="ms-event-edit"><button className="ms-icon" aria-label={`Corrigir ${eventLabels[e.kind]} aos ${eventMinute(e)}`} onClick={()=>setEvent({...e})}><Pencil size={16}/></button><button className="ms-icon" aria-label="Remover evento" onClick={()=>removeEvent(e.id)}><Trash2 size={16}/></button></div>}</article>)}</section></div>}
         {tab==='report'&&<>
           <section className="ms-panel"><div className="ms-section-heading"><h2>Fechar a ficha</h2><span className="ms-small">{stored?.revision?`Versão ${stored.revision}`:'Rascunho'}</span></div>{!sheet.rules.recordGoals&&<label>Resultado<select value={sheet.outcome} disabled={!editable} onChange={e=>change(d=>({...d,outcome:e.target.value as MatchSheet['outcome']}))}><option value="">Selecionar</option><option value="win">Vitória</option><option value="loss">Derrota</option></select></label>}<label>Observações finais<textarea value={sheet.notes} rows={4} maxLength={4000} disabled={!editable} onChange={e=>change(d=>({...d,notes:e.target.value}))}/></label>
-            <div className="ms-actions">{editable?<button className="ms-primary" onClick={()=>{if(confirm('Confirmas que os dados e eventos foram revistos?'))change(d=>({...d,status:'finished',clock:{...d.clock,elapsedMs:clockAt(d).elapsedMs,startedAt:null}}),true);}}><Check size={18}/>Finalizar ficha</button>:sheet.status==='finished'&&owned&&canCreate(sheet.ageGroup)&&<button onClick={()=>{if(confirm('Reabrir para corrigir? O próximo envio terá uma nova versão.'))change(d=>({...d,status:'live'}));}}><Pencil size={17}/>Reabrir para corrigir</button>}<button onClick={()=>window.print()}><Printer size={18}/>Imprimir</button><button disabled={!savedReady||sending} onClick={()=>void pdf()}><Download size={18}/>Descarregar PDF</button><button disabled={!savedReady||sheet.status!=='finished'||!owned||!canCreate(sheet.ageGroup)||sending} onClick={()=>setMailOpen(true)}><Mail size={18}/>Enviar por email</button></div>
+            <div className="ms-actions">{editable?<button className="ms-primary" onClick={()=>{if(confirm('Confirmas que os dados e eventos foram revistos?'))change(d=>({...d,status:'finished',clock:{...d.clock,elapsedMs:clockAt(d).elapsedMs,startedAt:null}}),true);}}><Check size={18}/>Finalizar ficha</button>:sheet.status==='finished'&&owned&&canCreate(sheet.ageGroup)&&!stored?.archivedAt&&!stored?.deletedAt&&<button onClick={()=>{if(confirm('Reabrir para corrigir? O próximo envio terá uma nova versão.'))change(d=>({...d,status:'live'}));}}><Pencil size={17}/>Reabrir para corrigir</button>}<button onClick={()=>window.print()}><Printer size={18}/>Imprimir</button><button disabled={!savedReady||sending} onClick={()=>void pdf()}><Download size={18}/>Descarregar PDF</button><button disabled={!savedReady||Boolean(stored?.archivedAt)||sheet.status!=='finished'||!owned||!canCreate(sheet.ageGroup)||sending} onClick={()=>setMailOpen(true)}><Mail size={18}/>Enviar por email</button></div>
             {!savedReady&&<p className="ms-small">Podes imprimir a versão local ou guardá-la como PDF no diálogo de impressão. Para descarregar o PDF do servidor ou enviar por email, sincroniza a ficha.</p>}
             {deliveries.length>0&&<details className="ms-details"><summary>Histórico de envios</summary>{deliveries.map(d=><p className="ms-small" key={d.id}>v{d.revision} · {d.recipients.join(', ')} · {d.status==='sent'?'Aceite pelo serviço de email':d.status==='pending'?'A confirmar':'Falhou'} · {new Date(d.created_at).toLocaleString('pt-PT')}</p>)}</details>}
           </section><PrintSheet sheet={sheet} revision={stored?.revision||0} pending={Boolean(stored?.dirty||localSaving||storageError)}/>
@@ -168,6 +176,7 @@ function MatchWorkspace({session}:{session:Session}){
         {tab!=='report'&&<div className="ms-print-only"><PrintSheet sheet={sheet} revision={stored?.revision||0} pending={Boolean(stored?.dirty)}/></div>}
       </>}
     </div>
+    {manageTarget&&actionTarget&&<Modal title={manageTarget.action==='trash'?'Apagar ficha?':manageTarget.action==='archive'?'Arquivar ficha?':'Restaurar ficha?'} onClose={()=>{if(!managing)setManageTarget(null);}}><p><strong>Boavista × {actionTarget.document.opponent||'Adversário por definir'}</strong><br/>{actionTarget.document.ageGroup} · {actionTarget.document.date.split('-').reverse().join('/')}</p><p>{manageTarget.action==='trash'?'A ficha vai para o lixo e pode ser restaurada mais tarde.':manageTarget.action==='archive'?'A ficha sai da lista principal e fica disponível no Arquivo para consulta e impressão.':'A ficha volta a ficar disponível no estado em que estava antes.'}</p><div className="ms-actions"><button disabled={managing} onClick={()=>setManageTarget(null)}>Cancelar</button><button className="ms-primary" disabled={managing} onClick={()=>void manage()}>{managing?'A guardar…':manageTarget.action==='trash'?'Mover para o lixo':manageTarget.action==='archive'?'Arquivar':'Restaurar'}</button></div></Modal>}
     {event&&sheet&&<EventDialog sheet={sheet} event={event} onSave={saveEvent} onClose={()=>setEvent(null)} error={error}/>}
     {mailOpen&&sheet&&<Modal onClose={()=>{if(!sending)setMailOpen(false);}} title="Enviar a ficha"><form onSubmit={sendEmail}><p>Boavista × {sheet.opponent} · {sheet.ageGroup}<br/>PDF da versão {stored?.revision}</p><label>Destinatários<textarea required rows={3} value={recipients} onChange={e=>setRecipients(e.target.value)} placeholder="treinador@exemplo.pt; diretor@exemplo.pt"/></label><p className="ms-small">Até 5 endereços, separados por ponto e vírgula. Confirma os destinatários antes de enviar.</p>{error&&<p className="ms-error" role="alert">{error}</p>}<button className="ms-primary" disabled={sending}>{sending?'A enviar…':'Confirmar e enviar'}<Mail size={18}/></button></form></Modal>}
   </main>;
@@ -201,9 +210,13 @@ function PrintSheet({sheet,revision,pending}:{sheet:MatchSheet;revision:number;p
     <h3>Observações</h3><p className="ms-preserve">{sheet.notes||'Sem observações.'}</p><footer><p>Responsável: {sheet.recorder||'Por indicar'}</p><small>Ficha interna de acompanhamento · {sheet.id} · Não substitui a ficha oficial da competição.</small></footer>
   </section>;
 }
-function SettingsPanel({context,onSaved,onError}:{context:Context;onSaved:()=>void;onError:(e:string)=>void}){
-  const [group,setGroup]=useState(''),[key,setKey]=useState(''),[email,setEmail]=useState(''),[readOnly,setReadOnly]=useState(false),[busy,setBusy]=useState(false);
-  const selected=context.teams.find(t=>t.age_group===group);
-  async function assign(remove=false){setBusy(true);try{const address=email.includes('@')?email.trim():`${email.trim().toLowerCase()}@gdrboavista.local`;const {error}=await supabase.rpc('gdrb_sheet_grant',{p_email:address,p_group:group,p_edit:!readOnly,p_remove:remove});if(error)throw new Error(error.message);onError(remove?'Acesso removido.':'Acesso guardado.');onSaved();}catch(e){onError(readableError(e));}finally{setBusy(false);}}
-  return <section className="ms-panel ms-settings"><h2>Configuração do módulo</h2><label>Escalão<select value={group} onChange={e=>{setGroup(e.target.value);setKey(context.teams.find(t=>t.age_group===e.target.value)?.roster_key||'');}}><option value="">Selecionar</option>{context.teams.map(t=><option key={t.age_group}>{t.age_group}</option>)}</select></label>{selected&&<><form onSubmit={async e=>{e.preventDefault();setBusy(true);try{const {error}=await supabase.from('gdrb_match_sheet_teams').update({roster_key:key.trim()||null}).eq('age_group',group);if(error)throw error;onSaved();}catch{onError('Não foi possível associar o plantel.');}finally{setBusy(false);}}}><label>Identificador do plantel<input value={key} onChange={e=>setKey(e.target.value)} placeholder="Ex.: senior ou junior"/></label><p className="ms-small">Usa o identificador da equipa já existente nos plantéis. Não são criados jogadores automaticamente.</p><button disabled={busy}>Guardar associação</button></form><hr/><h3>Acesso de uma conta existente</h3><label>Utilizador ou email<input value={email} onChange={e=>setEmail(e.target.value)}/></label><label className="ms-check"><input type="checkbox" checked={readOnly} onChange={e=>setReadOnly(e.target.checked)}/>Apenas consulta</label><div className="ms-actions"><button disabled={busy||!email.trim()} onClick={()=>void assign()}>Atribuir acesso</button><button disabled={busy||!email.trim()} onClick={()=>{if(confirm('Remover o acesso desta conta ao escalão?'))void assign(true);}}>Remover acesso</button></div></>}</section>;
+function SheetActions({record,online,busy,onAction}:{record:StoredSheet;online:boolean;busy:boolean;onAction:(action:SheetAction)=>void}){
+  const unavailable=busy||(!online&&record.revision>0)||Boolean(record.revision>0&&(record.dirty||record.conflict));
+  return <div className="ms-manage-actions">
+    {record.deletedAt?<button disabled={unavailable} onClick={()=>onAction('restore')}><RotateCcw size={16}/>Restaurar</button>:<>
+      {record.archivedAt?<button disabled={unavailable} onClick={()=>onAction('unarchive')}><RotateCcw size={16}/>Retirar do arquivo</button>:record.document.status==='finished'&&<button disabled={unavailable||record.revision===0} onClick={()=>onAction('archive')}><Archive size={16}/>Arquivar</button>}
+      <button className="ms-danger" disabled={unavailable} onClick={()=>onAction('trash')}><Trash2 size={16}/>Apagar</button>
+    </>}
+    {unavailable&&!busy&&<span className="ms-small">{!online?'Requer ligação à internet.':'Sincroniza a ficha antes de a gerir.'}</span>}
+  </div>;
 }

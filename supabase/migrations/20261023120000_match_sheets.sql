@@ -102,7 +102,7 @@ begin
 end;$$;
 
 create function public.gdrb_sheet_roster(p_group text)
-returns table(id uuid,name text,shirt_number integer,position text,photo_url text)
+returns table(id uuid,name text,shirt_number integer,"position" text,photo_url text)
 language plpgsql security definer set search_path='' as $$
 begin
  if not public.gdrb_sheet_allowed(p_group) then raise insufficient_privilege;end if;
