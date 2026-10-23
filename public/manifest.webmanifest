@@ -26,6 +26,13 @@
   ],
   "shortcuts": [
     {
+      "name": "Ficha de jogo",
+      "short_name": "Ficha",
+      "description": "Preparar e acompanhar um jogo",
+      "url": "/ficha-de-jogo",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Loja oficial",
       "short_name": "Loja",
       "description": "Abrir a loja oficial do GDR Boavista",

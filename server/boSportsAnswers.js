@@ -10,21 +10,35 @@ export function requestedTeams(question,history=[]) {
 const dateLabel=d=>d.split('-').reverse().join('/');
 // Names, missing-data states and own goals are rendered from verified rows, never guessed by the model.
 export function groundedScorerAnswer({question,history=[],matches,scorers,standings,sources,now,season}) {
- const previous=history.filter(m=>m.role==='user').at(-1)?.text;
+ const userHistory=history.filter(m=>m.role==='user');
  const selection=normalize(question);
- if(previous&&/marcador|goleador|quem.*marcou|autor.*golo/.test(normalize(previous))&&(/^(?:os |dos |de |nos )?(?:sub[ -]?(?:13|15|17|19)|infantis|iniciados|juvenis|juniores|seniores)[.!? ]*$/.test(selection)||/^(?:todos|todos os escaloes|juntar todos)[.!? ]*$/.test(selection)))question=previous+' — '+question;
- const scorerIntent=/quem.*marcou|marcador|autogolo|goleador|autor.*golo/.test(normalize(question));
+ const teamSelection=/^(?:e |mas )?(?:os |dos |de |nos |e )?(?:sub[ -]?(?:13|15|17|19)|infantis|iniciados|juvenis|juniores|seniores)[.!? ]*$/.test(selection);
+ const allSelection=/^(?:e )?(?:todos|todos os escaloes|juntar todos)[.!? ]*$/.test(selection);
+ if(teamSelection||allSelection){
+  for(const message of userHistory.toReversed()){
+   const text=normalize(message.text);
+   if(/marcador|goleador|quem.*marcou|autor.*golo|mais golos|ranking/.test(text)){
+    let template=message.text;
+    for(const [,pattern] of aliases)template=template.replace(new RegExp(pattern.source,'gi'),'');
+    template=template.replace(/todos os escalões|todos|juntar todos/gi,'');
+    question=template+' — '+question;break;
+   }
+   if(!/^(?:e |mas )?(?:os |dos |de |nos )?(?:sub[ -]?(?:13|15|17|19)|infantis|iniciados|juvenis|juniores|seniores|todos|todos os escaloes)[.!? ]*$/.test(text))break;
+  }
+ }
+ const scorerIntent=/quem.*marcou|marcador|autogolo|goleador|autor.*golo|mais golos|ranking/.test(normalize(question));
  const scopeText=[question,...history.filter(m=>m.role==='user').toReversed().map(m=>m.text)].find(t=>/todos|juntar|cinco escaloes|5 escaloes/.test(normalize(t))||aliases.some(([,pattern])=>pattern.test(normalize(t))));
  const allTeams=!!scopeText&&/todos|juntar|cinco escaloes|5 escaloes/.test(normalize(scopeText));
  if(allTeams&&!/todos|juntar|cinco escaloes|5 escaloes/.test(normalize(question)))question+=' — todos os escalões';
  const scope=requestedTeams(question,history);
- if(scorerIntent&&!allTeams&&!scope.length)return {text:'De que escalão queres saber os marcadores: Sub-13, Iniciados, Juvenis, Juniores ou Seniores? Ou queres juntar todos os escalões?',matches:[],schedules:[],sources:[],choices:['Sub-13','Iniciados','Juvenis','Juniores','Seniores','Todos os escalões'],source:'Bô · esclarecer o pedido',consultedAt:now.toISOString()};
+ if(scorerIntent&&!allTeams&&!scope.length)return {text:'De que escalão queres saber os marcadores: Sub-13, Iniciados, Juvenis, Juniores ou Seniores? Ou queres juntar todos os escalões?',matches:[],schedules:[],sources:[],choices:['Sub-13','Iniciados','Juvenis','Juniores','Seniores','Todos os escalões']};
  const aggregate=aggregateScorerAnswer({question,history,matches,scorers,sources,now,season});
  if(aggregate)return aggregate;
  const q=normalize(question);
- if(!/quem.*marcou|marcador|autogolo|goleador|autor.*golo/.test(q)||/melhor marcador|goleador|total|epoca|este mes/.test(q))return null;
+ if(!/quem.*marcou|marcador|autogolo|goleador|autor.*golo|mais golos|ranking/.test(q)||/melhor marcador|goleador|total|epoca|este mes/.test(q))return null;
  const teams=requestedTeams(question,history);
  if(teams.length!==1)return null;
+ if(!/contra |\b\d{1,2}\/\d{1,2}\b|ultimo|anterior/.test(q)&&history.some(m=>m.role==='user'&&/contra |\b\d{1,2}\/\d{1,2}\b/.test(normalize(m.text))))return null;
  const team=teams[0];
  let candidates=matches.filter(m=>m.team_name===team&&m.status==='terminado').sort((a,b)=>b.match_date.localeCompare(a.match_date)||String(b.match_time??'').localeCompare(String(a.match_time??'')));
  const date=q.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?\b/);
@@ -71,29 +85,23 @@ export function groundedScorerAnswer({question,history=[],matches,scorers,standi
 // Aggregate only confirmed public records. Coverage is never assumed to span a whole season.
 export function aggregateScorerAnswer({question,history=[],matches,scorers,sources,now,season}) {
  const q=normalize(question);
- if(!/marcador|goleador|quem.*marcou|autor.*golo/.test(q)||!/epoca|top\s*\d|melhor|lista|total|goleador/.test(q)||/este mes|ultimo jogo|contra |\b\d{1,2}\/\d{1,2}\/\d{4}\b/.test(q))return null;
+ if(!/marcador|goleador|quem.*marcou|autor.*golo|mais golos|ranking/.test(q)||!/epoca|top\s*\d|melhor|lista|total|goleador|mais golos|ranking/.test(q)||/este mes|ultimo jogo|contra |\b\d{1,2}\/\d{1,2}\/\d{4}\b/.test(q))return null;
  const explicit=aliases.filter(([,pattern])=>pattern.test(q)).map(([team])=>team);
- const teams=/todos|juntar|cinco escaloes|5 escaloes/.test(q)?[]:explicit.length?explicit:requestedTeams(question,history);
- const seasonText=[question,...history.filter(m=>m.role==='user').toReversed().map(m=>m.text)].find(t=>/\b(?:20)?\d{2}[/-](?:20)?\d{2}\b/.test(t));
+ const teams=explicit.length?explicit:/todos|juntar|cinco escaloes|5 escaloes/.test(q)?[]:requestedTeams(question,history);
+ const seasonText=[question,...(/(?:nesta|desta|esta|atual|anterior|passada) epoca|epoca (?:atual|anterior|passada)/.test(q)?[]:history.filter(m=>m.role==='user').toReversed().map(m=>m.text))].find(t=>/\b(?:20)?\d{2}[/-](?:20)?\d{2}\b/.test(t));
  const token=seasonText?.match(/\b((?:20)?\d{2})[/-]((?:20)?\d{2})\b/);
  const current=season?.match(/^(20\d{2})/);
- const year=token?Number(token[1].length===2?'20'+token[1]:token[1]):current?Number(current[1]):now.getUTCFullYear()-(now.getUTCMonth()<6?1:0);
+ const previousSeason=/epoca (?:anterior|passada)|(?:anterior|passada) epoca/.test(q);
+ const year=token?Number(token[1].length===2?'20'+token[1]:token[1]):(current?Number(current[1]):now.getUTCFullYear()-(now.getUTCMonth()<6?1:0))-(previousSeason?1:0);
  const endYear=token?Number(token[2].length===2?'20'+token[2]:token[2]):year+1;
  if(endYear!==year+1)return null;
  const label=`${year}/${String(endYear).slice(-2)}`;
  const games=matches.filter(m=>m.status==='terminado'&&m.match_date>=`${year}-07-01`&&m.match_date<`${endYear}-07-01`&&(!teams.length||teams.includes(m.team_name)));
  const gameMap=new Map(games.map(m=>[m.id,m]));
  const records=scorers.filter(s=>gameMap.has(s.match_id));
- const totals=new Map();
- for(const r of records.filter(r=>r.kind==='player')) {
-  const team=gameMap.get(r.match_id).team_name;
-  const key=team+'|'+r.public_name;
-  const entry=totals.get(key)||{name:r.public_name,team,goals:0};
-  entry.goals+=r.goals;totals.set(key,entry);
- }
- const ranked=[...totals.values()].sort((a,b)=>b.goals-a.goals||a.team.localeCompare(b.team,'pt')||a.name.localeCompare(b.name,'pt'));
+ const ranked=scorerTotalsForMatches(games,records).sort((a,b)=>b.goals-a.goals||a.team.localeCompare(b.team,'pt')||a.name.localeCompare(b.name,'pt'));
  const top=q.match(/top\s*(\d+)/);
- const count=Math.min(20,Math.max(1,top?Number(top[1]):/melhor/.test(q)?1:20));
+ const count=Math.min(20,Math.max(1,top?Number(top[1]):/melhor|mais golos/.test(q)?1:20));
  const cutoff=ranked[count-1]?.goals;
  const selected=ranked.filter((r,i)=>i<count||(cutoff!==undefined&&r.goals===cutoff));
  const scope=teams.length?teams.join(', '):'todos os escalões';
@@ -102,12 +110,25 @@ export function aggregateScorerAnswer({question,history=[],matches,scorers,sourc
  else {
   text+='\n\n'+selected.map(r=>`${ranked.findIndex(x=>x.goals===r.goals)+1}. ${r.name} — ${r.team}: ${r.goals} ${r.goals===1?'golo':'golos'}`).join('\n');
   const covered=new Set(records.map(r=>r.match_id)).size;
-  text+=`\n\nLista parcial: estes números somam apenas os marcadores publicados de ${covered} jogos. Não representam o total nem o ranking definitivo da época.`;
+  text+=`\n\nLista parcial: estes números somam apenas os marcadores publicados de ${covered} ${covered===1?'jogo':'jogos'}. Não representam o total nem o ranking definitivo da época.`;
   if(selected.length>count)text+=' Incluí os jogadores empatados na última posição apresentada.';
   if(selected.length<ranked.length)text+=' Há mais marcadores registados; podes pedir a lista de um escalão.';
   const own=records.filter(r=>r.kind==='opponent_own_goal').reduce((n,r)=>n+r.goals,0);
-  if(own)text+=` Os ${own} autogolos adversários registados não contam para este ranking.`;
+  if(own)text+=` ${own===1?'O autogolo adversário registado não conta':`Os ${own} autogolos adversários registados não contam`} para este ranking.`;
  }
  const used=new Set(records.map(r=>r.sourceId));
  return {text,matches:[],schedules:[],sources:[...new Map(sources.filter(s=>used.has(s.id)).map(s=>[s.url||s.id,s])).values()].slice(0,4),choices:[],href:'/resultados',linkLabel:'Consultar jogos no site',source:'Marcadores publicados pelo clube · contagem parcial',consultedAt:now.toISOString()};
+}
+
+export function scorerTotalsForMatches(matches,scorers){
+ const gameMap=new Map(matches.filter(m=>m.status==='terminado').map(m=>[m.id,m]));
+ const records=scorers.filter(r=>gameMap.has(r.match_id));
+ const totals=new Map();
+ for(const r of records.filter(r=>r.kind==='player')) {
+  const team=gameMap.get(r.match_id).team_name;
+  const key=team+'|'+r.public_name;
+  const entry=totals.get(key)||{name:r.public_name,team,goals:0};
+  entry.goals+=r.goals;totals.set(key,entry);
+ }
+ return [...totals.values()];
 }

@@ -16,12 +16,12 @@ const calls=[],sources=[];
 const sourceId=(title,url)=>{sources.push({title,url});return 'S'+sources.length;};
 const read=async path=>{calls.push(path);return fixtures[path.split('?')[0]]??[];};
 let result=await loadPublicKnowledge({read,question:'Notícias, loja, parceiros, plantel e torneios',sourceId});
-assert.equal(result.collections.length,8);
+assert.equal(result.collections.length,publicCollections.length);
 assert(!JSON.stringify(result).includes(secret));
 assert(result.documents.some(d=>d.text.includes('Cachecol')));
 assert(result.documents.some(d=>d.text.includes('Vitória dos Juvenis')));
 assert(sources.some(s=>s.url===`https://gdrboavista.pt/noticias/${id}`));
-for(const path of calls){assert(!path.includes('select=*'));assert(publicCollections.some(s=>path.startsWith(s.table+'?')));}
+for(const path of calls){assert(!path.includes('select=*'));assert(publicCollections.some(s=>path.startsWith(s.table+'?'))||/^tournament_(teams|groups|group_teams|fields|days|rules|matches)\?/.test(path));}
 assert(!calls.some(p=>/member_requests|shop_orders|contact_requests|subscribers|senior_match/.test(p)));
 result=await loadPublicKnowledge({read,question:'Qual a missão e visão do clube?',sourceId});
 assert.equal(result.documents[0].title,'Clube, história, missão, visão e valores');
@@ -40,3 +40,15 @@ assert(result.collections.find(s=>s.category==='Notícias').mayBeTruncated);
 assert(Buffer.byteLength(JSON.stringify(result.documents))<6000);
 assert(result.documents.some(d=>d.excerpt));
 console.log('PASS: public field projection, publication flags, private table exclusion, source links, topic ranking, static page facts, partial failures, bounded pagination and bounded context.');
+
+const roster=Array.from({length:30},(_,i)=>({id:String(i),name:`Atleta ${i}`,team_key:'senior',position:'Médio',is_active:true}));
+roster.push({id:'coach',name:'Treinador Verificado',team_key:'senior',position:'Treinador Principal',roster_group:'Equipa técnica',is_active:true});
+roster.push({id:'other-coach',name:'Treinador Outro Escalão',team_key:'junior',position:'Treinador Principal',is_active:true});
+const readRoster=async path=>path.startsWith('gdrb_roster_players')?roster:read(path);
+result=await loadPublicKnowledge({read:readRoster,question:'Quem é o treinador dos Seniores?',history:[{role:'user',text:'Juniores'},{role:'assistant',text:'Juniores Juniores Juniores'}],sourceId});
+assert(result.documents[0].text.includes('Treinador Verificado'));
+result=await loadPublicKnowledge({read:readRoster,question:'Qual é a morada?',history:[{role:'user',text:'Plantel Seniores treinadores jogadores'}],sourceId});
+assert(result.documents[0].text.includes('Rua Campo da Bola, 18'));
+result=await loadPublicKnowledge({read,question:'Quem é o presidente?',sourceId});
+assert(result.documents[0].text.includes('André Gameiro'));
+console.log('PASS: coach survives roster crowding; latest topic beats past context; address and president remain discoverable.');

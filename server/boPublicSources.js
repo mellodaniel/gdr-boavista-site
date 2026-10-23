@@ -1,3 +1,4 @@
+import {tournamentDocuments} from './boTournamentSources.js';
 import staticPages from './publicKnowledge.generated.json' with {type:'json'};
 
 const SITE='https://gdrboavista.pt';
@@ -6,7 +7,11 @@ const uuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 const normalize = value => String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const plain = value => String(value??'').replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 // Explicit fields only, even if a table later gains private columns. No user-selected tables/SQL/URLs.
+const institutionalKeys=['club_short_description','contact_email','contact_phone','home_cta_text','home_cta_title','home_hero_text','home_hero_title','home_mission_title'];
 export const publicCollections=[
+ {table:'gdrb_site_contents',fields:'id,content_key,label,value',filter:`content_key=in.(${institutionalKeys.join(',')})`,route:'/clube',title:'Informação institucional e contactos',valid:r=>institutionalKeys.includes(r.content_key),name:r=>r.label||r.content_key},
+ {table:'gdrb_facebook_posts',fields:'id,title,description,facebook_url,published_at,is_active',filter:'is_active=eq.true',order:'published_at.desc.nullslast,id.asc',route:'/noticias',title:'Publicações do clube Facebook notícias',valid:r=>r.is_active===true,name:r=>r.title},
+ {table:'gdrb_age_groups',fields:'name,sort_order,outcome_only',filter:'name=not.is.null',order:'sort_order.asc,name.asc',route:'/equipas',title:'Escalões desportivos',valid:r=>typeof r.name==='string'},
  {table:'gdrb_news',fields:'id,title,summary,content,published_at,is_published,status',filter:'is_published=eq.true&status=eq.published',order:'published_at.desc.nullslast,id.asc',route:'/noticias',title:'Notícias',valid:r=>r.is_published===true&&r.status==='published',name:r=>r.title,path:r=>uuid(r.id)?`/noticias/${r.id}`:'/noticias'},
  {table:'gdrb_shop_products',fields:'id,name,description,category,price,price_label,sizes,badge,stock_status,is_active',filter:'is_active=eq.true',route:'/loja',title:'Loja produtos preços tamanhos comprar equipamentos',valid:r=>r.is_active===true},
  {table:'gdrb_sponsors',fields:'id,name,description,website_url,sponsor_level,is_active',filter:'is_active=eq.true',route:'/parceiros',title:'Parceiros patrocinadores apoios',valid:r=>r.is_active===true},
@@ -19,7 +24,7 @@ export const publicCollections=[
 
 function termsFor(question,history) {
  const stop=new Set(['qual','quais','como','onde','quando','quem','para','pelo','pela','com','uma','uns','das','dos','que','tem','sao','esta','este','esse','isso','mais','sobre','quero','saber','boavista','clube']);
- const terms=normalize([question,...history.slice(-4).map(m=>m.text)].join(' ')).match(/[a-z0-9-]{3,}/g)||[];
+ const terms=normalize([question,...history.filter(m=>m.role==='user').slice(-3).map(m=>m.text)].join(' ')).match(/[a-z0-9-]{3,}/g)||[];
  return [...new Set(terms.filter(t=>!stop.has(t)))].slice(0,60);
 }
 const score=(text,terms)=>terms.reduce((s,t)=>s+(normalize(text).includes(t)?1:0),0);
@@ -32,6 +37,10 @@ function excerpt(text,terms,max=4200) {
 
 export async function loadPublicKnowledge({read,question,history=[],sourceId,maxBytes=24000}) {
  const terms=termsFor(question,history);
+ const currentTerms=termsFor(question,[]);
+ const teamQuestion=normalize([question,...history.filter(m=>m.role==='user').toReversed().map(m=>m.text)].find(t=>/seniores|senior|juniores|junior/.test(normalize(t)))||'');
+ const teamScope=/seniores|senior/.test(teamQuestion)?'senior':/juniores|junior/.test(teamQuestion)?'junior':null;
+ const wantsCoach=/treinador|equipa tecnica/.test(normalize(question));
  const status=[];
  const docs=staticPages.map(p=>({title:p.title,path:p.path,text:p.text,category:p.title}));
  await Promise.all(publicCollections.map(async spec=>{
@@ -44,7 +53,7 @@ export async function loadPublicKnowledge({read,question,history=[],sourceId,max
     for(const row of rows.filter(spec.valid)) {
      // Project again: a mocked/misconfigured upstream must never smuggle extra columns.
      const safe=Object.fromEntries(spec.fields.split(',').filter(k=>k!=='id'&&!/^is_/.test(k)).map(k=>[k, row[k]??null]));
-     loaded.push({title:plain(spec.name?spec.name(row):row.name),path:spec.path?spec.path(row):spec.route,category:spec.title,text:JSON.stringify(safe)});
+     loaded.push({title:plain(spec.name?spec.name(row):row.name),path:spec.path?spec.path(row):spec.route,category:spec.title,text:JSON.stringify(safe),teamKey:spec.table==='gdrb_roster_players'?row.team_key:null,position:spec.table==='gdrb_roster_players'?row.position:null});
     }
     count+=rows.length;
     if(rows.length<200)break;
@@ -54,7 +63,10 @@ export async function loadPublicKnowledge({read,question,history=[],sourceId,max
    status.push({category:spec.title,available:true,records:loaded.length,mayBeTruncated:limited});
   } catch { status.push({category:spec.title,available:false,records:null}); }
  }));
- const ranked=docs.map((doc,index)=>({...doc,index,rank:(doc.path==='/contactos'&&terms.some(t=>/morada|endereco|localiza|chegar|campo/.test(t))?100:0)+score(doc.title,terms)*5+score(doc.category,terms)*2+score(doc.text,terms)})).sort((a,b)=>b.rank-a.rank||a.index-b.index);
+ if(terms.some(t=>/torneio/.test(t))){
+  try{docs.push(...await tournamentDocuments({read}));}catch{status.push({category:'Detalhes dos torneios',available:false,records:null});}
+ }
+ const ranked=docs.map((doc,index)=>({...doc,index,rank:(doc.teamKey&&teamScope?(doc.teamKey===teamScope?25:-100):0)+(wantsCoach&&/treinador/i.test(doc.position||'')?50:0)+score(doc.title,currentTerms)*12+score(doc.text,currentTerms)*3+(doc.path==='/contactos'&&terms.some(t=>/morada|endereco|localiza|chegar|campo/.test(t))?100:0)+score(doc.title,terms)*5+score(doc.category,terms)*2+score(doc.text,terms)})).sort((a,b)=>b.rank-a.rank||a.index-b.index);
  const selected=[];
  let bytes=2;
  for(const doc of ranked) {
@@ -66,5 +78,5 @@ export async function loadPublicKnowledge({read,question,history=[],sourceId,max
   bytes+=size;
  }
  return {documents:selected,collections:status,selectionIsPartial:selected.length<docs.length,
-  policy:'Só conteúdo público. Seleção por relevância; não é uma lista exaustiva. Se faltar um detalhe, indica a página correspondente. A galeria fornece descrições, não análise das imagens. Os torneios fornecem apresentação e ligação; consultar a página para jogos internos, regulamento, grupos e classificação. Nunca deduzir estatísticas de torneios a partir da apresentação.'};
+  policy:'Só conteúdo público. Seleção por relevância; não é uma lista exaustiva. Se faltar um detalhe, indica a página correspondente. A galeria fornece descrições, não análise das imagens. Os torneios incluem apenas dados de organização e jogos dos torneios publicados. Resolver nomes pelas relações entre equipas, grupos e campos. Respeitar available, mayBeTruncated e excerpt: não afirmar lista completa quando houver corte. Não calcular classificações nem estatísticas ausentes. Nunca usar notas internas ou contactos das equipas.'};
 }

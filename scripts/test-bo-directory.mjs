@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {directoryAnswer} from '../server/boDirectoryAnswers.js';
+const rows=Array.from({length:240},(_,i)=>({id:String(i),name:`Jogador ${String(i).padStart(3,'0')}`,team_key:'senior',is_active:true,roster_group:'Jogadores',notes:'SECRET'}));
+rows.push({id:'coach',name:'Treinador',team_key:'senior',is_active:true,roster_group:'Equipa técnica'});
+rows.push({id:'hidden',name:'SECRET',team_key:'senior',is_active:false});
+rows.push({id:'junior',name:'Outro escalão',team_key:'junior',is_active:true});
+const read=async path=>{assert(!path.includes('notes'));const offset=Number(new URL('https://test/'+path).searchParams.get('offset'));return rows.slice(offset,offset+200);};
+let answer=await directoryAnswer({read,question:'eu quero uma lista completa do plantel dos seniores'});
+assert(answer.text.includes('Jogador 239'));assert(answer.text.includes('Jogadores (240)'));assert(answer.text.includes('Equipa técnica (1)'));assert(!answer.text.includes('SECRET'));assert(!answer.text.includes('Outro escalão'));assert(!answer.text.includes('incompleta'));
+answer=await directoryAnswer({read,question:'Seniores',history:[{role:'user',text:'Quero o plantel completo'}]});assert(answer.text.includes('Jogadores (240)'));
+assert.equal(await directoryAnswer({read,question:'Quais jogadores marcaram golos nos Seniores?'}),null);
+assert.equal(await directoryAnswer({read,question:'Quais parceiros dão descontos?'}),null);
+answer=await directoryAnswer({read,question:'Quero o plantel completo'});assert(answer.text.includes('De que escalão'));
+await assert.rejects(directoryAnswer({read:async()=>{throw Error('offline');},question:'Plantel dos Seniores'}));
+console.log('PASS: 240 players across pages; staff separated; private/inactive/wrong-team fields excluded; follow-up scope; ambiguous scope; specific questions defer to AI; failures never claim completeness.');
