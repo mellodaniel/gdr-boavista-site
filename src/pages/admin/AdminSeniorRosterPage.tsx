@@ -83,10 +83,14 @@ export function AdminJuniorRosterPage() {
   return <AdminRosterPage key="junior" teamKey="junior" />;
 }
 
-function AdminRosterPage({ teamKey }: { teamKey: 'senior' | 'junior' }) {
-  const teamLabel = teamKey === 'junior' ? 'Juniores' : 'Sénior';
-  const rosterPath = teamKey === 'junior' ? '/equipas/juniores/plantel' : '/equipas/seniores/plantel-2026-gdrb-7f4k';
-  const sessionPrefix = teamKey === 'senior' ? 'admin:roster' : 'admin:roster:junior';
+export function AdminJuvenileRosterPage() {
+  return <AdminRosterPage key="juvenil" teamKey="juvenil" />;
+}
+
+function AdminRosterPage({ teamKey }: { teamKey: 'senior' | 'junior' | 'juvenil' }) {
+  const teamLabel = { senior: 'Sénior', junior: 'Juniores', juvenil: 'Juvenis' }[teamKey];
+  const rosterPath = { senior: '/equipas/seniores/plantel-2026-gdrb-7f4k', junior: '/equipas/juniores/plantel', juvenil: '/equipas/juvenis/plantel' }[teamKey];
+  const sessionPrefix = teamKey === 'senior' ? 'admin:roster' : `admin:roster:${teamKey}`;
   const [players, setPlayers] = useState<GdrbRosterPlayer[]>([]);
   const [form, setForm] = useSessionState(`${sessionPrefix}:form`, initialForm);
   const [editingId, setEditingId] = useSessionState<string | null>(`${sessionPrefix}:editingId`, null);
