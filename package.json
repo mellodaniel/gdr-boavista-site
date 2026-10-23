@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node server/buildPublicKnowledge.mjs && tsc -b && vite build",
+    "build": "node server/buildPublicKnowledge.mjs && tsc -b && vite build && node scripts/build-match-sheet-offline.mjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:match-sheet": "node --test scripts/test-match-sheet.mjs scripts/test-match-sheet-api.mjs scripts/test-match-sheet-repository.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

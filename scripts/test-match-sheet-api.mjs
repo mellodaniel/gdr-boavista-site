@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createMatchSheetHandler } from '../server/matchSheetApi.js';
+const id='10000000-0000-4000-8000-000000000001',uid='10000000-0000-4000-8000-000000000002',requestId='10000000-0000-4000-8000-000000000003';
+function setup(options={}){
+ const calls=[];const row={id,recorder_id:options.owner||uid,revision:2,document:{date:'2026-10-23',status:options.status||'finished',ageGroup:'Seniores',opponent:'Teste',recorder:'Diretor'}};
+ const fetcher=async(url,init={})=>{calls.push({url,init});if(url.endsWith('/auth/v1/user'))return Response.json({id:uid},{status:options.authStatus||200});if(url.includes('/gdrb_match_sheets?'))return Response.json(options.hidden?[]:[row]);if(url.endsWith('/gdrb_sheet_reserve_email'))return Response.json({id:requestId,status:options.sent?'sent':'pending',created_at:new Date().toISOString()});if(url==='https://api.resend.com/emails')return Response.json({id:'provider-id'});if(init.method==='PATCH')return Response.json([{id:requestId}]);throw new Error('Unexpected endpoint '+url);};
+ const env={SUPABASE_URL:'https://db.example',SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'private-test',RESEND_API_KEY:'email-test',MATCH_SHEET_FROM:'Club <club@example.org>',...options.env};
+ const handler=createMatchSheetHandler({fetcher,env,pdf:async doc=>{assert.deepEqual(doc,row.document);return Buffer.from('%PDF authoritative');}});
+ const res={statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v;},status(s){this.statusCode=s;return this;},json(body){this.body=body;return this;},send(body){this.body=body;return this;}};
+ const req={method:'POST',headers:{authorization:'Bearer token'},body:{id,revision:2,requestId,recipients:['director@example.org']},query:{id,revision:'2'}};
+ return {handler,res,req,calls};
+}
+test('missing auth never queries the database',async()=>{const t=setup();t.req.headers={};await t.handler(t.req,t.res);assert.equal(t.res.statusCode,401);assert.equal(t.calls.length,0);});
+test('invalid tokens are rejected before data access',async()=>{const t=setup({authStatus:401});await t.handler(t.req,t.res);assert.equal(t.res.statusCode,401);assert.equal(t.calls.length,1);});
+test('RLS-hidden sheets do not leak PDFs or emails',async()=>{const t=setup({hidden:true});await t.handler(t.req,t.res);assert.equal(t.res.statusCode,404);assert.equal(t.calls.length,2);});
+test('readers cannot send another recorder’s sheet',async()=>{const t=setup({owner:'different'});await t.handler(t.req,t.res);assert.equal(t.res.statusCode,403);});
+test('draft and stale revisions cannot be emailed',async()=>{const stale=setup();stale.req.body.revision=1;await stale.handler(stale.req,stale.res);assert.equal(stale.res.statusCode,409);for(const status of ['draft','live']){const t=setup({status});await t.handler(t.req,t.res);assert.equal(t.res.statusCode,409);}});
+test('recipient headers and limits are validated',async()=>{for(const recipients of [['a@example.org\r\nBcc:b@example.org'],Array.from({length:6},(_,i)=>`person${i}@example.org`),[]]){const t=setup();t.req.body.recipients=recipients;await t.handler(t.req,t.res);assert.equal(t.res.statusCode,400);assert.ok(!t.calls.some(c=>c.url.includes('resend')));}});
+test('PDF downloads use the authenticated snapshot and are never cached',async()=>{const t=setup();t.req.method='GET';await t.handler(t.req,t.res);assert.equal(t.res.statusCode,200);assert.equal(t.res.headers['Content-Type'],'application/pdf');assert.equal(t.res.headers['Cache-Control'],'no-store');assert.ok(Buffer.isBuffer(t.res.body));});
+test('email attaches the server PDF with a stable idempotency key and logs acceptance',async()=>{const t=setup();t.req.body.document={opponent:'CLIENT INJECTION'};await t.handler(t.req,t.res);assert.equal(t.res.statusCode,200);const send=t.calls.find(c=>c.url==='https://api.resend.com/emails');assert.equal(send.init.headers['Idempotency-Key'],`match-sheet/${requestId}`);const body=JSON.parse(send.init.body);assert.equal(Buffer.from(body.attachments[0].content,'base64').toString(),'%PDF authoritative');assert.ok(!body.subject.includes('INJECTION'));assert.ok(t.calls.some(c=>c.init.method==='PATCH'));});
+test('an already accepted request does not send another email',async()=>{const t=setup({sent:true});await t.handler(t.req,t.res);assert.equal(t.res.statusCode,200);assert.ok(!t.calls.some(c=>c.url==='https://api.resend.com/emails'));});
+test('missing email configuration is reported without attempting delivery',async()=>{const t=setup({env:{MATCH_SHEET_FROM:''}});await t.handler(t.req,t.res);assert.equal(t.res.statusCode,503);assert.ok(!t.calls.some(c=>c.url.includes('resend')));});

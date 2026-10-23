@@ -5,6 +5,10 @@
     },
     "api/chat.ts": {
       "maxDuration": 60
+    },
+    "api/match-sheet.js": {
+      "includeFiles": "server/assets/match-sheet-logo.jpg",
+      "maxDuration": 30
     }
   },
   "routes": [

@@ -59,6 +59,7 @@ const adminNavigationGroups: AdminNavigationGroup[] = [
       { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
       { label: 'Plantel Juniores', path: '/admin/equipas/juniores/plantel', icon: Users },
       { label: 'Plantel Sénior', path: '/admin/equipas/seniores/plantel', icon: Users },
+      { label: 'Ficha de jogo', path: '/ficha-de-jogo', icon: CalendarDays },
       { label: 'Jogos / Agenda', path: '/admin/jogos', icon: CalendarDays },
       { label: 'Participações em Torneios', path: '/admin/torneios', icon: Trophy },
       { label: 'Torneios do Clube', path: '/admin/gestor-torneios', icon: CalendarDays },
