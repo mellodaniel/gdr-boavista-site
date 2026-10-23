@@ -2,7 +2,7 @@
 
 ## Atualização: gestão sem login
 
-Implementação local validada em 23/10/2026; a ativação desta atualização ainda está pendente. O estado da versão anterior encontra-se abaixo.
+Implementação local validada em 23/10/2026. A migration adicional foi aplicada no Supabase após validação com rollback, conforme resultado enviado pelo utilizador. O utilizador confirmou a configuração de MATCH_SHEET_LINK_KEY para Production e Preview na Vercel. A publicação e a validação funcional continuam pendentes. O estado da versão anterior encontra-se abaixo.
 
 - A entrada passa a usar `/ficha-de-jogo#acesso=<chave>`, sem conta nem palavra-passe. Quem possui o link pode consultar, criar, editar, finalizar, arquivar, apagar e restaurar as fichas de todos os escalões configurados, incluindo as fichas anteriores.
 - A chave é aleatória (pelo menos 32 bytes, codificados em base64url), verificada exclusivamente no servidor através de `MATCH_SHEET_LINK_KEY`. Não criar uma variável `VITE_` com a chave, não a guardar no Git nem a incluir no sitemap. O fragmento não é enviado na navegação HTTP nem no Referer. As APIs recebem a chave num cabeçalho e não permitem acesso sem ela. O módulo continua excluído de Analytics e de indexação.
@@ -16,7 +16,7 @@ Implementação local validada em 23/10/2026; a ativação desta atualização a
 ### Ativar esta atualização
 
 1. Aplicar a migration adicional `20261023190000_match_sheet_management.sql` depois da migration original já instalada. Não reaplicar a original. A nova migration é transacional e não elimina fichas existentes.
-2. Validar `scripts/test-match-sheet-management.sql` (sempre rollback), além dos testes RLS anteriores. A validação SQL de gestão passou no Supabase em 23/10/2026, com rollback confirmado pelo resultado enviado pelo utilizador. O teste usa agora JSON diretamente, sem tabela temporária. Os 45 testes Node e o build já passaram localmente; a aplicação definitiva da migration continua pendente.
+2. Validar `scripts/test-match-sheet-management.sql` (sempre rollback), além dos testes RLS anteriores. A validação SQL de gestão passou no Supabase em 23/10/2026, com rollback confirmado pelo resultado enviado pelo utilizador. O teste usa agora JSON diretamente, sem tabela temporária. Os 45 testes Node e o build já passaram localmente; a aplicação definitiva da migration foi confirmada pelo utilizador no mesmo dia.
 3. Configurar `MATCH_SHEET_LINK_KEY` no ambiente Preview do Vercel com uma chave aleatória nova de 32 bytes em base64url (43 caracteres). As variáveis Supabase e Resend existentes mantêm-se. Não usar a chave de teste dos testes automatizados.
 4. Publicar a branch com a atualização. Apenas depois da publicação e da configuração é que o link completo permite entrar. Um endereço sem chave mostra uma instrução para abrir o link do clube, sem formulário de login.
 5. Validar criação → finalização → arquivo → lixo → restauro, em dois dispositivos. Confirmar uma tentativa com link inválido e uma tentativa sem chave, e validar impressão/PDF e offline. Não enviar emails reais sem destinatários autorizados.
