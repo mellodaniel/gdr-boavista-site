@@ -1,3 +1,4 @@
+import { rosters } from '../lib/rosters';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -57,9 +58,9 @@ const adminNavigationGroups: AdminNavigationGroup[] = [
     icon: Trophy,
     items: [
       { label: 'Equipas', path: '/admin/equipas', icon: Trophy },
-      { label: 'Plantel Juniores', path: '/admin/equipas/juniores/plantel', icon: Users },
-      { label: 'Plantel Juvenis', path: '/admin/equipas/juvenis/plantel', icon: Users },
-      { label: 'Plantel Sénior', path: '/admin/equipas/seniores/plantel', icon: Users },
+      ...rosters.map(roster => ({
+        label: `Plantel ${roster.label}`, path: roster.adminPath, icon: Users,
+      })),
       { label: 'Ficha de jogo', path: '/ficha-de-jogo', icon: CalendarDays },
       { label: 'Jogos / Agenda', path: '/admin/jogos', icon: CalendarDays },
       { label: 'Participações em Torneios', path: '/admin/torneios', icon: Trophy },
