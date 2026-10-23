@@ -2,6 +2,14 @@
 
 Área privada em `/ficha-de-jogo`, acessível também pelo menu Futebol do backoffice e pelos atalhos PWA. O emblema oficial existente é apresentado na página, na impressão e no PDF. Implementação preparada sobre o commit `f02568a`, numa branch isolada `codex/ficha-jogo-virtual`.
 
+## Estado em 23/10/2026
+
+Preview publicado: https://gdr-boavista-site-git-codex-fi-83c2da-daniels-projects-ded1651f.vercel.app/ficha-de-jogo
+
+A migration foi aplicada ao projeto Supabase existente depois de validar a migration, os testes RLS e o carregamento do plantel numa única transação com rollback confirmado. Foram configurados 13 escalões; existem plantéis ativos apenas para Seniores e Juniores. Não reaplicar a migration neste projeto. O domínio de produção não foi alterado.
+
+Corrigidos no GitHub: inclusão do script de build em `.vercelignore` (`9a40b72`) e declaração da coluna `position` na função de plantel (`3dcc8c1`). A página de entrada e o emblema foram verificados no browser. As variáveis necessárias a Supabase e Resend estão presentes no ambiente Preview, sem exposição dos seus valores. O fluxo autenticado completo, o envio real de email e o uso offline em dispositivos reais continuam pendentes do piloto.
+
 ## Utilização
 
 1. Entrar com uma conta do clube. Os administradores atuais (`gdrb_gallery_is_admin`) têm acesso; outras contas precisam de autorização por escalão.
@@ -13,9 +21,9 @@
 
 Não é necessária uma nova aplicação, domínio ou biblioteca npm. São necessários os serviços já utilizados: Vercel, Supabase e Resend.
 
-1. Atualizar esta branch com a versão remota atual antes de publicar. O acesso à rede estava indisponível durante a implementação, pelo que a base local não foi comparada com o GitHub em tempo real.
+1. Atualizar esta branch com a versão remota atual antes de publicar. O utilizador executou fetch e push em 23/10/2026; a base foi comparada com o GitHub antes do primeiro envio. As correções seguintes foram publicadas pela interface do GitHub.
 2. Aplicar `supabase/migrations/20261023120000_match_sheets.sql` primeiro num ambiente de teste com as migrations anteriores. A migration é aditiva: não altera os jogadores nem publica resultados.
-3. Executar `scripts/test-match-sheet-rls.sql` nesse ambiente de teste; a transação faz rollback. Os testes SQL precisam de PostgreSQL/Supabase e não foram executados no ambiente de desenvolvimento desta entrega.
+3. Executar `scripts/test-match-sheet-rls.sql` nesse ambiente de teste; a transação faz rollback. A validação de 23/10/2026 combinou a migration e estes testes antes de qualquer commit, incluindo uma chamada autorizada à função de plantel. Todos passaram e o rollback foi confirmado antes da ativação.
 4. Manter `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. Para a API, usar `SUPABASE_URL` (ou a variável pública equivalente), `SUPABASE_ANON_KEY` (ou equivalente), `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` e `MATCH_SHEET_FROM` com um remetente verificado no Resend. Se `MATCH_SHEET_FROM` estiver ausente, a API aceita `CONTACT_NOTIFICATION_FROM` ou `NEWSLETTER_FROM`. As chaves privadas nunca são expostas no cliente.
 5. Executar `npm run test:match-sheet` e `npm run build`. O build gera o inventário de recursos do service worker exclusivo da ficha. Publicar pelo fluxo habitual do repositório/Vercel.
 6. Abrir `/ficha-de-jogo` como administrador. Seniores e Juniores ficam associados às chaves conhecidas `senior` e `junior`. Associar os restantes escalões a plantéis reais em Configuração; não são inventados nem duplicados jogadores.
@@ -54,4 +62,4 @@ Os pedidos de email guardam a chave de tentativa no dispositivo, preservando-a a
 
 Testes automatizados de regras de jogo, cronómetro, armazenamento/sincronização com adaptadores em memória, conflitos, autorização da API, idempotência de email e estrutura do PDF. A compilação TypeScript e o build Vite foram executados. O PDF de teste foi renderizado e inspecionado visualmente.
 
-Não foram aplicadas alterações à base em produção, enviados emails reais nem publicada uma versão. A validação visual da interface no navegador, a instalação PWA num dispositivo real e os testes SQL ficam pendentes por limitações de rede/execução deste ambiente.
+Foi publicado um Preview no Vercel e ativado o esquema privado da ficha no Supabase existente. Os testes SQL de gravação, revisões, conflitos, leitura/escrita por escalão, consulta e bloqueio anónimo passaram; o carregamento do plantel também foi exercitado. O ecrã de entrada foi revisto no browser. Não foram enviados emails reais nem feita promoção para o domínio de produção. Faltam os testes completos com uma conta do clube e em dispositivos reais.
