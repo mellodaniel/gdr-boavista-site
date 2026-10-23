@@ -1,3 +1,4 @@
+import { rosters, type RosterKey } from '../../lib/rosters';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import {
@@ -87,9 +88,10 @@ export function AdminJuvenileRosterPage() {
   return <AdminRosterPage key="juvenil" teamKey="juvenil" />;
 }
 
-function AdminRosterPage({ teamKey }: { teamKey: 'senior' | 'junior' | 'juvenil' }) {
-  const teamLabel = { senior: 'Sénior', junior: 'Juniores', juvenil: 'Juvenis' }[teamKey];
-  const rosterPath = { senior: '/equipas/seniores/plantel-2026-gdrb-7f4k', junior: '/equipas/juniores/plantel', juvenil: '/equipas/juvenis/plantel' }[teamKey];
+function AdminRosterPage({ teamKey }: { teamKey: RosterKey }) {
+  const roster = rosters.find(item => item.key === teamKey)!;
+  const teamLabel = roster.label;
+  const rosterPath = roster.publicPath;
   const sessionPrefix = teamKey === 'senior' ? 'admin:roster' : `admin:roster:${teamKey}`;
   const [players, setPlayers] = useState<GdrbRosterPlayer[]>([]);
   const [form, setForm] = useSessionState(`${sessionPrefix}:form`, initialForm);

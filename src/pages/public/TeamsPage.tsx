@@ -1,3 +1,4 @@
+import { getRosterForTeam } from '../../lib/rosters';
 import { AGE_GROUPS } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -15,19 +16,8 @@ const fallbackTeams = AGE_GROUPS.filter(name => name !== 'equipa de desenvolvime
 const filters = ['Todos', 'Futebol 5', 'Futebol 7', 'Futebol 9', 'Futebol 11'];
 
 
-function normalizeText(value: string | null | undefined) {
-  return (value ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
 function getRosterPath(team: GdrbTeam) {
-  const name = normalizeText(team.name);
-  if (name === 'juvenis' || name === 'juvenis a') return '/equipas/juvenis/plantel';
-  if (name.includes('junior')) return '/equipas/juniores/plantel';
-  if (name.includes('senior')) return '/equipas/seniores/plantel-2026-gdrb-7f4k';
-  return null;
+  return getRosterForTeam(team.name)?.publicPath ?? null;
 }
 
 export function TeamsPage() {

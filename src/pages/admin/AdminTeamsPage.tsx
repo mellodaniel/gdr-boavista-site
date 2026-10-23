@@ -1,3 +1,4 @@
+import { getRosterForTeam } from '../../lib/rosters';
 import { ageGroupLabel, AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -38,12 +39,6 @@ const footballTypes = ['Futebol 5', 'Futebol 7', 'Futebol 9', 'Futebol 11'];
 const pageSizeOptions = [10, 25, 50];
 
 type TeamStatusFilter = 'active' | 'all' | 'hidden';
-
-function hasSeniorRoster(team: GdrbTeam) {
-  const name = normalizeText(team.name).trim();
-
-  return name.includes('senior');
-}
 
 function normalizeText(value: string | null | undefined) {
   return (value ?? '')
@@ -608,9 +603,9 @@ export function AdminTeamsPage() {
                       Editar
                     </button>
 
-                    {hasSeniorRoster(team) ? (
+                    {getRosterForTeam(team.name) ? (
                       <Link
-                        to="/admin/equipas/seniores/plantel"
+                        to={getRosterForTeam(team.name)!.adminPath}
                         className="flex min-h-11 items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-black text-red-700 hover:bg-red-100"
                       >
                         Plantel
@@ -717,9 +712,9 @@ export function AdminTeamsPage() {
                             Editar
                           </button>
 
-                          {hasSeniorRoster(team) && (
+                          {getRosterForTeam(team.name) && (
                             <Link
-                              to="/admin/equipas/seniores/plantel"
+                              to={getRosterForTeam(team.name)!.adminPath}
                               className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100"
                             >
                               Plantel
