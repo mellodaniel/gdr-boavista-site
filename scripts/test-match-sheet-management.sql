@@ -1,15 +1,12 @@
 -- Run after both match-sheet migrations. Contains only isolated fixtures; always rolls back.
 begin;
-create temporary table sheet_management_fixture(document jsonb);
-insert into sheet_management_fixture values ('{"schema":1,"id":"99000000-0000-4000-8000-000000000010","ageGroup":"Seniores","season":"2026/2027","calendarId":null,"opponent":"Teste gestão","date":"2026-10-23","time":"15:00","venue":"Teste","competition":"Teste","home":true,"recorder":"Diretor teste","notes":"","status":"draft","outcome":"","rules":{"fieldSize":11,"periodMinutes":45,"periods":2,"reentry":false,"recordGoals":true},"clock":{"period":1,"elapsedMs":0,"startedAt":null},"squad":[],"events":[]}');
-grant select on sheet_management_fixture to service_role;
 set local role service_role;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 select set_config('request.jwt.claim.role','service_role',true);
 select set_config('request.jwt.claim.sub','',true);
 do $$declare sid uuid:='99000000-0000-4000-8000-000000000010'; row public.gdrb_match_sheets; d jsonb;
 begin
- select document into d from sheet_management_fixture;
+ d := '{"schema":1,"id":"99000000-0000-4000-8000-000000000010","ageGroup":"Seniores","season":"2026/2027","calendarId":null,"opponent":"Teste gestão","date":"2026-10-23","time":"15:00","venue":"Teste","competition":"Teste","home":true,"recorder":"Diretor teste","notes":"","status":"draft","outcome":"","rules":{"fieldSize":11,"periodMinutes":45,"periods":2,"reentry":false,"recordGoals":true},"clock":{"period":1,"elapsedMs":0,"startedAt":null},"squad":[],"events":[]}'::jsonb;
  if public.gdrb_save_match_sheet(d,0)<>1 then raise exception 'Shared create failed';end if;
  if (select recorder_id from public.gdrb_match_sheets where id=sid) is not null then raise exception 'Shared writer unexpectedly impersonates a user';end if;
  begin perform public.gdrb_manage_match_sheet(sid,1,'archive');raise exception 'Draft archived';exception when raise_exception then if sqlerrm='Draft archived' then raise;end if;end;

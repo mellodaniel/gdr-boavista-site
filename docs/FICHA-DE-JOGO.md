@@ -16,7 +16,7 @@ Implementação local validada em 23/10/2026; a ativação desta atualização a
 ### Ativar esta atualização
 
 1. Aplicar a migration adicional `20261023190000_match_sheet_management.sql` depois da migration original já instalada. Não reaplicar a original. A nova migration é transacional e não elimina fichas existentes.
-2. Validar `scripts/test-match-sheet-management.sql` (sempre rollback), além dos testes RLS anteriores. A verificação SQL desta atualização ainda depende de execução no Supabase; os 45 testes Node e o build já passaram localmente.
+2. Validar `scripts/test-match-sheet-management.sql` (sempre rollback), além dos testes RLS anteriores. A validação SQL de gestão passou no Supabase em 23/10/2026, com rollback confirmado pelo resultado enviado pelo utilizador. O teste usa agora JSON diretamente, sem tabela temporária. Os 45 testes Node e o build já passaram localmente; a aplicação definitiva da migration continua pendente.
 3. Configurar `MATCH_SHEET_LINK_KEY` no ambiente Preview do Vercel com uma chave aleatória nova de 32 bytes em base64url (43 caracteres). As variáveis Supabase e Resend existentes mantêm-se. Não usar a chave de teste dos testes automatizados.
 4. Publicar a branch com a atualização. Apenas depois da publicação e da configuração é que o link completo permite entrar. Um endereço sem chave mostra uma instrução para abrir o link do clube, sem formulário de login.
 5. Validar criação → finalização → arquivo → lixo → restauro, em dois dispositivos. Confirmar uma tentativa com link inválido e uma tentativa sem chave, e validar impressão/PDF e offline. Não enviar emails reais sem destinatários autorizados.
