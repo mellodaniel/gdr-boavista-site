@@ -87,3 +87,13 @@ Os pedidos de email guardam a chave de tentativa no dispositivo, preservando-a a
 Testes automatizados de regras de jogo, cronómetro, armazenamento/sincronização com adaptadores em memória, conflitos, autorização da API, idempotência de email e estrutura do PDF. A compilação TypeScript e o build Vite foram executados. O PDF de teste foi renderizado e inspecionado visualmente.
 
 Foi publicado um Preview no Vercel e ativado o esquema privado da ficha no Supabase existente. Os testes SQL de gravação, revisões, conflitos, leitura/escrita por escalão, consulta e bloqueio anónimo passaram; o carregamento do plantel também foi exercitado. O ecrã de entrada foi revisto no browser. Não foram enviados emails reais nem feita promoção para o domínio de produção. Faltam os testes completos com uma conta do clube e em dispositivos reais.
+
+## Ditado nas observações — 25/10/2026
+
+As observações finais e notas dos eventos permitem ditado em português. O navegador grava áudio mono, converte para WAV PCM de 16 kHz e limita cada gravação a 60 segundos. O endpoint privado `/api/match-sheet-transcribe` valida a chave da ficha, formato, tamanho, duração efetiva e silêncio antes de usar `gpt-4o-mini-transcribe` com a mesma `OPENAI_API_KEY` do Bô. Não altera `OPENAI_MODEL` nem o chat. A chave precisa de acesso ao endpoint de transcrição.
+
+A resposta fica num campo editável de revisão. Apenas “Adicionar às observações” acrescenta o texto numa nova linha; respeita os limites de 4000/1500 caracteres sem truncar notas anteriores. Cancelar, fechar o formulário, perder a edição ou ocultar a página durante a gravação liberta o microfone. Cancelar um pedido já enviado não garante que o fornecedor deixe de o processar. O site não persiste áudio; a política de retenção do fornecedor continua aplicável.
+
+A API não guarda texto nem áudio e não regista o conteúdo em logs. A proteção de rajada (10 pedidos por minuto/IP) é local a cada instância, não um orçamento global. Os limites de acesso, tamanho e duração aplicam-se a cada pedido. Falta de rede, permissão, fala ou serviço mantém a escrita manual. Não há envio automático posterior de gravações offline.
+
+Validação: testes de API e de áudio em `scripts/test-match-sheet-transcription.mjs`. A fixture local `scripts/fixtures/dictation.html` testa o componente real com microfone e resposta simulados, sem recolher áudio nem consumir API. Não faz parte do build público. Testes em dispositivos físicos devem incluir Safari/iPhone e Chrome/Android, ruído, bloqueio de ecrã e recusa de permissão.

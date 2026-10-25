@@ -9,6 +9,9 @@
     "api/match-sheet.js": {
       "includeFiles": "server/assets/match-sheet-logo.jpg",
       "maxDuration": 30
+    },
+    "api/match-sheet-transcribe.js": {
+      "maxDuration": 60
     }
   },
   "routes": [
