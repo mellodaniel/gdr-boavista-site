@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { eventDescription,eventLabels,eventMinute,orderedEvents,MATCH_SHEET_CLUB_NAME, matchPresentation,validateSheet } from '../src/features/match-sheet/model.js';
+import { playerParticipation,formatPlayingTime,eventDescription,eventLabels,eventMinute,orderedEvents,MATCH_SHEET_CLUB_NAME, matchPresentation,validateSheet } from '../src/features/match-sheet/model.js';
 
 // Small A4 writer using PDF's standard WinAnsi Helvetica fonts. No browser or remote image fetch.
 const winAnsi={'€':128,'‚':130,'ƒ':131,'„':132,'…':133,'†':134,'‡':135,'ˆ':136,'‰':137,'Š':138,'‹':139,'Œ':140,'Ž':142,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'˜':152,'™':153,'š':154,'›':155,'œ':156,'ž':158,'Ÿ':159,'′':39};
@@ -30,7 +30,9 @@ export async function makeMatchSheetPdf(sheet,revision){
   paragraph(`${sheet.competition||'Jogo particular'} · Futebol ${sheet.rules.fieldSize} · ${sheet.rules.periods} × ${sheet.rules.periodMinutes} minutos`);
   paragraph(`Responsável: ${sheet.recorder}`);
   paragraph(`Resultado: ${sheet.rules.recordGoals?result.result:sheet.outcome==='win'?'Vitória':sheet.outcome==='loss'?'Derrota':'Por indicar'}`,{font:13,bold:true});
-  heading('Convocatória');table(['N.º','Jogador','Condição inicial'],sheet.squad.map(p=>[p.shirt_number??'—',p.name+(p.captain?' (C)':''),p.starter?'Titular':'Suplente']),[45,326,140]);
+  const participation=playerParticipation(sheet);
+  heading('Convocatória e minutos');table(['N.º','Jogador','Condição','Minutos'],sheet.squad.map(p=>[p.shirt_number??'—',p.name+(p.captain?' (C)':''),p.starter?'Titular':'Suplente',formatPlayingTime(participation.players.find(row=>row.id===p.id)?.elapsedMs||0)]),[40,271,110,90]);
+  paragraph('Minutos calculados pelos registos, incluindo acréscimos e reentradas; excluem o intervalo.'+(participation.estimated?' Estimativa: faltam durações de períodos ou o relógio não acompanha os eventos.':''),{font:9});
   heading('Eventos do jogo');if(sheet.events.length)table(['Minuto','Evento','Detalhe'],orderedEvents(sheet).map(e=>[`${eventMinute(e)} · ${e.period}.º P`,eventLabels[e.kind],eventDescription(sheet,e)]),[85,126,300]);else paragraph('Sem eventos registados.');
   heading('Observações');paragraph(sheet.notes||'Sem observações.');
   if(ops.length)pages.push(ops.join('\n'));
