@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import {
@@ -323,7 +325,7 @@ export function AdminContactImportPage() {
   const [runtimeFailures, setRuntimeFailures] = useState<ImportFailure[]>([]);
   const [showAllPreview, setShowAllPreview] = useState(false);
   const [previewPage, setPreviewPage] = useState(1);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useFeedback<{ type: 'success' | 'error'; text: string } | null>(null);
 
   async function loadReferenceData(preserveMessage = false) {
     setLoading(true);
@@ -930,7 +932,7 @@ export function AdminContactImportPage() {
       </section>
 
       {message && (
-        <div
+        <DismissibleFeedback onDismiss={()=>setMessage(null)} error={message.type==='error'}><div
           className={`rounded-xl border px-5 py-4 text-sm font-semibold ${
             message.type === 'success'
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -938,7 +940,7 @@ export function AdminContactImportPage() {
           }`}
         >
           {message.text}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       <section className="grid gap-4 md:grid-cols-4">

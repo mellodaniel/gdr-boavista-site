@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
@@ -76,7 +78,7 @@ function getVisibleRange(total: number, page: number, pageSize: number) {
 export function AdminContactsPage() {
   const [contacts, setContacts] = useState<GdrbContactRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [errorMessage, setErrorMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -217,15 +219,15 @@ export function AdminContactsPage() {
       </section>
 
       {successMessage && (
-        <div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
+        <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
           {successMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {errorMessage && (
-        <div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
+        <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
           {errorMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       <section className="mt-6 grid grid-cols-2 gap-3 md:mt-8 md:grid-cols-4 md:gap-4">

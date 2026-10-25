@@ -1,9 +1,10 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Monitor, Copy, ExternalLink } from 'lucide-react';
 const TV_URL='https://gdrboavista.pt/tv';
 export function AdminTvPage(){
- const [copied,setCopied]=useState(false);
+ const [copied,setCopied]=useFeedback(false);
  const [error,setError]=useState('');
  return <div className="space-y-7"><header><p className="text-xs font-bold uppercase tracking-[.25em] text-red-700">Canal do clube · Fase de teste</p><h1 className="mt-3 text-3xl font-black">Boavista TV</h1><p className="mt-3 max-w-3xl text-zinc-600">Notícias, próximos jogos, resultados e parceiros em rotação automática, com atualização a cada minuto.</p></header>
  <div className="grid gap-5 lg:grid-cols-2"><section className="rounded-2xl border border-zinc-200 bg-white p-6"><Monitor className="text-red-700"/><h2 className="mt-4 text-xl font-bold">Partilhar o canal</h2><p className="mt-4 text-zinc-600">Durante os testes, qualquer pessoa com este link pode ver o canal, sem registo ou ativação. Funciona em várias televisões, telemóveis e computadores ao mesmo tempo.</p><label htmlFor="tv-share-link" className="mt-6 block text-sm font-bold">Link para apresentação</label><input id="tv-share-link" readOnly value={TV_URL} className="mt-2 w-full rounded-lg border border-zinc-200 p-3" onFocus={e=>e.target.select()}/><button onClick={async()=>{try{await navigator.clipboard.writeText(TV_URL);setCopied(true);setError('');}catch{setError('Selecione o link e copie manualmente.');}}} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-700 px-5 py-3 font-bold text-white"><Copy size={18}/>{copied?'Copiado':'Copiar link'}</button>{error&&<p role="alert" className="mt-3 text-red-700">{error}</p>}<p className="mt-4 text-sm text-zinc-500">O link não expira nem fica associado ao primeiro dispositivo. A edição dos conteúdos continua reservada ao backoffice.</p></section>

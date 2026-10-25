@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CheckCircle2, ChevronLeft, MailX } from 'lucide-react';
@@ -5,7 +7,8 @@ import { CheckCircle2, ChevronLeft, MailX } from 'lucide-react';
 export function NewsletterUnsubscribePage() {
   const { token } = useParams<{ token: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [completed,setCompleted]=useState(false);
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [errorMessage, setErrorMessage] = useState('');
 
   async function handleUnsubscribe() {
@@ -37,6 +40,7 @@ export function NewsletterUnsubscribePage() {
         throw new Error(result?.error || 'Não foi possível cancelar a subscrição.');
       }
 
+      setCompleted(true);
       setSuccessMessage('A subscrição foi cancelada com sucesso. Não receberás novas comunicações da newsletter.');
     } catch (error) {
       console.error('Erro ao cancelar subscrição:', error);
@@ -78,27 +82,27 @@ export function NewsletterUnsubscribePage() {
             </div>
 
             <h2 className="mt-8 font-serif text-4xl font-light text-[#24180f]">
-              Queres cancelar a newsletter?
+              {completed?'Subscrição cancelada.':'Queres cancelar a newsletter?'}
             </h2>
 
             <p className="mt-4 text-sm leading-7 text-zinc-500">
-              Ao confirmar, o teu email será marcado como inativo e deixará de receber newsletters e comunicações em lote do clube.
+              {completed?'O teu email deixou de receber as comunicações da newsletter.':'Ao confirmar, o teu email será marcado como inativo e deixará de receber newsletters e comunicações em lote do clube.'}
             </p>
 
             {successMessage && (
-              <div className="mt-7 flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-4 text-left text-sm font-semibold text-green-800">
+              <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="mt-7 flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-4 text-left text-sm font-semibold text-green-800">
                 <CheckCircle2 size={20} />
                 <span>{successMessage}</span>
-              </div>
+              </div></DismissibleFeedback>
             )}
 
             {errorMessage && (
-              <div className="mt-7 rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-800">
+              <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="mt-7 rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-800">
                 {errorMessage}
-              </div>
+              </div></DismissibleFeedback>
             )}
 
-            {!successMessage && (
+            {!completed && (
               <button
                 type="button"
                 onClick={handleUnsubscribe}

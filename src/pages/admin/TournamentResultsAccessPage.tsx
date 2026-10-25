@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { isOutcomeOnly } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -184,7 +186,7 @@ export default function TournamentResultsAccessPage() {
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [updatingFinals, setUpdatingFinals] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
 
   const teamById = useMemo(() => {
     return teams.reduce<Record<string, TournamentManagerTeam>>((accumulator, team) => {
@@ -551,9 +553,9 @@ export default function TournamentResultsAccessPage() {
       </div>
 
       {successMessage && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
+        <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
           {successMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {errorMessage && access && (

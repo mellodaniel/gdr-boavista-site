@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ChevronDown,
@@ -173,7 +175,7 @@ function getReportColumns(requests: GdrbMemberRequest[]) {
 export function AdminMembersPage() {
   const [requests, setRequests] = useState<GdrbMemberRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [errorMessage, setErrorMessage] = useState('');
   const [reportStartDate, setReportStartDate] = useState(getDefaultStartDate());
   const [reportEndDate, setReportEndDate] = useState(getDefaultEndDate());
@@ -580,15 +582,15 @@ export function AdminMembersPage() {
       </section>
 
       {successMessage && (
-        <div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
+        <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
           {successMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {errorMessage && (
-        <div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
+        <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
           {errorMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:mt-8 md:rounded-sm md:p-5">

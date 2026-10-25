@@ -1,3 +1,4 @@
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -264,9 +265,9 @@ export function AdminLoginPage() {
               </div>
 
               {errorMessage && (
-                <div className="mb-6 rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+                <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="mb-6 rounded-sm border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
                   {errorMessage}
-                </div>
+                </div></DismissibleFeedback>
               )}
 
               <form onSubmit={handleSubmit} className="grid gap-5">

@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:match-sheet": "node --test scripts/test-match-sheet.mjs scripts/test-match-sheet-api.mjs scripts/test-match-sheet-repository.mjs scripts/test-match-sheet-workspace.mjs scripts/test-match-sheet-transcription.mjs",
-    "test:fan-live": "node --test scripts/test-fan-live.mjs"
+    "test:fan-live": "node --test scripts/test-fan-live.mjs",
+    "test:feedback": "node --test scripts/test-feedback.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

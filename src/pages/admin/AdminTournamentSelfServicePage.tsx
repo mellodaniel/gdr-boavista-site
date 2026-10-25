@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
 import { AgeGroupSelect } from '../../components/AgeGroupSelect';
 import { useMemo, useState } from 'react';
@@ -528,7 +530,7 @@ export function AdminTournamentSelfServicePage() {
   const [isCreating, setIsCreating] = useState(false);
   const [createdTournament, setCreatedTournament] = useState<CreatedTournament | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
 
   const dates = useMemo(() => getDates(form), [form]);
   const teams = useMemo(() => getTeams(form), [form]);
@@ -1520,15 +1522,15 @@ export function AdminTournamentSelfServicePage() {
                   </div>
 
                   {errorMessage && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">
+                    <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">
                       {errorMessage}
-                    </div>
+                    </div></DismissibleFeedback>
                   )}
 
                   {successMessage && (
-                    <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm leading-6 text-green-800">
+                    <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm leading-6 text-green-800">
                       {successMessage}
-                    </div>
+                    </div></DismissibleFeedback>
                   )}
 
                   {createdTournament && (

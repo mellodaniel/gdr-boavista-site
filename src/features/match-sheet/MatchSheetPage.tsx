@@ -1,3 +1,4 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
 import {OpponentBadgeField} from './OpponentBadgeField';
 import { FanSharing } from './FanSharing';
 import { VoiceObservation } from './VoiceObservation';
@@ -37,8 +38,7 @@ function MatchWorkspace({access}:{access:SharedAccess}){
   const [params]=useSearchParams(),navigate=useNavigate();const selected=params.get('ficha');
   const setParams=(values:Record<string,string>)=>navigate({search:new URLSearchParams(values).toString(),hash:window.location.hash});
   const [sheet,setSheet]=useState<MatchSheet|null>(null),current=useRef<MatchSheet|null>(null),loadedRevision=useRef(-1);
-  const [,redraw]=useState(0);const [ready,setReady]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
-  useEffect(()=>{if(!notice)return;const timer=window.setTimeout(()=>setNotice(''),6000);return()=>window.clearTimeout(timer);},[notice]);
+  const [,redraw]=useState(0);const [ready,setReady]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useFeedback('');
   const [online,setOnline]=useState(navigator.onLine),[tab,setTab]=useState<'prepare'|'live'|'report'>('prepare');
   const [teamName,setTeamName]=useState(''),[roster,setRoster]=useState<RosterPlayer[]>([]),[rosterLoading,setRosterLoading]=useState(false);
   const [calendar,setCalendar]=useState<GdrbMatch[]>([]),[event,setEvent]=useState<SheetEvent|null>(null);
@@ -128,7 +128,7 @@ function MatchWorkspace({access}:{access:SharedAccess}){
     <header className="ms-top"><Brand/><div className="ms-top-actions">{!online&&<span className="ms-offline"><WifiOff size={16}/>Sem ligação</span>}<button className="ms-icon" onClick={()=>void shareLink()} aria-label="Copiar link de acesso"><Link size={20}/></button></div></header>
     <div className="ms-container">
       {error&&<div className="ms-error ms-alert" role="alert"><span>{error}</span><button className="ms-icon" aria-label="Fechar aviso" onClick={()=>setError('')}><X size={18}/></button></div>}
-      {notice&&<div className="ms-notice ms-alert" role="status"><span>{notice}</span><button className="ms-icon" aria-label="Fechar confirmação" onClick={()=>setNotice('')}><X size={18}/></button></div>}
+      {notice&&<div className="ms-notice ms-alert" data-feedback role="status"><span>{notice}</span><button className="ms-icon" aria-label="Fechar confirmação" onClick={()=>setNotice('')}><X size={18}/></button></div>}
       {!ready?<div className="ms-panel">A carregar as fichas…</div>:!sheet?<>
         <div className="ms-page-title"><div className="ms-eyebrow">DIA DE JOGO</div><h1>Fichas de jogo.</h1><p>Prepara o próximo jogo e mantém o histórico da tua equipa organizado.</p></div>
         <section className="ms-panel ms-new"><label>Escalão<select value={teamName} onChange={e=>setTeamName(e.target.value)}><option value="">Selecionar escalão</option>{context.teams.filter(t=>canCreate(t.age_group)).map(t=><option key={t.age_group}>{t.age_group}</option>)}</select></label><button className="ms-primary" disabled={!teamName} onClick={create}><Plus size={20}/>Nova ficha</button></section>

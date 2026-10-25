@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
@@ -176,7 +178,7 @@ export function AdminSubscribersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [editingSubscriber, setEditingSubscriber] = useSessionState<Subscriber | null>('admin:subscribers:editingSubscriber', null);
   const [editForm, setEditForm] = useSessionState<EditForm>('admin:subscribers:editForm', emptyEditForm);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useFeedback<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   async function loadSubscribers() {
@@ -506,7 +508,7 @@ export function AdminSubscribersPage() {
       </section>
 
       {message && (
-        <div
+        <DismissibleFeedback onDismiss={()=>setMessage(null)} error={message.type==='error'}><div
           className={`rounded-xl border px-5 py-4 text-sm font-semibold ${
             message.type === 'success'
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -514,7 +516,7 @@ export function AdminSubscribersPage() {
           }`}
         >
           {message.text}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">

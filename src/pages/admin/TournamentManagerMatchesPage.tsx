@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { isOutcomeOnly } from '../../lib/ageGroups';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -216,7 +218,7 @@ export default function TournamentManagerMatchesPage() {
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
   const [savingGoalKey, setSavingGoalKey] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [lastCapacityReport, setLastCapacityReport] = useState<string[]>([]);
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [matchSearch, setMatchSearch] = useState('');
@@ -1034,8 +1036,8 @@ export default function TournamentManagerMatchesPage() {
         </div>
       </div>
 
-      {errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{errorMessage}</div>}
-      {successMessage && <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-green-700">{successMessage}</div>}
+      {errorMessage && <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{errorMessage}</div></DismissibleFeedback>}
+      {successMessage && <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="rounded-xl border border-green-200 bg-green-50 p-4 text-green-700">{successMessage}</div></DismissibleFeedback>}
 
       <div className="grid gap-4 lg:grid-cols-4">
         <SummaryCard title="Jogos" value={String(matches.length)} icon={<CalendarDays className="h-5 w-5" />} />

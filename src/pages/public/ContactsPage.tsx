@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import {
@@ -55,7 +57,7 @@ const contactItems = [
 export function ContactsPage() {
   const [form, setForm] = useSessionState('public:contacts:form', initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [errorMessage, setErrorMessage] = useState('');
 
   function handleChange(field: keyof typeof initialForm, value: string) {
@@ -171,16 +173,16 @@ export function ContactsPage() {
             </div>
 
             {successMessage && (
-              <div className="mt-6 flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
+              <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="mt-6 flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
                 <CheckCircle2 size={20} />
                 {successMessage}
-              </div>
+              </div></DismissibleFeedback>
             )}
 
             {errorMessage && (
-              <div className="mt-6 rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+              <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="mt-6 rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
                 {errorMessage}
-              </div>
+              </div></DismissibleFeedback>
             )}
 
             <div className="mt-7 grid gap-5">
