@@ -25,3 +25,5 @@
 @media print{.ms-manage-actions,.ms-filters,.ms-search-row{display:none!important}}
 
 .ms-participation{margin:16px 0}.ms-participation-groups{display:grid;gap:16px}.ms-participation-groups h3{font-size:14px;margin:12px 0}.ms-participation-player{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.ms-participation-player small{display:block;color:#61665e;margin-top:3px}.ms-participation-player b{white-space:nowrap}@media(min-width:700px){.ms-participation-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.ms-voice{border:1px solid #dedfd9;border-radius:12px;padding:12px;margin:12px 0}.ms-voice>button{margin:4px}.ms-voice-recording{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:#a32323;font-weight:700}.ms-voice textarea{width:100%}@media print{.ms-voice{display:none!important}}
