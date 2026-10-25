@@ -20,8 +20,8 @@ export function createMatchSheetWorkspace({ fetcher = fetch, env = process.env }
         try { input = JSON.parse(input); } catch { return fail(400, 'Pedido inválido.'); }
       }
       if (!input || Buffer.byteLength(JSON.stringify(input)) > 1048576) return fail(413, 'Pedido demasiado grande.');
-      const db = async (path, body) => {
-        const response = await fetcher(`${base}/rest/v1/${path}`, { method: body ? 'POST' : 'GET', headers, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(10000) });
+      const db = async (path, body, method) => {
+        const response = await fetcher(`${base}/rest/v1/${path}`, { method: method || (body ? 'POST' : 'GET'), headers, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(10000) });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw Object.assign(new Error(data.code === '40001' ? 'Esta ficha mudou noutro dispositivo. Atualiza antes de continuar.' : data.code === 'P0001' ? data.message : 'Não foi possível concluir a operação.'), { status: data.code === '40001' ? 409 : data.code === '42501' ? 403 : 400, code: data.code });
         return data;
@@ -48,7 +48,10 @@ export function createMatchSheetWorkspace({ fetcher = fetch, env = process.env }
       if (input.action === 'save') {
         const issue = validateSheet(input.document);
         if (issue || !uuid.test(input.document.id) || !Number.isSafeInteger(input.revision) || input.revision < 0) return fail(400, issue || 'Versão inválida.', 'P0001');
-        const revision = await db('rpc/gdrb_save_match_sheet', { p_document: input.document, p_revision: input.revision });
+        const document = {...input.document,rules:{...input.document.rules,recordGoals:true}};
+        // Upgrade the match-sheet team configuration before the RPC validates legacy restrictions.
+        await db(`gdrb_match_sheet_teams?age_group=eq.${encodeURIComponent(document.ageGroup)}&record_goals=eq.false`, {record_goals:true}, 'PATCH');
+        const revision = await db('rpc/gdrb_save_match_sheet', { p_document: document, p_revision: input.revision });
         return res.json({ revision });
       }
       if (!uuid.test(input.id)) return fail(400, 'Ficha inválida.');

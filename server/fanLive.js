@@ -1,3 +1,4 @@
+import {opponentBadge} from '../src/features/match-sheet/badges.js';
 import {fanKickoff,compareFanMatches} from './fanKickoff.js';
 import { createHmac,timingSafeEqual } from 'node:crypto';
 import { sharedSheetAccess,serviceHeaders } from './matchSheetAccess.js';
@@ -12,15 +13,15 @@ export function publicMatch(row,now=Date.now()) {
   if(row.deleted_at||row.archived_at||s?.fanLiveEnabled!==true||!['draft','live','interval','finished'].includes(s.status))return null;
   // Explicit allowlist. Never spread a document, player or event into a public response.
   const player=id=>{const p=s.squad.find(p=>p.id===id);return p?{name:p.name,number:p.shirt_number}:null;};
-  const events=(s.status==='draft'?[]:orderedEvents(s)).filter(e=>publicKinds.has(e.kind)&&(s.rules.recordGoals||e.kind!=='goal')).map(e=>({
+  const events=(s.status==='draft'?[]:orderedEvents(s)).filter(e=>publicKinds.has(e.kind)).map(e=>({
     id:e.id,kind:e.kind,side:e.side,period:e.period,minute:e.minute,added:e.added,
     player:e.side==='club'?player(e.player):null,incoming:e.kind==='substitution'&&e.side==='club'?player(e.incoming):null,
     ownGoal:e.kind==='goal'&&e.ownGoal===true,
   }));
   const tally=score(s),clock=clockAt(s,now);
   return {id:s.id,ageGroup:s.ageGroup,season:s.season,date:s.date,time:s.time,venue:s.venue,competition:s.competition,
-    kickoffAt:fanKickoff(s.date,s.time),home:s.home,club:MATCH_SHEET_CLUB_NAME,opponent:s.opponent,status:s.status,
-    score:s.status!=='draft'&&s.rules.recordGoals?tally:null,outcome:s.status==='draft'||s.rules.recordGoals?null:s.outcome,
+    kickoffAt:fanKickoff(s.date,s.time),home:s.home,club:MATCH_SHEET_CLUB_NAME,opponent:s.opponent,opponentBadgeUrl:opponentBadge(s.opponent,s.opponentBadgeUrl),status:s.status,
+    score:s.status!=='draft'?tally:null,outcome:null,
     clock:{period:clock.period,minute:clock.minute,added:clock.added,running:s.status==='live'&&s.clock.startedAt!==null},
     updatedAt:row.updated_at,events};
 }

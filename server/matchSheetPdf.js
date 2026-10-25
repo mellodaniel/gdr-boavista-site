@@ -29,7 +29,7 @@ export async function makeMatchSheetPdf(sheet,revision){
   paragraph(`${sheet.date.split('-').reverse().join('/')} · ${sheet.time||'Hora por indicar'} · ${sheet.home?'Casa':'Fora'} · ${sheet.venue||'Local por indicar'}`);
   paragraph(`${sheet.competition||'Jogo particular'} · Futebol ${sheet.rules.fieldSize} · ${sheet.rules.periods} × ${sheet.rules.periodMinutes} minutos`);
   paragraph(`Responsável: ${sheet.recorder}`);
-  paragraph(`Resultado: ${sheet.rules.recordGoals?result.result:sheet.outcome==='win'?'Vitória':sheet.outcome==='loss'?'Derrota':'Por indicar'}`,{font:13,bold:true});
+  paragraph(`Resultado: ${result.result}`,{font:13,bold:true});
   const participation=playerParticipation(sheet);
   heading('Convocatória e minutos');table(['N.º','Jogador','Condição','Minutos'],sheet.squad.map(p=>[p.shirt_number??'—',p.name+(p.captain?' (C)':''),p.starter?'Titular':'Suplente',formatPlayingTime(participation.players.find(row=>row.id===p.id)?.elapsedMs||0)]),[40,271,110,90]);
   paragraph('Minutos calculados pelos registos, incluindo acréscimos e reentradas; excluem o intervalo.'+(participation.estimated?' Estimativa: faltam durações de períodos ou o relógio não acompanha os eventos.':''),{font:9});
