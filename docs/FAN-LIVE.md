@@ -13,3 +13,6 @@ Atualização automática a cada 15 segundos com a página visível. Não é pus
 SMS adiado: implica custo por mensagem, fornecedor, consentimento/cancelamento e prevenção de notificações duplicadas. Esta fase não recolhe números de telefone.
 
 Validação: `npm run test:fan-live`, `npm run test:match-sheet`, `npm run build`. Demonstração sintética exclusivamente no servidor local em `/scripts/fixtures/fan-live.html`, com variante de viewport móvel em `/scripts/fixtures/fan-mobile.html`; não incluída no build de produção.
+
+## Parceiros no relato
+Os parceiros ativos da Administração aparecem em duas posições rotativas, seguindo a ordem configurada. Cada posição avança a cada 10 segundos; os lados mostram parceiros distintos quando há pelo menos dois. No computador são laterais com acompanhamento da rolagem; em ecrãs até 1000px passam para cima e para baixo do relato. Pausar/retomar controla ambas as posições. A rotação suspende durante foco, passagem do rato e quando a página está oculta. Sem parceiros não há espaços vazios; com um parceiro ambas as posições mostram a mesma marca. A lista é consultada ao abrir e de cinco em cinco minutos. Links externos abrem noutro separador sem transmitir o endereço do relato.
