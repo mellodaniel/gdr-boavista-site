@@ -27,7 +27,7 @@ export function lineup(sheet) {
 export function eventDescription(sheet,e) {
   const name=id=>sheet.squad.find(p=>p.id===id)?.name||'Por identificar';
   if(e.kind==='note')return e.note;
-  if(e.kind==='substitution')return `Sai ${name(e.player)} / entra ${name(e.incoming)}`;
+  if(e.kind==='substitution')return [`Sai ${name(e.player)} / entra ${name(e.incoming)}`,e.note].filter(Boolean).join(' · ');
   const actor=e.side==='club'?name(e.player):'Adversário';
   return [actor,e.ownGoal?'Autogolo':'',e.note].filter(Boolean).join(' · ');
 }
