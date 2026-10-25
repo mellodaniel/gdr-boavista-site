@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { eventDescription,eventLabels,eventMinute,orderedEvents,matchPresentation,validateSheet } from '../src/features/match-sheet/model.js';
+import { eventDescription,eventLabels,eventMinute,orderedEvents,MATCH_SHEET_CLUB_NAME, matchPresentation,validateSheet } from '../src/features/match-sheet/model.js';
 
 // Small A4 writer using PDF's standard WinAnsi Helvetica fonts. No browser or remote image fetch.
 const winAnsi={'€':128,'‚':130,'ƒ':131,'„':132,'…':133,'†':134,'‡':135,'ˆ':136,'‰':137,'Š':138,'‹':139,'Œ':140,'Ž':142,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'˜':152,'™':153,'š':154,'›':155,'œ':156,'ž':158,'Ÿ':159,'′':39};
@@ -13,7 +13,7 @@ export async function makeMatchSheetPdf(sheet,revision){
   const jpg=await readFile(new URL('./assets/match-sheet-logo.jpg',import.meta.url));const size=jpegSize(jpg);
   const pages=[];let ops=[],y=0;
   const text=(value,x,top,font=10,bold=false)=>ops.push(`BT /${bold?'F2':'F1'} ${font} Tf 1 0 0 1 ${x} ${842-top} Tm (${literal(value)}) Tj ET`);
-  function newPage(){if(ops.length)pages.push(ops.join('\n'));ops=[];ops.push('0.08 0.08 0.08 rg');ops.push('q 43 0 0 50 42 748 cm /Logo Do Q');text('GDR BOAVISTA',100,60,18,true);text(`Ficha interna de jogo · ${sheet.ageGroup} · ${sheet.season}`,100,79,10);text(`${sheet.status==='finished'?'Finalizada':'Rascunho'} · versão ${revision}`,100,96,9);ops.push('0.8 G 42 733 m 553 733 l S');y=129;}
+  function newPage(){if(ops.length)pages.push(ops.join('\n'));ops=[];ops.push('0.08 0.08 0.08 rg');ops.push('q 43 0 0 50 42 748 cm /Logo Do Q');text(MATCH_SHEET_CLUB_NAME,100,60,18,true);text(`Ficha interna de jogo · ${sheet.ageGroup} · ${sheet.season}`,100,79,10);text(`${sheet.status==='finished'?'Finalizada':'Rascunho'} · versão ${revision}`,100,96,9);ops.push('0.8 G 42 733 m 553 733 l S');y=129;}
   function space(height){if(y+height>775)newPage();}
   function paragraph(value,{font=10,bold=false,indent=0}={}){const max=Math.max(20,Math.floor((511-indent)/(font*.58)));for(const line of wrap(value,max)){space(font+6);text(line,42+indent,y,font,bold);y+=font+5;}y+=3;}
   function heading(value){space(52);y+=8;paragraph(value,{font:12,bold:true});}

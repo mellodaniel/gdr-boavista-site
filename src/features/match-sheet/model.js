@@ -81,9 +81,10 @@ export function newSheet(team, recorder, now=new Date()) {
 }
 
 // Presentation follows home/away order; stored events remain club/opponent based.
-export function matchPresentation(sheet, clubName='GDR Boavista') {
+export const MATCH_SHEET_CLUB_NAME = 'GDRBoavista';
+export function matchPresentation(sheet) {
   const goals=score(sheet);
-  const club={name:clubName,goals:goals.club};
+  const club={name:MATCH_SHEET_CLUB_NAME,goals:goals.club};
   const opponent={name:sheet.opponent||'Adversário',goals:goals.opponent};
   const [first,second]=sheet.home?[club,opponent]:[opponent,club];
   return {first,second,title:`${first.name} × ${second.name}`,result:`${first.goals} – ${second.goals}`};
