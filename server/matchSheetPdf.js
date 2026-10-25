@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { eventDescription,eventLabels,eventMinute,orderedEvents,score,validateSheet } from '../src/features/match-sheet/model.js';
+import { eventDescription,eventLabels,eventMinute,orderedEvents,matchPresentation,validateSheet } from '../src/features/match-sheet/model.js';
 
 // Small A4 writer using PDF's standard WinAnsi Helvetica fonts. No browser or remote image fetch.
 const winAnsi={'€':128,'‚':130,'ƒ':131,'„':132,'…':133,'†':134,'‡':135,'ˆ':136,'‰':137,'Š':138,'‹':139,'Œ':140,'Ž':142,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'˜':152,'™':153,'š':154,'›':155,'œ':156,'ž':158,'Ÿ':159,'′':39};
@@ -24,11 +24,12 @@ export async function makeMatchSheetPdf(sheet,revision){
       let x=42;cells.forEach((lines,i)=>{lines.forEach((line,n)=>text(line,x+7,y+3+n*12,10,header));x+=widths[i];});y+=h;ops.push(`0.85 G 42 ${842-y+7} m 553 ${842-y+7} l S`);
     };row(headers,true);rows.forEach(r=>row(r));y+=8;
   }
-  newPage();paragraph(`GDR Boavista × ${sheet.opponent}`,{font:15,bold:true});
+  const result=matchPresentation(sheet);
+  newPage();paragraph(result.title,{font:15,bold:true});
   paragraph(`${sheet.date.split('-').reverse().join('/')} · ${sheet.time||'Hora por indicar'} · ${sheet.home?'Casa':'Fora'} · ${sheet.venue||'Local por indicar'}`);
   paragraph(`${sheet.competition||'Jogo particular'} · Futebol ${sheet.rules.fieldSize} · ${sheet.rules.periods} × ${sheet.rules.periodMinutes} minutos`);
   paragraph(`Responsável: ${sheet.recorder}`);
-  const result=score(sheet);paragraph(`Resultado: ${sheet.rules.recordGoals?`${result.club} – ${result.opponent}`:sheet.outcome==='win'?'Vitória':sheet.outcome==='loss'?'Derrota':'Por indicar'}`,{font:13,bold:true});
+  paragraph(`Resultado: ${sheet.rules.recordGoals?result.result:sheet.outcome==='win'?'Vitória':sheet.outcome==='loss'?'Derrota':'Por indicar'}`,{font:13,bold:true});
   heading('Convocatória');table(['N.º','Jogador','Condição inicial'],sheet.squad.map(p=>[p.shirt_number??'—',p.name+(p.captain?' (C)':''),p.starter?'Titular':'Suplente']),[45,326,140]);
   heading('Eventos do jogo');if(sheet.events.length)table(['Minuto','Evento','Detalhe'],orderedEvents(sheet).map(e=>[`${eventMinute(e)} · ${e.period}.º P`,eventLabels[e.kind],eventDescription(sheet,e)]),[85,126,300]);else paragraph('Sem eventos registados.');
   heading('Observações');paragraph(sheet.notes||'Sem observações.');

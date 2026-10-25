@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newSheet,clockAt,score,lineup,validateSheet,eventDescription } from '../src/features/match-sheet/model.js';
+import { newSheet,clockAt,score,matchPresentation,lineup,validateSheet,eventDescription } from '../src/features/match-sheet/model.js';
 import { makeMatchSheetPdf } from '../server/matchSheetPdf.js';
 import { baseSeo } from '../src/lib/publicSeo.js';
 export function fixture(){
@@ -18,3 +18,19 @@ test('outcome-only groups cannot record goals and must choose an outcome',()=>{c
 test('roster numbers are unique and snapshot names remain independent of future roster edits',()=>{const s=fixture();s.squad[1].shirt_number=7;assert.match(validateSheet(s),/únicos/);assert.match(eventDescription(s,event('goal')),/João Gonçalves/);});
 test('the private route returns 200 with noindex and no canonical public URL',()=>{const seo=baseSeo('/ficha-de-jogo');assert.equal(seo.status,200);assert.equal(seo.noindex,true);assert.equal(seo.canonical,null);});
 test('PDF embeds the club badge, Portuguese names, version, pagination and escapes literal syntax',async()=>{const s=fixture();s.status='finished';s.notes='Revisão técnica (primeira parte) \\ observações.\n'+('Observação de teste com acentos: ação, substituição, João. '.repeat(60));const pdf=await makeMatchSheetPdf(s,4),raw=pdf.toString('latin1');assert.ok(raw.startsWith('%PDF-1.4'));assert.ok(raw.endsWith('%%EOF\n'));assert.match(raw,/\/Subtype \/Image/);assert.match(raw,/João Gonçalves/);assert.match(raw,/versão 4/);assert.match(raw,/\\\(primeira parte\\\)/);assert.ok((raw.match(/\/Type \/Page /g)||[]).length>=2);const xref=Number(raw.match(/startxref\n(\d+)/)[1]);assert.equal(raw.slice(xref,xref+4),'xref');});
+
+test('home/away presentation keeps goals with their team including own goals',async()=>{
+ const s=fixture();s.events=[event('goal'),event('goal',{ownGoal:true}),event('goal',{side:'opponent'})];
+ const original=structuredClone(s);
+ for(const home of [true,false,true]){
+  s.home=home;
+  const display=matchPresentation(s);
+  assert.equal(display.title,home?'GDR Boavista × Equipa visitante':'Equipa visitante × GDR Boavista');
+  assert.equal(display.result,home?'1 – 2':'2 – 1');
+  assert.deepEqual(score(s),{club:1,opponent:2});
+  const raw=(await makeMatchSheetPdf(s,1)).toString('latin1');
+  assert.ok(raw.includes(display.title));
+  assert.ok(raw.includes(`Resultado: ${home?'1':'2'} ${String.fromCharCode(150)} ${home?'2':'1'}`));
+ }
+ assert.deepEqual(s,original);
+});
