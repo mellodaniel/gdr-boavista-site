@@ -2,9 +2,9 @@
 
 A página `/acompanhar-jogo` acompanha as fichas em modo de leitura, sem menu público, sitemap ou indexação. O token fica no fragmento do URL, com `no-referrer` e respostas `no-store`. O acesso é por posse do link: qualquer pessoa pode reenviá-lo.
 
-Na ficha, ativar **Relato para adeptos**, aguardar sincronização e copiar o link dos adeptos. O jogo aparece após iniciar. Desativar a opção, arquivar ou apagar retira o jogo na próxima atualização. Fichas antigas começam sem partilha. O link permite consultar todos os jogos explicitamente partilhados, selecionando o jogo indicado no fragmento quando disponível. Jogos finalizados permanecem consultáveis até retirar a partilha.
+Na ficha, ativar **Relato para adeptos**, aguardar sincronização e copiar o link dos adeptos. O jogo aparece antes de iniciar, com contagem decrescente na página dos adeptos. Desativar a opção, arquivar ou apagar retira o jogo na próxima atualização. Fichas antigas começam sem partilha. O link permite consultar todos os jogos explicitamente partilhados, selecionando o jogo indicado no fragmento quando disponível. Jogos finalizados permanecem consultáveis até retirar a partilha.
 
-A API projeta apenas identificação pública do jogo, marcador/resultado, relógio e golos, cartões e substituições. Exclui notas (incluindo notas anexas a eventos), observações ditadas, responsável, contactos e plantel completo. Apenas nomes/números envolvidos em eventos públicos são incluídos. Escalões sem marcador continuam sem marcador numérico. Corrigir/apagar um evento na ficha atualiza o relato.
+A API projeta apenas identificação pública do jogo, início previsto em Europe/Lisbon, marcador/resultado, relógio e golos, cartões e substituições. Exclui notas (incluindo notas anexas a eventos), observações ditadas, responsável, contactos e plantel completo. Apenas nomes/números envolvidos em eventos públicos são incluídos. Escalões sem marcador continuam sem marcador numérico. Corrigir/apagar um evento na ficha atualiza o relato.
 
 O token de leitura é derivado no servidor por HMAC da chave existente, com domínio específico. Não permite editar fichas, obter a chave de edição ou solicitar um novo link. Não há migração SQL nem variável de ambiente adicional. Rodar MATCH_SHEET_LINK_KEY invalida ambos os links; não existe revogação por destinatário.
 
@@ -16,3 +16,5 @@ Validação: `npm run test:fan-live`, `npm run test:match-sheet`, `npm run build
 
 ## Parceiros no relato
 Os parceiros ativos da Administração aparecem em duas posições rotativas, seguindo a ordem configurada. Cada posição avança a cada 10 segundos; os lados mostram parceiros distintos quando há pelo menos dois. No computador são laterais com acompanhamento da rolagem; em ecrãs até 1000px passam para cima e para baixo do relato. Não apresenta contador nem controlos de rotação. A rotação suspende durante foco, passagem do rato e quando a página está oculta. Sem parceiros não há espaços vazios; com um parceiro ambas as posições mostram a mesma marca. A lista é consultada ao abrir e de cinco em cinco minutos. Links externos abrem noutro separador sem transmitir o endereço do relato.
+
+O countdown aparece apenas na página dos adeptos e atualiza a cada segundo, sincronizado com a última hora do servidor. Não inicia partidas: ao chegar a zero aguarda a confirmação de início na ficha. Horários ausentes/inválidos mostram “Horário por confirmar”. Rascunhos partilhados nunca expõem eventos ou resultados. O relógio da ficha não é alterado.

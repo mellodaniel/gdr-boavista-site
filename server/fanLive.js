@@ -1,3 +1,4 @@
+import {fanKickoff,compareFanMatches} from './fanKickoff.js';
 import { createHmac,timingSafeEqual } from 'node:crypto';
 import { sharedSheetAccess,serviceHeaders } from './matchSheetAccess.js';
 import { orderedEvents,clockAt,score,MATCH_SHEET_CLUB_NAME } from '../src/features/match-sheet/model.js';
@@ -8,18 +9,18 @@ export function fanLiveToken(env) {
 }
 export function publicMatch(row,now=Date.now()) {
   const s=row.document;
-  if(row.deleted_at||row.archived_at||s?.fanLiveEnabled!==true||!['live','interval','finished'].includes(s.status))return null;
+  if(row.deleted_at||row.archived_at||s?.fanLiveEnabled!==true||!['draft','live','interval','finished'].includes(s.status))return null;
   // Explicit allowlist. Never spread a document, player or event into a public response.
   const player=id=>{const p=s.squad.find(p=>p.id===id);return p?{name:p.name,number:p.shirt_number}:null;};
-  const events=orderedEvents(s).filter(e=>publicKinds.has(e.kind)&&(s.rules.recordGoals||e.kind!=='goal')).map(e=>({
+  const events=(s.status==='draft'?[]:orderedEvents(s)).filter(e=>publicKinds.has(e.kind)&&(s.rules.recordGoals||e.kind!=='goal')).map(e=>({
     id:e.id,kind:e.kind,side:e.side,period:e.period,minute:e.minute,added:e.added,
     player:e.side==='club'?player(e.player):null,incoming:e.kind==='substitution'&&e.side==='club'?player(e.incoming):null,
     ownGoal:e.kind==='goal'&&e.ownGoal===true,
   }));
   const tally=score(s),clock=clockAt(s,now);
   return {id:s.id,ageGroup:s.ageGroup,season:s.season,date:s.date,time:s.time,venue:s.venue,competition:s.competition,
-    home:s.home,club:MATCH_SHEET_CLUB_NAME,opponent:s.opponent,status:s.status,
-    score:s.rules.recordGoals?tally:null,outcome:s.rules.recordGoals?null:s.outcome,
+    kickoffAt:fanKickoff(s.date,s.time),home:s.home,club:MATCH_SHEET_CLUB_NAME,opponent:s.opponent,status:s.status,
+    score:s.status!=='draft'&&s.rules.recordGoals?tally:null,outcome:s.status==='draft'||s.rules.recordGoals?null:s.outcome,
     clock:{period:clock.period,minute:clock.minute,added:clock.added,running:s.status==='live'&&s.clock.startedAt!==null},
     updatedAt:row.updated_at,events};
 }
@@ -40,11 +41,11 @@ export function createFanLiveHandler({env=process.env,fetcher=fetch,now=Date.now
     const supplied=req.headers['x-fan-key'],expected=fanLiveToken(env);
     if(typeof supplied!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(supplied)||!timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))return fail(401,'Abre o link completo de acompanhamento partilhado pelo clube.');
     const base=(env.SUPABASE_URL||env.VITE_SUPABASE_URL||'').replace(/\/$/,'');if(!base)return fail(503,'Relato temporariamente indisponível.');
-    const query=new URLSearchParams({select:'document,updated_at,archived_at,deleted_at',deleted_at:'is.null',archived_at:'is.null','document->>fanLiveEnabled':'eq.true','document->>status':'in.(live,interval,finished)',order:'updated_at.desc',limit:'100'});
+    const query=new URLSearchParams({select:'document,updated_at,archived_at,deleted_at',deleted_at:'is.null',archived_at:'is.null','document->>fanLiveEnabled':'eq.true','document->>status':'in.(draft,live,interval,finished)',order:'updated_at.desc',limit:'100'});
     const response=await fetcher(`${base}/rest/v1/gdrb_match_sheets?${query}`,{headers:serviceHeaders(env),signal:AbortSignal.timeout(10000)});
     if(!response.ok)return fail(503,'Não foi possível atualizar o relato. Vamos tentar novamente.');
     const rows=await response.json();if(!Array.isArray(rows))return fail(503,'Relato temporariamente indisponível.');
-    const at=now();return res.json({checkedAt:new Date(at).toISOString(),matches:rows.map(r=>publicMatch(r,at)).filter(Boolean).sort((a,b)=>(a.status==='finished')-(b.status==='finished')||b.date.localeCompare(a.date))});
+    const at=now();return res.json({checkedAt:new Date(at).toISOString(),matches:rows.map(r=>publicMatch(r,at)).filter(Boolean).sort(compareFanMatches)});
   }catch(e){return fail(e.status||503,e.status?e.message:'Relato temporariamente indisponível. Tenta novamente.');}
  };
 }
