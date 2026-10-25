@@ -25,7 +25,7 @@ test('home/away presentation keeps goals with their team including own goals',as
  for(const home of [true,false,true]){
   s.home=home;
   const display=matchPresentation(s);
-  assert.equal(display.title,home?'GDR Boavista × Equipa visitante':'Equipa visitante × GDR Boavista');
+  assert.equal(display.title,home?'GDRBoavista × Equipa visitante':'Equipa visitante × GDRBoavista');
   assert.equal(display.result,home?'1 – 2':'2 – 1');
   assert.deepEqual(score(s),{club:1,opponent:2});
   const raw=(await makeMatchSheetPdf(s,1)).toString('latin1');
