@@ -1,3 +1,4 @@
+import {safeBadge} from './badges.js';
 export const eventLabels = { goal:'Golo', yellow:'Cartão amarelo', second_yellow:'Segundo amarelo', red:'Cartão vermelho', substitution:'Substituição', note:'Observação' };
 export function orderedEvents(sheet) {
   return [...sheet.events].sort((a,b)=>a.period-b.period || a.minute-b.minute || a.added-b.added || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
@@ -38,6 +39,7 @@ export function validateSheet(sheet) {
   if(sheet.opponent.length>120||sheet.recorder.length>100||sheet.notes.length>4000)return 'Revê o tamanho dos textos da ficha.';
   if(![5,7,9,11].includes(sheet.rules.fieldSize)||!Number.isInteger(sheet.rules.periodMinutes)||sheet.rules.periodMinutes<1||sheet.rules.periodMinutes>60||!Number.isInteger(sheet.rules.periods)||sheet.rules.periods<1||sheet.rules.periods>6||typeof sheet.rules.recordGoals!=='boolean'||typeof sheet.rules.reentry!=='boolean')return 'Revê o formato e a duração do jogo.';
   if(!Number.isInteger(sheet.clock.period)||sheet.clock.period<1||sheet.clock.period>sheet.rules.periods||!Number.isFinite(sheet.clock.elapsedMs)||sheet.clock.elapsedMs<0||(sheet.clock.startedAt!==null&&(!Number.isFinite(sheet.clock.startedAt)||sheet.clock.startedAt<0)))return 'Revê o cronómetro.';
+  if(sheet.opponentBadgeUrl!==undefined&&sheet.opponentBadgeUrl!==''&&!safeBadge(sheet.opponentBadgeUrl))return 'Emblema do adversário inválido.';
   if(sheet.fanLiveEnabled!==undefined&&typeof sheet.fanLiveEnabled!=='boolean')return 'Partilha inválida.';
   if(sheet.periodDurations!==undefined&&(!sheet.periodDurations||typeof sheet.periodDurations!=='object'||Array.isArray(sheet.periodDurations)||Object.entries(sheet.periodDurations).some(([p,ms])=>!/^\d+$/.test(p)||Number(p)<1||Number(p)>sheet.rules.periods||!Number.isFinite(ms)||ms<0||ms>7200000)))return 'Duração de período inválida.';
   if(sheet.squad.length>50||sheet.events.length>2000)return 'A ficha excede o número de registos permitido.';
@@ -52,7 +54,6 @@ export function validateSheet(sheet) {
   for(const e of orderedEvents(sheet)) {
     if(typeof e.note!=='string'||typeof e.ownGoal!=='boolean')return 'Evento inválido.';
     if(!(e.kind in eventLabels)||!['club','opponent'].includes(e.side)||!Number.isInteger(e.period)||e.period<1||e.period>sheet.rules.periods||!Number.isInteger(e.minute)||e.minute<0||e.minute>360||!Number.isInteger(e.added)||e.added<0||e.added>60)return 'Revê o período e o minuto dos eventos.';
-    if(!sheet.rules.recordGoals&&e.kind==='goal')return 'Este escalão está configurado sem registo de golos.';
     if(e.note.length>1500)return 'A observação é demasiado longa.';
     if(e.kind==='note'&&!e.note.trim())return 'Escreve a observação.';
     if(e.player&&e.side==='club'&&!sheet.squad.some(p=>p.id===e.player))return 'O jogador não pertence à convocatória.';
@@ -73,13 +74,12 @@ export function validateSheet(sheet) {
       }
     }
   }
-  if(sheet.status==='finished'&&!sheet.rules.recordGoals&&!sheet.outcome)return 'Indica vitória ou derrota antes de finalizar.';
   return null;
 }
 export function newSheet(team, recorder, now=new Date()) {
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
   const get=t=>parts.find(p=>p.type===t).value; const year=Number(get('year')), month=Number(get('month')), start=month>=7?year:year-1;
-  return {schema:1,id:crypto.randomUUID(),ageGroup:team.age_group,season:`${start}/${start+1}`,calendarId:null,opponent:'',date:`${get('year')}-${get('month')}-${get('day')}`,time:'',venue:'',competition:'',home:true,recorder,notes:'',status:'draft',outcome:'',rules:{fieldSize:team.field_size,periodMinutes:team.period_minutes,periods:team.periods,reentry:team.reentry,recordGoals:team.record_goals},clock:{period:1,elapsedMs:0,startedAt:null},squad:[],events:[]};
+  return {schema:1,id:crypto.randomUUID(),ageGroup:team.age_group,season:`${start}/${start+1}`,calendarId:null,opponent:'',date:`${get('year')}-${get('month')}-${get('day')}`,time:'',venue:'',competition:'',home:true,recorder,notes:'',status:'draft',outcome:'',rules:{fieldSize:team.field_size,periodMinutes:team.period_minutes,periods:team.periods,reentry:team.reentry,recordGoals:true},clock:{period:1,elapsedMs:0,startedAt:null},squad:[],events:[]};
 }
 
 // Presentation follows home/away order; stored events remain club/opponent based.

@@ -39,3 +39,7 @@ test('saves validate match rules before the privileged RPC',async()=>{
 test('context grants module editing only, without account administration',async()=>{
  const t=setup();t.req.body={action:'context'};await t.handler(t.req,t.res);assert.equal(t.res.body.admin,false);assert.deepEqual(t.res.body.access,[{age_group:'Seniores',can_edit:true}]);
 });
+
+test('saving an existing sheet enables goals despite the legacy document flag',async()=>{
+ const t=setup();const doc=newSheet({age_group:'Seniores',field_size:11,period_minutes:45,periods:2,reentry:false,record_goals:false},'Diretor');doc.opponent='Teste';doc.rules.recordGoals=false;t.req.body={action:'save',document:doc,revision:0};await t.handler(t.req,t.res);assert.equal(t.res.statusCode,200);const call=t.calls.find(c=>c.url.endsWith('/gdrb_save_match_sheet'));assert.equal(JSON.parse(call.init.body).p_document.rules.recordGoals,true);assert.equal(doc.rules.recordGoals,false);const config=t.calls.find(c=>c.init.method==='PATCH');assert.ok(config.url.includes('age_group=eq.Seniores&record_goals=eq.false'));assert.deepEqual(JSON.parse(config.init.body),{record_goals:true});assert.ok(t.calls.indexOf(config)<t.calls.indexOf(call));
+});
