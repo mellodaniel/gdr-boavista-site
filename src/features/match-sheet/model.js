@@ -38,6 +38,7 @@ export function validateSheet(sheet) {
   if(sheet.opponent.length>120||sheet.recorder.length>100||sheet.notes.length>4000)return 'Revê o tamanho dos textos da ficha.';
   if(![5,7,9,11].includes(sheet.rules.fieldSize)||!Number.isInteger(sheet.rules.periodMinutes)||sheet.rules.periodMinutes<1||sheet.rules.periodMinutes>60||!Number.isInteger(sheet.rules.periods)||sheet.rules.periods<1||sheet.rules.periods>6||typeof sheet.rules.recordGoals!=='boolean'||typeof sheet.rules.reentry!=='boolean')return 'Revê o formato e a duração do jogo.';
   if(!Number.isInteger(sheet.clock.period)||sheet.clock.period<1||sheet.clock.period>sheet.rules.periods||!Number.isFinite(sheet.clock.elapsedMs)||sheet.clock.elapsedMs<0||(sheet.clock.startedAt!==null&&(!Number.isFinite(sheet.clock.startedAt)||sheet.clock.startedAt<0)))return 'Revê o cronómetro.';
+  if(sheet.fanLiveEnabled!==undefined&&typeof sheet.fanLiveEnabled!=='boolean')return 'Partilha inválida.';
   if(sheet.periodDurations!==undefined&&(!sheet.periodDurations||typeof sheet.periodDurations!=='object'||Array.isArray(sheet.periodDurations)||Object.entries(sheet.periodDurations).some(([p,ms])=>!/^\d+$/.test(p)||Number(p)<1||Number(p)>sheet.rules.periods||!Number.isFinite(ms)||ms<0||ms>7200000)))return 'Duração de período inválida.';
   if(sheet.squad.length>50||sheet.events.length>2000)return 'A ficha excede o número de registos permitido.';
   if(new Set(sheet.squad.map(p=>p.id)).size!==sheet.squad.length)return 'Há jogadores repetidos na convocatória.';

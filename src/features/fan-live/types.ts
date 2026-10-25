@@ -1,0 +1,3 @@
+export type FanPlayer={name:string;number:number|null};
+export type FanEvent={id:string;kind:'goal'|'yellow'|'second_yellow'|'red'|'substitution';side:'club'|'opponent';period:number;minute:number;added:number;player:FanPlayer|null;incoming:FanPlayer|null;ownGoal:boolean};
+export type FanMatch={id:string;ageGroup:string;season:string;date:string;time:string;venue:string;competition:string;home:boolean;club:string;opponent:string;status:'live'|'interval'|'finished';score:{club:number;opponent:number}|null;outcome:''|'win'|'loss'|null;clock:{period:number;minute:number;added:number;running:boolean};updatedAt:string;events:FanEvent[]};
