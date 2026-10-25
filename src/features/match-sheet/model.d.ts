@@ -8,3 +8,5 @@ export function lineup(sheet:MatchSheet):{onField:Set<string>;dismissed:Set<stri
 export function eventDescription(sheet:MatchSheet,event:SheetEvent):string;
 export function validateSheet(sheet:MatchSheet):string|null;
 export function newSheet(team:SheetTeam,recorder:string,now?:Date):MatchSheet;
+
+export function matchPresentation(sheet:MatchSheet,clubName?:string):{first:{name:string;goals:number};second:{name:string;goals:number};title:string;result:string};

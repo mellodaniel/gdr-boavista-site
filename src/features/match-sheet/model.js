@@ -79,3 +79,12 @@ export function newSheet(team, recorder, now=new Date()) {
   const get=t=>parts.find(p=>p.type===t).value; const year=Number(get('year')), month=Number(get('month')), start=month>=7?year:year-1;
   return {schema:1,id:crypto.randomUUID(),ageGroup:team.age_group,season:`${start}/${start+1}`,calendarId:null,opponent:'',date:`${get('year')}-${get('month')}-${get('day')}`,time:'',venue:'',competition:'',home:true,recorder,notes:'',status:'draft',outcome:'',rules:{fieldSize:team.field_size,periodMinutes:team.period_minutes,periods:team.periods,reentry:team.reentry,recordGoals:team.record_goals},clock:{period:1,elapsedMs:0,startedAt:null},squad:[],events:[]};
 }
+
+// Presentation follows home/away order; stored events remain club/opponent based.
+export function matchPresentation(sheet, clubName='GDR Boavista') {
+  const goals=score(sheet);
+  const club={name:clubName,goals:goals.club};
+  const opponent={name:sheet.opponent||'Adversário',goals:goals.opponent};
+  const [first,second]=sheet.home?[club,opponent]:[opponent,club];
+  return {first,second,title:`${first.name} × ${second.name}`,result:`${first.goals} – ${second.goals}`};
+}
