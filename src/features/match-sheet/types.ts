@@ -9,6 +9,7 @@ export type MatchSheet = {
   recorder: string; notes: string; status: 'draft' | 'live' | 'interval' | 'finished'; outcome: '' | 'win' | 'loss';
   rules: { fieldSize: number; periodMinutes: number; periods: number; reentry: boolean; recordGoals: boolean };
   clock: { period: number; elapsedMs: number; startedAt: number | null };
+  periodDurations?: Record<number, number>;
   squad: SquadPlayer[]; events: SheetEvent[];
 };
 export type SheetAction = 'archive' | 'unarchive' | 'trash' | 'restore';

@@ -12,3 +12,8 @@ export function newSheet(team:SheetTeam,recorder:string,now?:Date):MatchSheet;
 export function matchPresentation(sheet:MatchSheet):{first:{name:string;goals:number};second:{name:string;goals:number};title:string;result:string};
 
 export const MATCH_SHEET_CLUB_NAME: 'GDRBoavista';
+
+export function updateMatchClock(sheet:MatchSheet,action:'start'|'pause'|'interval'|'next'|'finish',now?:number):MatchSheet;
+export type Participation = {id:string;name:string;shirt_number:number|null;starter:boolean;elapsedMs:number;onField:boolean;used:boolean;dismissed:boolean;yellow:boolean};
+export function playerParticipation(sheet:MatchSheet,now?:number):{estimated:boolean;totalMs:number;players:Participation[]};
+export function formatPlayingTime(ms:number):string;

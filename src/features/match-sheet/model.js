@@ -38,6 +38,7 @@ export function validateSheet(sheet) {
   if(sheet.opponent.length>120||sheet.recorder.length>100||sheet.notes.length>4000)return 'Revê o tamanho dos textos da ficha.';
   if(![5,7,9,11].includes(sheet.rules.fieldSize)||!Number.isInteger(sheet.rules.periodMinutes)||sheet.rules.periodMinutes<1||sheet.rules.periodMinutes>60||!Number.isInteger(sheet.rules.periods)||sheet.rules.periods<1||sheet.rules.periods>6||typeof sheet.rules.recordGoals!=='boolean'||typeof sheet.rules.reentry!=='boolean')return 'Revê o formato e a duração do jogo.';
   if(!Number.isInteger(sheet.clock.period)||sheet.clock.period<1||sheet.clock.period>sheet.rules.periods||!Number.isFinite(sheet.clock.elapsedMs)||sheet.clock.elapsedMs<0||(sheet.clock.startedAt!==null&&(!Number.isFinite(sheet.clock.startedAt)||sheet.clock.startedAt<0)))return 'Revê o cronómetro.';
+  if(sheet.periodDurations!==undefined&&(!sheet.periodDurations||typeof sheet.periodDurations!=='object'||Array.isArray(sheet.periodDurations)||Object.entries(sheet.periodDurations).some(([p,ms])=>!/^\d+$/.test(p)||Number(p)<1||Number(p)>sheet.rules.periods||!Number.isFinite(ms)||ms<0||ms>7200000)))return 'Duração de período inválida.';
   if(sheet.squad.length>50||sheet.events.length>2000)return 'A ficha excede o número de registos permitido.';
   if(new Set(sheet.squad.map(p=>p.id)).size!==sheet.squad.length)return 'Há jogadores repetidos na convocatória.';
   if(new Set(sheet.events.map(e=>e.id)).size!==sheet.events.length)return 'Há eventos repetidos.';
@@ -89,3 +90,49 @@ export function matchPresentation(sheet) {
   const [first,second]=sheet.home?[club,opponent]:[opponent,club];
   return {first,second,title:`${first.name} × ${second.name}`,result:`${first.goals} – ${second.goals}`};
 }
+
+// Preserve completed periods so stoppage time survives advancing the clock.
+export function updateMatchClock(sheet, action, now=Date.now()) {
+  const elapsed=clockAt(sheet,now).elapsedMs;
+  const durations={...sheet.periodDurations};
+  if(action==='next') {
+    if(sheet.clock.period>=sheet.rules.periods)return sheet;
+    durations[sheet.clock.period]=elapsed;
+    return {...sheet,periodDurations:durations,status:'live',clock:{period:sheet.clock.period+1,elapsedMs:0,startedAt:now}};
+  }
+  if(action==='finish')durations[sheet.clock.period]=elapsed;
+  return {...sheet,periodDurations:durations,status:action==='finish'?'finished':action==='interval'?'interval':action==='start'?'live':sheet.status,
+    clock:{...sheet.clock,elapsedMs:elapsed,startedAt:action==='start'?now:null}};
+}
+export function playerParticipation(sheet,now=Date.now()) {
+  const periodMs=sheet.rules.periodMinutes*60000;
+  const eventTime=e=>Math.max(0,(e.minute-(e.period-1)*sheet.rules.periodMinutes+e.added)*60000);
+  let estimated=false,total=0;
+  const offsets={};
+  for(let period=1;period<=sheet.clock.period;period++) {
+    offsets[period]=total;
+    let duration=period===sheet.clock.period?clockAt(sheet,now).elapsedMs:sheet.periodDurations?.[period];
+    if(duration===undefined) {
+      duration=Math.max(periodMs,...sheet.events.filter(e=>e.period===period).map(eventTime));estimated=true;
+    }
+    const lastEvent=Math.max(0,...sheet.events.filter(e=>e.period===period).map(eventTime));
+    if(lastEvent>duration){duration=lastEvent;estimated=true;}
+    total+=duration;
+  }
+  const rows=new Map(sheet.squad.map(p=>[p.id,{id:p.id,name:p.name,shirt_number:p.shirt_number,starter:p.starter,elapsedMs:0,onField:p.starter,used:p.starter,dismissed:false,yellow:false,enteredAt:0}]));
+  const leave=(row,time)=>{if(row?.onField){row.elapsedMs+=Math.max(0,time-row.enteredAt);row.onField=false;}};
+  for(const e of orderedEvents(sheet)) {
+    if(e.side!=='club'||e.period>sheet.clock.period)continue;
+    const time=offsets[e.period]+eventTime(e);
+    if(time>total)continue;
+    const row=rows.get(e.player);
+    if(e.kind==='substitution') {
+      leave(row,time);const incoming=rows.get(e.incoming);
+      if(incoming&&!incoming.onField&&!incoming.dismissed){incoming.onField=true;incoming.used=true;incoming.enteredAt=time;}
+    }
+    if(e.kind==='yellow'&&row)row.yellow=true;
+    if((e.kind==='red'||e.kind==='second_yellow')&&row){leave(row,time);row.dismissed=true;if(e.kind==='second_yellow')row.yellow=true;}
+  }
+  return {estimated,totalMs:total,players:[...rows.values()].map(row=>({...row,elapsedMs:row.elapsedMs+(row.onField?Math.max(0,total-row.enteredAt):0)}))};
+}
+export function formatPlayingTime(ms) { return `${Math.floor(ms/60000)} min`; }

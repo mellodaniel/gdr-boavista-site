@@ -34,3 +34,36 @@ test('home/away presentation keeps goals with their team including own goals',as
  }
  assert.deepEqual(s,original);
 });
+
+test('playing time includes stoppage time and excludes the half-time break',async()=>{
+ const {playerParticipation,updateMatchClock}=await import('../src/features/match-sheet/model.js');
+ let s=fixture();s.clock={period:1,elapsedMs:47*60000,startedAt:null};
+ s.events=[event('substitution',{minute:45,added:1,incoming:'c'})];
+ s=updateMatchClock(s,'next',1000000);s=updateMatchClock(s,'pause',1000000+48*60000);
+ const result=playerParticipation(s),byId=Object.fromEntries(result.players.map(p=>[p.id,p]));
+ assert.equal(result.totalMs,95*60000);assert.equal(result.estimated,false);
+ assert.equal(byId.a.elapsedMs,46*60000);assert.equal(byId.c.elapsedMs,49*60000);assert.equal(byId.b.elapsedMs,95*60000);
+ assert.equal(byId.a.onField,false);assert.equal(byId.c.onField,true);
+ assert.equal(result.players.reduce((sum,p)=>sum+p.elapsedMs,0),190*60000);
+ const pdf=(await makeMatchSheetPdf(updateMatchClock(s,'finish'),2)).toString('latin1');assert.ok(pdf.includes('49 min'));assert.ok(pdf.includes('95 min'));
+});
+test('reentries accumulate separate spells and red cards stop minutes',async()=>{
+ const {playerParticipation}=await import('../src/features/match-sheet/model.js');const s=fixture();s.rules.reentry=true;s.clock={period:1,elapsedMs:40*60000,startedAt:null};
+ s.events=[event('substitution',{minute:10,incoming:'c'}),event('substitution',{minute:20,player:'c',incoming:'a'}),event('yellow',{minute:22}),event('second_yellow',{minute:30})];
+ assert.equal(validateSheet(s),null);const rows=Object.fromEntries(playerParticipation(s).players.map(p=>[p.id,p]));
+ assert.equal(rows.a.elapsedMs,20*60000);assert.equal(rows.a.dismissed,true);assert.equal(rows.a.onField,false);assert.equal(rows.a.yellow,true);
+ assert.equal(rows.c.elapsedMs,10*60000);assert.equal(rows.b.elapsedMs,40*60000);
+});
+test('legacy periods are marked estimated and honor known added-time events',async()=>{
+ const {playerParticipation}=await import('../src/features/match-sheet/model.js');const s=fixture();s.clock={period:2,elapsedMs:10*60000,startedAt:null};s.events=[event('note',{minute:45,added:3,note:'Intervalo'})];
+ const result=playerParticipation(s);assert.equal(result.estimated,true);assert.equal(result.totalMs,58*60000);assert.equal(result.players.find(p=>p.id==='c').elapsedMs,0);assert.equal(result.players.find(p=>p.id==='c').used,false);
+});
+test('live, paused and corrected clocks recalculate minutes without mutating stored data',async()=>{
+ const {playerParticipation,updateMatchClock}=await import('../src/features/match-sheet/model.js');let s=fixture();s.clock={period:1,elapsedMs:0,startedAt:1000};
+ assert.equal(playerParticipation(s,601000).players[0].elapsedMs,600000);s=updateMatchClock(s,'pause',601000);assert.equal(playerParticipation(s,1201000).players[0].elapsedMs,600000);
+ s.events=[event('substitution',{minute:5,incoming:'c'})];const snapshot=structuredClone(s);assert.equal(playerParticipation(s).players[0].elapsedMs,300000);assert.deepEqual(s,snapshot);
+ s.events=[];assert.equal(playerParticipation(s).players[0].elapsedMs,600000);
+});
+test('invalid stored period durations are rejected',()=>{for(const durations of [{1:-1},{1:'45'},[],{0:60000},{3:60000}]){const s=fixture();s.periodDurations=durations;assert.match(validateSheet(s),/Duração/);}});
+
+test('manual events beyond the clock are included and explicitly estimated',async()=>{const {playerParticipation}=await import('../src/features/match-sheet/model.js');const s=fixture();s.events=[event('substitution',{minute:20,incoming:'c'})];const result=playerParticipation(s);assert.equal(result.estimated,true);assert.equal(result.players.find(p=>p.id==='a').elapsedMs,20*60000);assert.equal(result.players.find(p=>p.id==='a').onField,false);assert.equal(result.players.find(p=>p.id==='c').onField,true);});
