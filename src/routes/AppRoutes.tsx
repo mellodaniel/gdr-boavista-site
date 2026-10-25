@@ -1,6 +1,7 @@
 import { TrainWithUsPage } from '../pages/public/TrainWithUsPage';
 import { lazy, Suspense } from 'react';
 import { AdminTvPage } from '../pages/admin/AdminTvPage';
+const FanLivePage = lazy(() => import('../features/fan-live/FanLivePage'));
 const MatchSheetPage = lazy(() => import('../features/match-sheet/MatchSheetPage'));
 const TvPage = lazy(() => import('../pages/tv/TvPage'));
 import { Navigate, Route, Routes } from 'react-router-dom';
@@ -62,6 +63,7 @@ export function AppRoutes() {
     <>
       <RouteScrollManager />
       <Routes>
+      <Route path="/acompanhar-jogo" element={<Suspense fallback={<div>A abrir relato…</div>}><FanLivePage /></Suspense>} />
       <Route path="/ficha-de-jogo" element={<Suspense fallback={<div>A abrir ficha de jogo…</div>}><MatchSheetPage /></Suspense>} />
       <Route path="/tv" element={<Suspense fallback={<div style={{background:"#24180f",height:"100vh"}}/>}><TvPage /></Suspense>} />
       <Route element={<PublicLayout />}>

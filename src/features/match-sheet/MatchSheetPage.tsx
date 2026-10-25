@@ -1,3 +1,4 @@
+import { FanSharing } from './FanSharing';
 import { VoiceObservation } from './VoiceObservation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -143,6 +144,7 @@ function MatchWorkspace({access}:{access:SharedAccess}){
         {stored&&<SheetActions record={stored} online={online} busy={managing||Boolean(localSaving)||storageError} onAction={action=>setManageTarget({id:stored.document.id,action})}/>}
         {!owned&&<p className="ms-notice">Modo de consulta. Esta ficha pertence a outro responsável.</p>}
         <div className="ms-title-row"><div><div className="ms-eyebrow">{sheet.ageGroup} · {sheet.season}</div><h1>{matchPresentation(sheet).title}</h1><p>{sheet.home?'Em casa':'Fora'} · {sheet.date.split('-').reverse().join('/')} {sheet.time&&`· ${sheet.time}`}</p></div><span className="ms-status">{sheet.status==='finished'?'Finalizada':sheet.status==='draft'?'Preparação':sheet.status==='interval'?'Intervalo':'Em jogo'}</span></div>
+        <FanSharing key={sheet.id} accessKey={access.key} id={sheet.id} enabled={sheet.fanLiveEnabled===true} synced={savedReady} disabled={!owned||!canCreate(sheet.ageGroup)||!online||Boolean(stored?.conflict||stored?.archivedAt||stored?.deletedAt||localSaving||storageError||managing)} onToggle={value=>change(d=>({...d,fanLiveEnabled:value}))}/>
         <nav className="ms-tabs" aria-label="Etapas da ficha">{([['prepare','Preparar',Users],['live','Jogo',Goal],['report','Ficha',ClipboardList]] as const).map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} aria-current={tab===id?'page':undefined}><Icon size={18}/>{label}</button>)}</nav>
         {tab==='prepare'&&<>
           <section className="ms-panel"><h2>Dados do jogo</h2><div className="ms-form-grid">
