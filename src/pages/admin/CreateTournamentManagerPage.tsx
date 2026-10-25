@@ -1,3 +1,4 @@
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
 import { AgeGroupSelect } from '../../components/AgeGroupSelect';
 import { useState } from 'react';
@@ -104,9 +105,9 @@ export default function CreateTournamentManagerPage() {
 
       <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         {errorMessage && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMessage}
-          </div>
+          </div></DismissibleFeedback>
         )}
 
         <div className="grid gap-5 md:grid-cols-2">

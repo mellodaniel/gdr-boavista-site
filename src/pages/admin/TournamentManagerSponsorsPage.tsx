@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -59,7 +61,7 @@ export default function TournamentManagerSponsorsPage() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [errorMessage, setErrorMessage] = useState('');
 
   async function loadData() {
@@ -318,15 +320,15 @@ export default function TournamentManagerSponsorsPage() {
       </div>
 
       {successMessage && (
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {successMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {showForm && (

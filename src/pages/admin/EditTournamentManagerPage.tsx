@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { AGE_GROUPS, normalizeAgeGroup } from '../../lib/ageGroups';
 import { AgeGroupSelect } from '../../components/AgeGroupSelect';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -45,7 +47,7 @@ export default function EditTournamentManagerPage() {
   const [publishing, setPublishing] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -393,15 +395,15 @@ export default function EditTournamentManagerPage() {
         </div>
 
         {successMessage && (
-          <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             {successMessage}
-          </div>
+          </div></DismissibleFeedback>
         )}
 
         {errorMessage && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMessage}
-          </div>
+          </div></DismissibleFeedback>
         )}
 
         <div className="grid gap-5 md:grid-cols-2">

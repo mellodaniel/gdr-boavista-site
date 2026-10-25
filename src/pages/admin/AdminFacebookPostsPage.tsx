@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import {
@@ -101,7 +103,7 @@ export function AdminFacebookPostsPage() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
 
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [errorMessage, setErrorMessage] = useState('');
 
   async function loadPosts() {
@@ -481,15 +483,15 @@ export function AdminFacebookPostsPage() {
       </section>
 
       {successMessage && (
-        <div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
+        <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="mt-6 rounded-sm border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
           {successMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {errorMessage && (
-        <div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
+        <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="mt-6 rounded-sm border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
           {errorMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {showForm && (

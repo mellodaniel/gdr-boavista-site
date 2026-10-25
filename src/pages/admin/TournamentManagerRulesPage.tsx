@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -38,7 +40,7 @@ export default function TournamentManagerRulesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
 
   const [formatType, setFormatType] = useState('groups_final');
   const [groupCount, setGroupCount] = useState('2');
@@ -221,15 +223,15 @@ export default function TournamentManagerRulesPage() {
       </div>
 
       {successMessage && (
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {successMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">

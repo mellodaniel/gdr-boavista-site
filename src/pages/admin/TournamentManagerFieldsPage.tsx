@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -32,7 +34,7 @@ export default function TournamentManagerFieldsPage() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [form, setForm] = useState<FieldFormState>(emptyForm);
 
   const orderedFields = useMemo(() => {
@@ -225,15 +227,15 @@ export default function TournamentManagerFieldsPage() {
       </div>
 
       {successMessage && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-green-700">
+        <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="rounded-xl border border-green-200 bg-green-50 p-4 text-green-700">
           {successMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+        <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
           {errorMessage}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">

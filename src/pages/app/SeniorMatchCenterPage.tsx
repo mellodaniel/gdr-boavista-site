@@ -1,3 +1,5 @@
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
+import {useFeedback} from '../../components/feedback/useFeedback';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
@@ -167,7 +169,7 @@ export function SeniorMatchCenterPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useFeedback('');
   const [error, setError] = useState('');
 
   const [matchForm, setMatchForm] = useState({
@@ -838,9 +840,9 @@ export function SeniorMatchCenterPage() {
 
         <section className="min-w-0">
           {(message || error) && (
-            <div className={`mb-4 rounded-2xl border px-4 py-3 text-sm font-bold ${error ? 'border-red-500/40 bg-red-950/40 text-red-100' : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-100'}`}>
+            <DismissibleFeedback error={Boolean(error)} onDismiss={()=>{setMessage('');setError('');}}><div className={`mb-4 rounded-2xl border px-4 py-3 text-sm font-bold ${error ? 'border-red-500/40 bg-red-950/40 text-red-100' : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-100'}`}>
               {error || message}
-            </div>
+            </div></DismissibleFeedback>
           )}
 
           <div className="mb-5 overflow-x-auto rounded-3xl border border-white/10 bg-white/[0.06] p-2">

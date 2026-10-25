@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -22,7 +24,7 @@ export function AdminGalleryPage() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [success, setSuccess] = useFeedback('');
   const [search, setSearch] = useState('');
   const [index, setIndex] = useState<number | null>(null);
   const stop = useRef(false);
@@ -184,7 +186,7 @@ export function AdminGalleryPage() {
   return <div className="space-y-6">
     <header className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.3em] text-red-700">Administração</p><h1 className="mt-2 font-serif text-4xl text-[#24180f]">Galeria · Álbuns</h1><p className="mt-2 text-sm text-zinc-500">Organiza os momentos do clube e carrega várias fotografias de uma só vez.</p></div><button onClick={newAlbum} disabled={locked} className={`${button} border-red-700 bg-red-700! text-white`}>+ Criar álbum</button></header>
     {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-    {success && <p role="status" className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p>}
+    {success && <DismissibleFeedback onDismiss={()=>setSuccess('')}><p role="status" className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p></DismissibleFeedback>}
     {editing && <button onClick={backToAlbums} disabled={locked} className={button}>← Voltar aos álbuns</button>}
     {editing && <section className="space-y-6 rounded-xl border border-zinc-200 bg-white p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">{selected ? 'Editar álbum' : 'Novo álbum'}</h2><span className="rounded-full bg-zinc-100 px-3 py-1 text-sm">{selected?.is_published ? 'Publicado' : 'Rascunho'}</span></div>

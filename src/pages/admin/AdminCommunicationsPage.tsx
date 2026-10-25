@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -518,7 +520,7 @@ export function AdminCommunicationsPage() {
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const previewKey = JSON.stringify([form.subject, form.preview_text, form.body, form.email_template, form.images]);
 
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useFeedback<{ type: 'success' | 'error'; text: string } | null>(null);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | Communication['status']>('all');
   const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | CommunicationKind>('all');
@@ -1531,7 +1533,7 @@ export function AdminCommunicationsPage() {
       </section>
 
       {message && (
-        <div
+        <DismissibleFeedback onDismiss={()=>setMessage(null)} error={message.type==='error'}><div
           className={`rounded-xl border px-5 py-4 text-sm font-semibold ${
             message.type === 'success'
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -1539,7 +1541,7 @@ export function AdminCommunicationsPage() {
           }`}
         >
           {message.text}
-        </div>
+        </div></DismissibleFeedback>
       )}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">

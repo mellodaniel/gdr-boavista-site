@@ -1,3 +1,5 @@
+import {useFeedback} from '../../components/feedback/useFeedback';
+import {DismissibleFeedback} from '../../components/feedback/DismissibleFeedback';
 import { TrainWithUsSection } from '../../components/public/TrainWithUsSection';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -154,7 +156,7 @@ function NewsletterSignupSection() {
   const [email, setEmail] = useState('');
   const [acceptsNewsletter, setAcceptsNewsletter] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useFeedback('');
   const [errorMessage, setErrorMessage] = useState('');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -250,16 +252,16 @@ function NewsletterSignupSection() {
 
             <form onSubmit={handleSubmit} className="space-y-3">
               {successMessage && (
-                <div className="flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">
+                <DismissibleFeedback onDismiss={()=>setSuccessMessage('')}><div className="flex items-start gap-3 rounded-2xl md:rounded-[1.35rem] border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">
                   <CheckCircle2 size={18} />
                   <span>{successMessage}</span>
-                </div>
+                </div></DismissibleFeedback>
               )}
 
               {errorMessage && (
-                <div className="rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
+                <DismissibleFeedback error onDismiss={()=>setErrorMessage('')}><div className="rounded-2xl md:rounded-[1.35rem] border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
                   {errorMessage}
-                </div>
+                </div></DismissibleFeedback>
               )}
 
               <div className="grid gap-3 md:grid-cols-[0.9fr_1.1fr_auto] md:items-end">
