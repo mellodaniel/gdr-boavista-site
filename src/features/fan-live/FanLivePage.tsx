@@ -4,9 +4,10 @@ import {TeamBadge} from './TeamBadge';
 import {CLUB_BADGE,opponentBadge} from '../match-sheet/badges.js';
 import {KickoffCountdown} from './KickoffCountdown';
 import {FanSponsors,useFanSponsors} from './FanSponsors';
+import {useFanPresence} from './useFanPresence';
 import type {FanSponsor} from './FanSponsors';
 import {useEffect,useState} from 'react';
-import {ArrowLeftRight,ChevronRight,Clock,Copy,MapPin,Radio,RefreshCw,Share2,Trophy,WifiOff} from 'lucide-react';
+import {ArrowLeftRight,ChevronRight,Clock,Copy,MapPin,Radio,RefreshCw,Share2,Trophy,Users,WifiOff} from 'lucide-react';
 import type {FanEvent,FanMatch,FanPlayer} from './types';
 import './fan-live.css';
 const minute=(e:{minute:number;added:number})=>`${e.minute}${e.added?`+${e.added}`:''}′`;
@@ -14,7 +15,7 @@ const status=(m:FanMatch)=>m.status==='draft'?'Relato previsto':m.status==='fini
 const player=(p:FanPlayer|null)=>p?`${p.number?`#${p.number} · `:''}${p.name}`:'Jogador por identificar';
 const labels={goal:'GOLO!',yellow:'Cartão amarelo',red:'Cartão vermelho',second_yellow:'Segundo amarelo · expulsão',substitution:'Substituição'};
 function Icon({kind}:{kind:FanEvent['kind']}){return kind==='goal'?<span className="fl-ball" aria-hidden="true">⚽</span>:kind==='substitution'?<ArrowLeftRight aria-hidden="true"/>:<span className="fl-cards" aria-hidden="true">{kind==='second_yellow'&&<i className="yellow"/>}<i className={kind==='yellow'?'yellow':'red'}/></span>;}
-export function FanLiveView({matches,selected,onSelect,loading,error,checkedAt,onRefresh,onShare,shareNotice,onDismissShare=()=>{},sponsors=[]}:{onDismissShare?:()=>void;sponsors?:FanSponsor[];matches:FanMatch[];selected:string;onSelect:(id:string)=>void;loading:boolean;error:string;checkedAt:string;onRefresh:()=>void;onShare:()=>void;shareNotice:string}){
+export function FanLiveView({matches,selected,onSelect,loading,error,checkedAt,onRefresh,onShare,shareNotice,onDismissShare=()=>{},sponsors=[],onlineCount=undefined}:{onDismissShare?:()=>void;sponsors?:FanSponsor[];onlineCount?:number|null;matches:FanMatch[];selected:string;onSelect:(id:string)=>void;loading:boolean;error:string;checkedAt:string;onRefresh:()=>void;onShare:()=>void;shareNotice:string}){
  const [filter,setFilter]=useState('all');
  const match=matches.find(m=>m.id===selected)||matches[0];
  const [order,setOrder]=useState('latest');
@@ -22,7 +23,7 @@ export function FanLiveView({matches,selected,onSelect,loading,error,checkedAt,o
  const events=order==='latest'?[...shown].reverse():shown;
  const teams=match?(match.home?[{name:match.club,club:true,goals:match.score?.club},{name:match.opponent,club:false,goals:match.score?.opponent}]:[{name:match.opponent,club:false,goals:match.score?.opponent},{name:match.club,club:true,goals:match.score?.club}]):[];
  return <main className="fl-page"><header className="fl-header"><a href="/" aria-label="Página principal do GDRBoavista"><img src="/logo-gdr-boavista-clean-1024.png" alt=""/><span>GDRBoavista<small>JUNTOS, EM CADA MINUTO.</small></span></a><span className="fl-test">ACESSO POR LINK · TESTE</span></header>
- <FanSponsors sponsors={sponsors}><div className="fl-wrap"><section className="fl-intro"><div><p className="fl-eyebrow"><Radio size={14}/> BANCADA DIGITAL</p><h1>O jogo chega até ti.</h1><p>Mesmo longe do campo, estás connosco. Acompanha cada momento do GDRBoavista.</p></div><button onClick={onShare} className="fl-share"><Share2 size={17}/>Partilhar relato</button></section>
+ <FanSponsors sponsors={sponsors}><div className="fl-wrap"><section className="fl-intro"><div><p className="fl-eyebrow"><Radio size={14}/> BANCADA DIGITAL</p><h1>O jogo chega até ti.</h1><p>Mesmo longe do campo, estás connosco. Acompanha cada momento do GDRBoavista.</p></div><div className="fl-intro-actions"><span className="fl-viewers" role="status" aria-live="polite"><Users size={17} aria-hidden="true"/>{onlineCount===undefined?'A ligar à bancada…':onlineCount===null?'Contador indisponível':<><strong>{onlineCount}</strong> {onlineCount===1?'espectador online':'espectadores online'}</>}</span><button onClick={onShare} className="fl-share"><Share2 size={17}/>Partilhar relato</button></div></section>
  {shareNotice&&<DismissibleFeedback onDismiss={onDismissShare}><p className="fl-toast" role="status">{shareNotice}</p></DismissibleFeedback>}
  {error&&<div className="fl-warning" role="alert"><WifiOff size={18}/><span>{error}{matches.length?' Os dados abaixo são da última atualização.':''}</span><button onClick={onRefresh}>Tentar novamente</button></div>}
  {!match?<section className="fl-empty"><Radio size={38}/><h2>{loading?'A ligar ao campo…':'À espera do apito inicial.'}</h2><p>{loading?'Estamos a procurar os jogos partilhados pelo clube.':'Os jogos aparecem aqui quando a equipa ativa o relato na ficha. Guarda este link e volta para acompanhar.'}</p><button onClick={onRefresh}><RefreshCw size={16}/>Atualizar</button></section>:<>
@@ -36,6 +37,7 @@ export function FanLiveView({matches,selected,onSelect,loading,error,checkedAt,o
 export default function FanLivePage(){
  const sponsors=useFanSponsors();
  const params=new URLSearchParams(window.location.hash.slice(1)),token=params.get('acesso')||'';
+ const onlineCount=useFanPresence(token);
  const [selected,setSelected]=useState(params.get('jogo')||''),[matches,setMatches]=useState<FanMatch[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[checkedAt,setCheckedAt]=useState(''),[retry,setRetry]=useState(0),[shareNotice,setShareNotice]=useFeedback('');
  useEffect(()=>{document.title='Bancada digital · GDRBoavista';let meta=document.querySelector('meta[name="robots"]');if(!meta){meta=document.createElement('meta');meta.setAttribute('name','robots');document.head.append(meta);}meta.setAttribute('content','noindex, nofollow, noarchive');},[]);
  useEffect(()=>{
@@ -54,5 +56,5 @@ export default function FanLivePage(){
  },[token,retry]);
  async function share(){const hash=new URLSearchParams({acesso:token,...(selected?{jogo:selected}:{})});const url=`${window.location.origin}/acompanhar-jogo#${hash}`;try{if(navigator.share)await navigator.share({title:'Acompanha o GDRBoavista',url});else{await navigator.clipboard.writeText(url);setShareNotice('Link copiado. Quem o receber pode acompanhar os jogos partilhados.');}}catch(e){if(!(e instanceof DOMException&&e.name==='AbortError'))setShareNotice('Não foi possível copiar. Podes partilhar o endereço completo da página.');}}
  function select(id:string){setSelected(id);const hash=new URLSearchParams({acesso:token,jogo:id});history.replaceState(null,'',`#${hash}`);}
- return <FanLiveView onDismissShare={()=>setShareNotice('')} sponsors={sponsors} matches={matches} selected={selected} onSelect={select} loading={loading} error={error} checkedAt={checkedAt} onRefresh={()=>setRetry(n=>n+1)} onShare={()=>void share()} shareNotice={shareNotice}/>;
+ return <FanLiveView onDismissShare={()=>setShareNotice('')} sponsors={sponsors} onlineCount={onlineCount} matches={matches} selected={selected} onSelect={select} loading={loading} error={error} checkedAt={checkedAt} onRefresh={()=>setRetry(n=>n+1)} onShare={()=>void share()} shareNotice={shareNotice}/>;
 }
