@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {createClient} from '@supabase/supabase-js';
+import {supabase} from '../../lib/supabase';
 
 // Presence is scoped to the shared spectator link. No names or personal data are sent.
 export function useFanPresence(token:string){
@@ -7,18 +7,14 @@ export function useFanPresence(token:string){
  useEffect(()=>{
   setOnlineCount(undefined);
   if(!/^[A-Za-z0-9_-]{43}$/.test(token)){setOnlineCount(null);return;}
-  const url=import.meta.env.VITE_SUPABASE_URL;
-  const key=import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if(!url||!key){setOnlineCount(null);return;}
   let active=true;
-  let channel:ReturnType<ReturnType<typeof createClient>['channel']>|null=null;
-  const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+  let channel:ReturnType<typeof supabase.channel>|null=null;
   async function connect(){
    try{
     const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
     if(!active)return;
     const room=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
-    channel=client.channel(`fan-viewers:${room}`);
+    channel=supabase.channel(`fan-viewers:${room}`);
     let tracked=false;
     const count=()=>{
      if(!active||!tracked||!channel)return;
@@ -40,7 +36,7 @@ export function useFanPresence(token:string){
    }
   }
   void connect();
-  return()=>{active=false;if(channel)void client.removeChannel(channel);};
+  return()=>{active=false;if(channel)void supabase.removeChannel(channel);};
  },[token]);
  return onlineCount;
 }
