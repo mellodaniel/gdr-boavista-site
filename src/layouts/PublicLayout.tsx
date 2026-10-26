@@ -403,12 +403,12 @@ export function PublicLayout() {
 
             <div className="mt-5 grid gap-3 text-sm text-zinc-300">
               <a
-                href="mailto:socios.gdrboavista@gmail.com"
+                href="mailto:Gdrbboavista@gmail.com"
                 onClick={() => trackHeaderClick('contact_click', 'Email - footer')}
                 className="flex min-h-11 items-center gap-3 rounded-xl pr-2 hover:text-red-400"
               >
                 <Mail size={17} />
-                socios.gdrboavista@gmail.com
+                Gdrbboavista@gmail.com
               </a>
 
               <a

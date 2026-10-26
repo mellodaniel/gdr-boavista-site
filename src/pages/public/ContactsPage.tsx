@@ -31,8 +31,8 @@ const contactItems = [
   {
     icon: Mail,
     title: 'Email',
-    description: 'socios.gdrboavista@gmail.com',
-    href: 'mailto:socios.gdrboavista@gmail.com',
+    description: 'Gdrbboavista@gmail.com',
+    href: 'mailto:Gdrbboavista@gmail.com',
   },
   {
     icon: MessageCircle,
