@@ -1,3 +1,4 @@
+import { MatchCalendarPicker } from './MatchCalendarPicker';
 import {useFeedback} from '../../components/feedback/useFeedback';
 import {OpponentBadgeField} from './OpponentBadgeField';
 import { FanSharing } from './FanSharing';
@@ -150,7 +151,8 @@ function MatchWorkspace({access}:{access:SharedAccess}){
         <nav className="ms-tabs" aria-label="Etapas da ficha">{([['prepare','Preparar',Users],['live','Jogo',Goal],['report','Ficha',ClipboardList]] as const).map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} aria-current={tab===id?'page':undefined}><Icon size={18}/>{label}</button>)}</nav>
         {tab==='prepare'&&<>
           <section className="ms-panel"><h2>Dados do jogo</h2><div className="ms-form-grid">
-            <label className="ms-span">Jogo da agenda<select value={sheet.calendarId||''} disabled={!editable||sheet.status!=='draft'} onChange={e=>{const match=calendar.find(m=>m.id===e.target.value);change(d=>({...d,calendarId:match?.id||null,...(match?{opponent:match.opponent,opponentBadgeUrl:repository.records.find(r=>r.document.opponent.trim().toLowerCase()===match.opponent.trim().toLowerCase()&&r.document.opponentBadgeUrl)?.document.opponentBadgeUrl||'',date:match.match_date,time:match.match_time?.slice(0,5)||'',venue:match.location||'',competition:match.competition,home:match.venue_type==='casa'}:{})}));}}><option value="">Jogo particular / preencher manualmente</option>{calendar.map(m=><option key={m.id} value={m.id}>{m.match_date} · {m.opponent}</option>)}</select></label>
+            <MatchCalendarPicker key={sheet.ageGroup} matches={calendar} value={sheet.calendarId} disabled={!editable||sheet.status!=='draft'} loading={rosterLoading} online={online} selected={{opponent:sheet.opponent,date:sheet.date}} onChange={match=>{change(d=>({...d,calendarId:match?.id||null,...(match?{opponent:match.opponent,opponentBadgeUrl:repository.records.find(r=>r.document.opponent.trim().toLowerCase()===match.opponent.trim().toLowerCase()&&r.document.opponentBadgeUrl)?.document.opponentBadgeUrl||'',date:match.match_date,time:match.match_time?.slice(0,5)||'',venue:match.location||'',competition:match.competition,home:match.venue_type==='casa'}:{})}));}}/>
+
             <label>Adversário<input value={sheet.opponent} maxLength={120} disabled={!editable} onChange={e=>change(d=>({...d,opponent:e.target.value,opponentBadgeUrl:repository.records.find(r=>r.document.opponent.trim().toLowerCase()===e.target.value.trim().toLowerCase()&&r.document.opponentBadgeUrl)?.document.opponentBadgeUrl||''}))}/></label>
             <OpponentBadgeField name={sheet.opponent} value={sheet.opponentBadgeUrl||''} disabled={!editable} onChange={opponentBadgeUrl=>change(d=>({...d,opponentBadgeUrl}))}/>
             <label>Competição<input value={sheet.competition} maxLength={120} disabled={!editable} onChange={e=>change(d=>({...d,competition:e.target.value}))}/></label>

@@ -1,8 +1,9 @@
+import { lisbonDate } from '../src/features/match-sheet/calendar.js';
 import { sharedSheetAccess, serviceHeaders } from './matchSheetAccess.js';
 import { validateSheet } from '../src/features/match-sheet/model.js';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export function createMatchSheetWorkspace({ fetcher = fetch, env = process.env } = {}) {
+export function createMatchSheetWorkspace({ fetcher = fetch, env = process.env, now = () => new Date() } = {}) {
   return async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -41,7 +42,7 @@ export function createMatchSheetWorkspace({ fetcher = fetch, env = process.env }
         if (typeof input.group !== 'string' || input.group.length > 100) return fail(400, 'Escalão inválido.');
         const [players, calendar] = await Promise.all([
           db('rpc/gdrb_sheet_roster', { p_group: input.group }),
-          db(`gdrb_matches?select=id,team_name,opponent,match_date,match_time,location,competition,venue_type&team_name=eq.${encodeURIComponent(input.group)}&order=match_date.desc&limit=50`),
+          db(`gdrb_matches?select=id,team_name,opponent,match_date,match_time,location,competition,venue_type,status&team_name=eq.${encodeURIComponent(input.group)}&match_date=gte.${lisbonDate(now())}&status=not.in.(terminado,arquivado,cancelado)&order=match_date.asc,match_time.asc.nullslast&limit=100`),
         ]);
         return res.json({ players, calendar });
       }
