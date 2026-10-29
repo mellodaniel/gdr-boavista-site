@@ -11,6 +11,7 @@ export function fanLiveToken(env) {
 export function publicMatch(row,now=Date.now()) {
   const s=row.document;
   if(row.deleted_at||row.archived_at||s?.fanLiveEnabled!==true||!['draft','live','interval','finished'].includes(s.status))return null;
+  if(s.status==='draft'&&(!s.opponent?.trim()||!s.date))return null;
   // Explicit allowlist. Never spread a document, player or event into a public response.
   const player=id=>{const p=s.squad.find(p=>p.id===id);return p?{name:p.name,number:p.shirt_number}:null;};
   const events=(s.status==='draft'?[]:orderedEvents(s)).filter(e=>publicKinds.has(e.kind)).map(e=>({

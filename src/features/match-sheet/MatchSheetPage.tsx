@@ -60,21 +60,22 @@ function MatchWorkspace({access}:{access:SharedAccess}){
   useEffect(()=>{
     let active=true;const unsub=repository.subscribe(()=>{if(active)redraw(n=>n+1);});
     const connection=()=>{setOnline(navigator.onLine);if(navigator.onLine)void repository.sync().then(()=>repository.refresh()).catch(e=>setError(readableError(e)));};
-    const interval=setInterval(connection,15000);window.addEventListener('online',connection);window.addEventListener('offline',connection);
+    const interval=setInterval(connection,15000);window.addEventListener('online',connection);window.addEventListener('offline',connection);document.addEventListener('visibilitychange',resume);
+    function resume(){if(!document.hidden)connection();}
     void (async()=>{
       try {await repository.load();const cache=await localRead<Context>(access.scope+':context');if(cache&&active)setContext(cache);if(active)setReady(true);if(navigator.onLine){await reloadContext();await repository.sync();await repository.refresh();}}
       catch(e){if(active){setError(readableError(e));setReady(true);}}
     })();
-    return()=>{active=false;unsub();clearInterval(interval);window.removeEventListener('online',connection);window.removeEventListener('offline',connection);};
+    return()=>{active=false;unsub();clearInterval(interval);window.removeEventListener('online',connection);window.removeEventListener('offline',connection);document.removeEventListener('visibilitychange',resume);};
   },[repository,reloadContext,access.scope]);
   // Load a selected document only on navigation; acknowledgements never replace current edits.
   useEffect(()=>{
-    if(!ready)return;
+    if(!ready||localSaving||storageError)return;
     if(!selected){current.current=null;setSheet(null);return;}
     const record=repository.records.find(r=>r.document.id===selected);
     if(current.current?.id===selected&&(record?.dirty||record?.localVersion!==0||loadedRevision.current===record?.revision))return;
     if(record){const document=structuredClone(record.document);current.current=document;loadedRevision.current=record.revision;setSheet(document);setTab(document.status==='draft'?'prepare':document.status==='finished'?'report':'live');}
-  },[selected,ready,repository,repository.records]);
+  },[selected,ready,repository,repository.records,localSaving,storageError]);
   useEffect(()=>{
     if(!sheet)return;let active=true;setRoster([]);setCalendar([]);setRosterLoading(true);
     const group=sheet.ageGroup,key=access.scope+':roster:'+group;
@@ -91,8 +92,8 @@ function MatchWorkspace({access}:{access:SharedAccess}){
     void workspaceRequest<SheetDelivery[]>(access,{action:'deliveries',id:sheet.id}).then(data=>{if(active)setDeliveries(data);}).catch(e=>{if(active)setError(readableError(e));});return()=>{active=false;};
   },[sheet?.id,tab,online,notice]);
   useEffect(()=>{
-    const warn=(e:BeforeUnloadEvent)=>{if(localSaving||storageError){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);
-  },[localSaving,storageError]);
+    const warn=(e:BeforeUnloadEvent)=>{if(localSaving||storageError||repository.records.some(r=>r.dirty&&!r.deletedAt)){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);
+  },[localSaving,storageError,repository]);
   function change(fn:(doc:MatchSheet)=>MatchSheet,validate=false){
     if(!current.current||stored?.archivedAt||stored?.deletedAt||managing)return false;
     const next=fn(structuredClone(current.current));const issue=validate?validateSheet(next):null;if(issue){setError(issue);return false;}
@@ -100,9 +101,9 @@ function MatchWorkspace({access}:{access:SharedAccess}){
     void repository.save(next).catch(e=>{setStorageError(true);setError(`Não foi possível guardar neste dispositivo. Mantém esta página aberta e guarda uma cópia. ${readableError(e)}`);}).finally(()=>setLocalSaving(n=>n-1));return true;
   }
   function create(){if(navigator.storage?.persist)void navigator.storage.persist();const team=context.teams.find(t=>t.age_group===teamName);if(!team||!canCreate(teamName))return;if(!team.roster_key){setError('Este escalão ainda não tem plantel associado. O administrador pode associá-lo em Configuração.');return;}const doc=newSheet(team,'');current.current=doc;setSheet(doc);setTab('prepare');setParams({ficha:doc.id});change(d=>d);}
-  async function sync(){setError('');try{await repository.sync();if(!sheet)await repository.refresh();}catch(e){setError(readableError(e));}}
+  async function sync(){setError('');try{await repository.sync();await repository.refresh();}catch(e){setError(readableError(e));}}
   function exportBackup(){if(sheet)download(new Blob([JSON.stringify({document:sheet,revision:stored?.revision||0},null,2)],{type:'application/json'}),`ficha-${sheet.date}-${sheet.id.slice(0,8)}.json`);}
-  async function shareLink(){try{await navigator.clipboard.writeText(`${window.location.origin}/ficha-de-jogo#acesso=${access.key}`);setNotice('Link copiado. Quem receber o link pode criar, editar e gerir as fichas.');}catch{setError('Não foi possível copiar. Podes copiar o link completo na barra de endereços.');}}
+  async function shareLink(){try{await navigator.clipboard.writeText(`${window.location.origin}/ficha-de-jogo${sheet?'?ficha='+encodeURIComponent(sheet.id):''}#acesso=${access.key}`);setNotice('Link copiado. Quem receber o link pode criar, editar e gerir as fichas.');}catch{setError('Não foi possível copiar. Podes copiar o link completo na barra de endereços.');}}
   async function manage(){if(!manageTarget)return;setManaging(true);setError('');try{await repository.manage(manageTarget.id,manageTarget.action);setNotice(manageTarget.action==='trash'?'Ficha movida para o lixo. Podes restaurá-la no separador Lixo.':manageTarget.action==='archive'?'Ficha arquivada.':'Ficha restaurada.');setParams({});setManageTarget(null);}catch(e){setError(readableError(e));setManageTarget(null);}finally{setManaging(false);}}
   function openEvent(kind:EventKind,side:'club'|'opponent'='club'){if(!sheet)return;const time=clockAt(sheet);setEvent({id:crypto.randomUUID(),kind,side,period:time.period,minute:time.minute,added:time.added,player:'',incoming:'',ownGoal:false,note:'',createdAt:new Date().toISOString()});}
   function saveEvent(e:SheetEvent){if(change(d=>({...d,events:[...d.events.filter(x=>x.id!==e.id),e]}),true)){setEvent(null);setNotice(`${eventLabels[e.kind]} registado.`);}}
@@ -118,7 +119,7 @@ function MatchWorkspace({access}:{access:SharedAccess}){
     setNotice('Ficha aceite pelo serviço de email. Consulta os destinatários no histórico de envios.');setMailOpen(false);await localWrite(access.scope+':email:'+key,null);mailAttempt.current=null;
   }catch(e){setError(readableError(e));}finally{setSending(false);}}
   const live=sheet?clockAt(sheet,now):null,tally=sheet?matchPresentation(sheet):null;
-  const syncLabel=storageError?'Falha ao guardar':localSaving?'A guardar…':stored?.conflict?'Conflito entre dispositivos':stored?.dirty?'Guardado no dispositivo · por sincronizar':stored?'Sincronizado':'A preparar';
+  const syncLabel=storageError?'Falha ao guardar':localSaving?'A guardar…':stored?.conflict?'Conflito entre dispositivos':stored?.dirty?'Guardado no dispositivo · por sincronizar':stored?'Disponível nos outros dispositivos':'A preparar';
   const savedReady=Boolean(stored&&!stored.dirty&&!stored.deletedAt&&!localSaving&&!storageError&&online);
   const buckets=[['active','Todas'],['draft','Em preparação'],['live','Em curso'],['finished','Finalizadas'],['archive','Arquivo'],['trash','Lixo']];
   const inBucket=(r:StoredSheet,b:string)=>b==='trash'?Boolean(r.deletedAt):b==='archive'?!r.deletedAt&&Boolean(r.archivedAt):!r.deletedAt&&!r.archivedAt&&(b==='active'||(b==='live'?['live','interval'].includes(r.document.status):r.document.status===b));
@@ -150,7 +151,7 @@ function MatchWorkspace({access}:{access:SharedAccess}){
         <FanSharing key={sheet.id} accessKey={access.key} id={sheet.id} enabled={sheet.fanLiveEnabled===true} synced={savedReady} disabled={!owned||!canCreate(sheet.ageGroup)||!online||Boolean(stored?.conflict||stored?.archivedAt||stored?.deletedAt||localSaving||storageError||managing)} onToggle={value=>change(d=>({...d,fanLiveEnabled:value}))}/>
         <nav className="ms-tabs" aria-label="Etapas da ficha">{([['prepare','Preparar',Users],['live','Jogo',Goal],['report','Ficha',ClipboardList]] as const).map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} aria-current={tab===id?'page':undefined}><Icon size={18}/>{label}</button>)}</nav>
         {tab==='prepare'&&<>
-          <section className="ms-panel"><h2>Dados do jogo</h2><div className="ms-form-grid">
+          <section className="ms-panel"><h2>Dados do jogo</h2><p className="ms-small">A preparação é guardada automaticamente, mesmo sem convocatória. Com ligação à internet, podes continuar noutro dispositivo usando o mesmo link da equipa.</p><div className="ms-form-grid">
             <MatchCalendarPicker key={sheet.ageGroup} matches={calendar} value={sheet.calendarId} disabled={!editable||sheet.status!=='draft'} loading={rosterLoading} online={online} selected={{opponent:sheet.opponent,date:sheet.date}} onChange={match=>{change(d=>({...d,calendarId:match?.id||null,...(match?{opponent:match.opponent,opponentBadgeUrl:repository.records.find(r=>r.document.opponent.trim().toLowerCase()===match.opponent.trim().toLowerCase()&&r.document.opponentBadgeUrl)?.document.opponentBadgeUrl||'',date:match.match_date,time:match.match_time?.slice(0,5)||'',venue:match.location||'',competition:match.competition,home:match.venue_type==='casa'}:{})}));}}/>
 
             <label>Adversário<input value={sheet.opponent} maxLength={120} disabled={!editable} onChange={e=>change(d=>({...d,opponent:e.target.value,opponentBadgeUrl:repository.records.find(r=>r.document.opponent.trim().toLowerCase()===e.target.value.trim().toLowerCase()&&r.document.opponentBadgeUrl)?.document.opponentBadgeUrl||''}))}/></label>

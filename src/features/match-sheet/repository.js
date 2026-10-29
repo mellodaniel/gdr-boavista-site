@@ -29,10 +29,11 @@ export class MatchSheetRepository {
     this.syncing=true;
     try{
       if(await this.io.user()!==this.userId)return;
-      for(const id of this.records.filter(r=>r.dirty&&!r.conflict&&!r.archivedAt&&!r.deletedAt&&r.owner===this.userId&&!validateSheet(r.document)).map(r=>r.document.id)){
+      for(const id of this.records.filter(r=>r.dirty&&!r.conflict&&!r.archivedAt&&!r.deletedAt&&r.owner===this.userId).map(r=>r.document.id)){
         if(this.stopped)return;
         const attempt=structuredClone(this.records.find(r=>r.document.id===id));
-        const result=await this.io.upload(attempt).catch(()=>({error:{code:'NETWORK'}}));
+        const issue=validateSheet(attempt.document,{allowIncompleteDraft:true});
+        const result=issue?{error:{code:'P0001',message:issue}}:await this.io.upload(attempt).catch(()=>({error:{code:'NETWORK'}}));
         await this.enqueue(async()=>{
           const current=this.records.find(r=>r.document.id===id);if(!current||this.stopped)return;
           const record={...current};
@@ -42,7 +43,7 @@ export class MatchSheetRepository {
         });
       }
     }finally{this.syncing=false;}
-    if(this.records.some(r=>r.dirty&&!r.error&&!r.archivedAt&&!r.deletedAt&&!validateSheet(r.document)))this.schedule();
+    if(this.records.some(r=>r.dirty&&!r.error&&!r.archivedAt&&!r.deletedAt&&!validateSheet(r.document,{allowIncompleteDraft:true})))this.schedule();
   }
   manage(id,action){
     return this.enqueue(async()=>{

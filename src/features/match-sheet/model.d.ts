@@ -6,7 +6,7 @@ export function clockAt(sheet:MatchSheet,now?:number):{period:number;minute:numb
 export function score(sheet:MatchSheet):{club:number;opponent:number};
 export function lineup(sheet:MatchSheet):{onField:Set<string>;dismissed:Set<string>;used:Set<string>};
 export function eventDescription(sheet:MatchSheet,event:SheetEvent):string;
-export function validateSheet(sheet:MatchSheet):string|null;
+export function validateSheet(sheet:MatchSheet,options?:{allowIncompleteDraft?:boolean}):string|null;
 export function newSheet(team:SheetTeam,recorder:string,now?:Date):MatchSheet;
 
 export function matchPresentation(sheet:MatchSheet):{first:{name:string;goals:number};second:{name:string;goals:number};title:string;result:string};

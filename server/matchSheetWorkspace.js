@@ -47,7 +47,7 @@ export function createMatchSheetWorkspace({ fetcher = fetch, env = process.env, 
         return res.json({ players, calendar });
       }
       if (input.action === 'save') {
-        const issue = validateSheet(input.document);
+        const issue = validateSheet(input.document,{allowIncompleteDraft:true});
         if (issue || !uuid.test(input.document.id) || !Number.isSafeInteger(input.revision) || input.revision < 0) return fail(400, issue || 'Versão inválida.', 'P0001');
         const document = {...input.document,rules:{...input.document.rules,recordGoals:true}};
         // Upgrade the match-sheet team configuration before the RPC validates legacy restrictions.
