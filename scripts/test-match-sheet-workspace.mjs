@@ -43,3 +43,11 @@ test('context grants module editing only, without account administration',async(
 test('saving an existing sheet enables goals despite the legacy document flag',async()=>{
  const t=setup();const doc=newSheet({age_group:'Seniores',field_size:11,period_minutes:45,periods:2,reentry:false,record_goals:false},'Diretor');doc.opponent='Teste';doc.rules.recordGoals=false;t.req.body={action:'save',document:doc,revision:0};await t.handler(t.req,t.res);assert.equal(t.res.statusCode,200);const call=t.calls.find(c=>c.url.endsWith('/gdrb_save_match_sheet'));assert.equal(JSON.parse(call.init.body).p_document.rules.recordGoals,true);assert.equal(doc.rules.recordGoals,false);const config=t.calls.find(c=>c.init.method==='PATCH');assert.ok(config.url.includes('age_group=eq.Seniores&record_goals=eq.false'));assert.deepEqual(JSON.parse(config.init.body),{record_goals:true});assert.ok(t.calls.indexOf(config)<t.calls.indexOf(call));
 });
+
+test('calendar queries only today and future dates, nearest first before applying the limit',async()=>{
+ const t=setup();t.req.body={action:'roster',group:'Juniores'};await t.handler(t.req,t.res);
+ const url=t.calls.find(c=>c.url.includes('/gdrb_matches?')).url;
+ assert.match(url,/match_date=gte\.\d{4}-\d{2}-\d{2}/);
+ assert.match(url,/status=not\.in\.\(terminado,arquivado,cancelado\)/);
+ assert.match(url,/order=match_date.asc,match_time.asc.nullslast/);
+});
