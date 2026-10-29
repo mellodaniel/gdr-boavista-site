@@ -896,7 +896,7 @@ export function HomePage() {
               </p>
 
               <h2 className="mt-4 font-serif text-3xl font-light text-[#24180f] md:mt-5 md:text-6xl">
-                Últimas novidades
+                Atualidade do GDRBoavista
               </h2>
             </div>
 
