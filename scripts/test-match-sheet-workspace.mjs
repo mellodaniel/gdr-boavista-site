@@ -34,7 +34,7 @@ test('roster loading uses the dedicated player projection and actual calendar co
 });
 test('saves validate match rules before the privileged RPC',async()=>{
  const t=setup();const doc=newSheet({age_group:'Seniores',field_size:11,period_minutes:45,periods:2,reentry:false,record_goals:true},'Diretor');doc.opponent='Teste';t.req.body={action:'save',document:doc,revision:0};await t.handler(t.req,t.res);assert.equal(t.res.statusCode,200);assert.equal(t.res.body.revision,4);
- const bad=setup();bad.req.body={action:'save',document:{...doc,opponent:''},revision:0};await bad.handler(bad.req,bad.res);assert.equal(bad.res.statusCode,400);assert.equal(bad.calls.length,0);
+ const bad=setup();bad.req.body={action:'save',document:{...doc,status:'live',opponent:''},revision:0};await bad.handler(bad.req,bad.res);assert.equal(bad.res.statusCode,400);assert.equal(bad.calls.length,0);
 });
 test('context grants module editing only, without account administration',async()=>{
  const t=setup();t.req.body={action:'context'};await t.handler(t.req,t.res);assert.equal(t.res.body.admin,false);assert.deepEqual(t.res.body.access,[{age_group:'Seniores',can_edit:true}]);
@@ -50,4 +50,11 @@ test('calendar queries only today and future dates, nearest first before applyin
  assert.match(url,/match_date=gte\.\d{4}-\d{2}-\d{2}/);
  assert.match(url,/status=not\.in\.\(terminado,arquivado,cancelado\)/);
  assert.match(url,/order=match_date.asc,match_time.asc.nullslast/);
+});
+
+test('incomplete drafts reach storage unchanged but cannot start the match',async()=>{
+ const t=setup(),doc=newSheet({age_group:'Seniores',field_size:11,period_minutes:45,periods:2,reentry:false,record_goals:true},'');doc.date='';
+ t.req.body={action:'save',document:doc,revision:0};await t.handler(t.req,t.res);assert.equal(t.res.statusCode,200);
+ const sent=JSON.parse(t.calls.find(c=>c.url.endsWith('/gdrb_save_match_sheet')).init.body).p_document;assert.equal(sent.opponent,'');assert.equal(sent.recorder,'');assert.equal(sent.date,'');assert.deepEqual(sent.squad,[]);
+ const live=setup();live.req.body={action:'save',document:{...doc,status:'live'},revision:0};await live.handler(live.req,live.res);assert.equal(live.res.statusCode,400);assert.equal(live.calls.length,0);
 });

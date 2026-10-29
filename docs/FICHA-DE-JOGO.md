@@ -100,3 +100,9 @@ Validação: testes de API e de áudio em `scripts/test-match-sheet-transcriptio
 
 ## Marcador para todos os escalões (25/10/2026)
 Todos os escalões passam a permitir golos, empates e marcador numérico na ficha, PDF e relato dos adeptos. A antiga opção `recordGoals` permanece compatível com os documentos históricos, mas já não restringe a interface nem a validação; o servidor normaliza-a para true ao guardar. Ao guardar, o servidor ativa também record_goals na configuração desse escalão antes da validação SQL. Isto não altera resultados, eventos ou documentos históricos. As regras da agenda e de torneios são independentes desta ficha e não foram alteradas. Notas e comentários internos continuam excluídos do relato público.
+
+## Preparação partilhada — 29/10/2026
+
+A migração `20261029123000_match_sheet_shared_drafts.sql` foi validada no Supabase com `scripts/test-match-sheet-shared-drafts.sql` numa transação com rollback e depois aplicada. A gravação permite adversário, data e responsável em falta apenas em preparação; o início do jogo mantém a validação completa da aplicação. As revisões, histórico e permissões permanecem em vigor.
+
+A aplicação sincroniza rascunhos incompletos, mostra erros de validação em vez de os ignorar e atualiza a ficha ao regressar ao separador ou usar Sincronizar. O link de acesso copiado dentro da ficha inclui o seu identificador. Para recuperar rascunhos antigos exclusivamente locais, abrir a versão atual no dispositivo original com internet e aguardar a indicação “Disponível nos outros dispositivos”. Alterações concorrentes continuam a exigir resolução explícita do conflito; não são fundidas automaticamente.

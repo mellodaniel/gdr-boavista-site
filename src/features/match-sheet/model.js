@@ -32,10 +32,11 @@ export function eventDescription(sheet,e) {
   const actor=e.side==='club'?name(e.player):'Adversário';
   return [actor,e.ownGoal?'Autogolo':'',e.note].filter(Boolean).join(' · ');
 }
-export function validateSheet(sheet) {
+export function validateSheet(sheet, {allowIncompleteDraft=false}={}) {
   if(!sheet||sheet.schema!==1||!sheet.id||!sheet.ageGroup||!Array.isArray(sheet.squad)||!Array.isArray(sheet.events)||!sheet.rules||!sheet.clock)return 'Ficha inválida.';
   if(!['draft','live','interval','finished'].includes(sheet.status)||typeof sheet.opponent!=='string'||typeof sheet.recorder!=='string'||typeof sheet.notes!=='string')return 'Ficha inválida.';
-  if(!sheet.opponent.trim()||!sheet.date||!sheet.recorder.trim())return 'Preenche o adversário, a data e o responsável.';
+  if(typeof sheet.date!=='string'||(sheet.date!==''&&!/^\d{4}-\d{2}-\d{2}$/.test(sheet.date)))return 'Revê a data do jogo.';
+  if(!(allowIncompleteDraft&&sheet.status==='draft')&&(!sheet.opponent.trim()||!sheet.date||!sheet.recorder.trim()))return 'Preenche o adversário, a data e o responsável.';
   if(sheet.opponent.length>120||sheet.recorder.length>100||sheet.notes.length>4000)return 'Revê o tamanho dos textos da ficha.';
   if(![5,7,9,11].includes(sheet.rules.fieldSize)||!Number.isInteger(sheet.rules.periodMinutes)||sheet.rules.periodMinutes<1||sheet.rules.periodMinutes>60||!Number.isInteger(sheet.rules.periods)||sheet.rules.periods<1||sheet.rules.periods>6||typeof sheet.rules.recordGoals!=='boolean'||typeof sheet.rules.reentry!=='boolean')return 'Revê o formato e a duração do jogo.';
   if(!Number.isInteger(sheet.clock.period)||sheet.clock.period<1||sheet.clock.period>sheet.rules.periods||!Number.isFinite(sheet.clock.elapsedMs)||sheet.clock.elapsedMs<0||(sheet.clock.startedAt!==null&&(!Number.isFinite(sheet.clock.startedAt)||sheet.clock.startedAt<0)))return 'Revê o cronómetro.';
