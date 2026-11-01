@@ -40,3 +40,5 @@
 .ms-search-summary{font-size:13px;color:#596052;margin:0 0 18px}
 @media(max-width:760px){.ms-search-with-status{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ms-search-with-status>label:first-child{grid-column:1 / -1}.ms-search-with-status select,.ms-search-with-status input{font-size:16px;min-height:48px}}
 @media(max-width:560px){.ms-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-right:0;padding:4px 2px 12px;overflow:visible}.ms-filters button{flex-direction:column;gap:6px;white-space:normal;font-size:12px;line-height:1.3;padding:10px 4px;min-height:68px}.ms-search-with-status{grid-template-columns:minmax(0,1fr)}}
+
+.ms-clock-actions button.ms-clock-primary{background:#fff;color:#171917;border-color:#fff;font-weight:700}.ms-clock-actions button.ms-clock-primary:hover{background:#e7eddf}

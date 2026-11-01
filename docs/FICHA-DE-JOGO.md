@@ -106,3 +106,9 @@ Todos os escalões passam a permitir golos, empates e marcador numérico na fich
 A migração `20261029123000_match_sheet_shared_drafts.sql` foi validada no Supabase com `scripts/test-match-sheet-shared-drafts.sql` numa transação com rollback e depois aplicada. A gravação permite adversário, data e responsável em falta apenas em preparação; o início do jogo mantém a validação completa da aplicação. As revisões, histórico e permissões permanecem em vigor.
 
 A aplicação sincroniza rascunhos incompletos, mostra erros de validação em vez de os ignorar e atualiza a ficha ao regressar ao separador ou usar Sincronizar. O link de acesso copiado dentro da ficha inclui o seu identificador. Para recuperar rascunhos antigos exclusivamente locais, abrir a versão atual no dispositivo original com internet e aguardar a indicação “Disponível nos outros dispositivos”. Alterações concorrentes continuam a exigir resolução explícita do conflito; não são fundidas automaticamente.
+
+## Fluxo do cronómetro e duração inicial — 01/11/2026
+
+Novas fichas começam com 45 minutos por período, editáveis na preparação. Os documentos existentes mantêm a duração guardada. O cronómetro apresenta a ação principal conforme o estado: Iniciar jogo → Intervalo → Iniciar 2.ª parte → Fim de jogo. Jogos com outro número de períodos apresentam o período seguinte; no último, apresentam Fim de jogo. Pausar/Retomar continua disponível durante o jogo.
+
+Fim de jogo pede confirmação, para o cronómetro, finaliza a ficha e abre o relatório. A correção continua disponível através de Reabrir para corrigir. O intervalo não conta como tempo jogado, os acréscimos ficam guardados por período e não é possível reiniciar uma ficha finalizada pelo cronómetro. A finalização antecipada no relatório mantém-se para jogos interrompidos; fichas em preparação não podem ser finalizadas.
