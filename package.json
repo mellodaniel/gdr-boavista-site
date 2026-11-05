@@ -11,7 +11,8 @@
     "test:match-sheet": "node --test scripts/test-match-calendar.mjs scripts/test-match-sheet.mjs scripts/test-match-sheet-api.mjs scripts/test-match-sheet-repository.mjs scripts/test-match-sheet-workspace.mjs scripts/test-match-sheet-transcription.mjs",
     "test:fan-live": "node --test scripts/test-fan-live.mjs",
     "test:feedback": "node --test scripts/test-feedback.mjs",
-    "build:mapa": "tsc -p tsconfig.mapa.json && vite build --config vite.mapa.config.ts"
+    "build:mapa": "tsc -p tsconfig.mapa.json && vite build --config vite.mapa.config.ts",
+    "test:mapa": "node --experimental-strip-types --test scripts/test-facility-map.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
