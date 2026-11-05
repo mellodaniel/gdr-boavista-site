@@ -1,6 +1,7 @@
 export type Game={id:string;date:string;start:string;end:string;home:string;away:string;level:string;type:'Campeonato'|'Particular'|'Treino';field:string;homeRoom:string;awayRoom:string;notes:string;roomStart?:string;roomEnd?:string;_version?:number};
 export type DayData={date:string;games:Game[];dates:string[];teams:string[];levels:string[];updatedAt:string|null};
-export const fields=['1','2','3','4','5','6','7','8','9','10','7 + 8'];
+export const fields=['1','2','3','4','5','6','7','8','9','10'];
+export const canonicalGame=(g:Game):Game=>g.field==='7 + 8'?{...g,field:'9'}:g;
 export const normalize=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 export const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
 export const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Lisbon'}).format(new Date());

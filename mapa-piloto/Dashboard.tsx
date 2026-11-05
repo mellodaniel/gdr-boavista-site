@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {CalendarDays,MapPin,DoorOpen,Plus,Search,Share2,Check,X,Pencil,Trash2,Printer,Download,Copy,ChevronLeft,ChevronRight,AlertTriangle,RotateCcw} from 'lucide-react';
 import type {DayData,Game} from './schedule';
-import {conflicts,consultationUrl,dayLabel,missingRooms,newGame,normalize,shiftDate,today,validDate} from './schedule';
+import {canonicalGame,conflicts,consultationUrl,dayLabel,missingRooms,newGame,normalize,shiftDate,today,validDate} from './schedule';
 import {checkAccess,copyDayTo,deleteGame,getDay,getDeleted,saveGame} from './supabase';
 import type {Deleted} from './supabase';
 import {Modal} from './Modal';
@@ -9,7 +9,7 @@ import {Editor} from './Editor';
 import {FieldMap} from './FieldMap';
 import {downloadMap} from './export';
 const DRAFT='gdrb-map-draft-v2';
-function readDraft():Game|null{try{const saved=JSON.parse(localStorage.getItem(DRAFT)||'null');return saved&&Date.now()-saved.at<86400000&&saved.game?.id&&validDate(saved.game.date)?saved.game:null;}catch{return null;}}
+function readDraft():Game|null{try{const saved=JSON.parse(localStorage.getItem(DRAFT)||'null');return saved&&Date.now()-saved.at<86400000&&saved.game?.id&&validDate(saved.game.date)?canonicalGame(saved.game):null;}catch{return null;}}
 const initialParams=new URLSearchParams(location.search);
 export default function Dashboard({manage=false}:{manage?:boolean}){
  const token=manage?decodeURIComponent(location.pathname.split('/')[3]||''):'';
