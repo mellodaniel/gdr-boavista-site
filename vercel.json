@@ -16,6 +16,14 @@
   },
   "routes": [
     {
+      "src": "/mapa-jogos(?:/gestao/[^/]+)?/?",
+      "headers": {
+        "Referrer-Policy": "no-referrer",
+        "X-Robots-Tag": "noindex, nofollow"
+      },
+      "dest": "/mapa-jogos/index.html"
+    },
+    {
       "src": "/sitemap.xml",
       "dest": "/api/sitemap"
     },
