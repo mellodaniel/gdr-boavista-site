@@ -13,7 +13,9 @@ export function matchPresentation(sheet:MatchSheet):{first:{name:string;goals:nu
 
 export const MATCH_SHEET_CLUB_NAME: 'GDRBoavista';
 
-export function updateMatchClock(sheet:MatchSheet,action:'start'|'pause'|'interval'|'next'|'finish',now?:number):MatchSheet;
+export type MatchClockAction = 'start'|'pause'|'interval'|'next'|'finish';
+export function matchClockActions(sheet:MatchSheet):Array<{action:MatchClockAction;label:string}>;
+export function updateMatchClock(sheet:MatchSheet,action:MatchClockAction,now?:number):MatchSheet;
 export type Participation = {id:string;name:string;shirt_number:number|null;starter:boolean;elapsedMs:number;onField:boolean;used:boolean;dismissed:boolean;yellow:boolean};
 export function playerParticipation(sheet:MatchSheet,now?:number):{estimated:boolean;totalMs:number;players:Participation[]};
 export function formatPlayingTime(ms:number):string;
