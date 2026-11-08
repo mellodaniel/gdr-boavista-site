@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newSheet,clockAt,score,matchPresentation,lineup,validateSheet,eventDescription } from '../src/features/match-sheet/model.js';
+import { matchClockActions,updateMatchClock,newSheet,clockAt,score,matchPresentation,lineup,validateSheet,eventDescription } from '../src/features/match-sheet/model.js';
 import { makeMatchSheetPdf } from '../server/matchSheetPdf.js';
 import { baseSeo } from '../src/lib/publicSeo.js';
 export function fixture(){
@@ -39,7 +39,7 @@ test('playing time includes stoppage time and excludes the half-time break',asyn
  const {playerParticipation,updateMatchClock}=await import('../src/features/match-sheet/model.js');
  let s=fixture();s.clock={period:1,elapsedMs:47*60000,startedAt:null};
  s.events=[event('substitution',{minute:45,added:1,incoming:'c'})];
- s=updateMatchClock(s,'next',1000000);s=updateMatchClock(s,'pause',1000000+48*60000);
+ s=updateMatchClock(s,'interval',1000000);s=updateMatchClock(s,'next',1000000);s=updateMatchClock(s,'pause',1000000+48*60000);
  const result=playerParticipation(s),byId=Object.fromEntries(result.players.map(p=>[p.id,p]));
  assert.equal(result.totalMs,95*60000);assert.equal(result.estimated,false);
  assert.equal(byId.a.elapsedMs,46*60000);assert.equal(byId.c.elapsedMs,49*60000);assert.equal(byId.b.elapsedMs,95*60000);
@@ -69,3 +69,42 @@ test('invalid stored period durations are rejected',()=>{for(const durations of 
 test('manual events beyond the clock are included and explicitly estimated',async()=>{const {playerParticipation}=await import('../src/features/match-sheet/model.js');const s=fixture();s.events=[event('substitution',{minute:20,incoming:'c'})];const result=playerParticipation(s);assert.equal(result.estimated,true);assert.equal(result.players.find(p=>p.id==='a').elapsedMs,20*60000);assert.equal(result.players.find(p=>p.id==='a').onField,false);assert.equal(result.players.find(p=>p.id==='c').onField,true);});
 
 test('substitution comments appear in event descriptions and final PDFs',async()=>{const s=fixture();const e=event('substitution',{incoming:'c',note:'Guarda-redes principal saiu lesionado.'});s.events=[e];assert.equal(eventDescription(s,e),'Sai João Gonçalves / entra Jogador suplente · Guarda-redes principal saiu lesionado.');const raw=(await makeMatchSheetPdf(s,3)).toString('latin1');assert.ok(raw.includes('Guarda-redes principal saiu'));assert.ok(raw.includes('lesionado.'));assert.equal(eventDescription(s,{...e,note:''}),'Sai João Gonçalves / entra Jogador suplente');});
+
+test('new preparations default to 45 minutes without changing existing sheets',()=>{
+ const team={age_group:'Juvenis',field_size:11,period_minutes:40,periods:2,reentry:false,record_goals:true};
+ const fresh=newSheet(team,'Treinador');assert.equal(fresh.rules.periodMinutes,45);assert.equal(team.period_minutes,40);
+ const existing=fixture();existing.rules.periodMinutes=40;
+ assert.equal(updateMatchClock(existing,'start',1000).rules.periodMinutes,40);
+ fresh.rules.periodMinutes=30;assert.equal(validateSheet(fresh,{allowIncompleteDraft:true}),null);
+});
+
+test('full match flow stops at interval, starts second half at 45 and finishes with a frozen clock',()=>{
+ let s=fixture();s.status='draft';
+ assert.deepEqual(matchClockActions(s),[{action:'start',label:'Iniciar jogo'}]);
+ s=updateMatchClock(s,'start',1000);assert.equal(s.status,'live');
+ assert.equal(matchClockActions(s)[0].label,'Intervalo');
+ s=updateMatchClock(s,'interval',1000+47*60000);assert.equal(s.status,'interval');assert.equal(s.clock.startedAt,null);
+ assert.equal(clockAt(s,1000+62*60000).elapsedMs,47*60000);
+ assert.deepEqual(matchClockActions(s),[{action:'next',label:'Iniciar 2.ª parte'}]);
+ s=updateMatchClock(s,'next',1000+62*60000);assert.equal(s.clock.period,2);assert.equal(clockAt(s,1000+62*60000).minute,45);
+ assert.equal(s.periodDurations[1],47*60000);assert.equal(matchClockActions(s)[0].label,'Fim de jogo');
+ s=updateMatchClock(s,'finish',1000+108*60000);assert.equal(s.status,'finished');assert.equal(s.clock.startedAt,null);
+ assert.equal(s.periodDurations[2],46*60000);assert.equal(clockAt(s,1000+150*60000).minute,90);
+ assert.equal(clockAt(s).added,1);assert.deepEqual(matchClockActions(s),[]);assert.equal(validateSheet(s),null);
+ for(const action of ['start','pause','interval','next','finish'])assert.equal(updateMatchClock(s,action,99999999),s);
+});
+
+test('clock transitions reject skipped intervals and repeated starts, and support custom period counts',()=>{
+ let s=fixture();s.status='draft';
+ for(const action of ['pause','interval','next','finish'])assert.equal(updateMatchClock(s,action,1000),s);
+ s=updateMatchClock(s,'start',1000);assert.equal(updateMatchClock(s,'start',2000),s);assert.equal(updateMatchClock(s,'next',2000),s);
+ s=updateMatchClock(s,'interval',3000);assert.equal(updateMatchClock(s,'start',4000),s);assert.equal(updateMatchClock(s,'interval',4000),s);
+ s.rules.periods=3;assert.equal(matchClockActions(s)[0].label,'Iniciar 2.º período');
+ s=updateMatchClock(s,'next',5000);assert.equal(matchClockActions(s)[0].label,'Intervalo');
+ s=updateMatchClock(s,'interval',6000);s=updateMatchClock(s,'next',7000);assert.equal(matchClockActions(s)[0].label,'Fim de jogo');
+ assert.equal(updateMatchClock(s,'interval',8000),s);
+ s.rules.periods=1;s.clock.period=1;assert.equal(matchClockActions(s)[0].label,'Fim de jogo');
+ // An old sheet left at interval in its final period can still be completed.
+ s.status='interval';s.clock.startedAt=null;assert.equal(matchClockActions(s)[0].label,'Fim de jogo');
+ assert.equal(updateMatchClock(s,'finish',9000).status,'finished');
+});

@@ -80,7 +80,7 @@ export function validateSheet(sheet, {allowIncompleteDraft=false}={}) {
 export function newSheet(team, recorder, now=new Date()) {
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
   const get=t=>parts.find(p=>p.type===t).value; const year=Number(get('year')), month=Number(get('month')), start=month>=7?year:year-1;
-  return {schema:1,id:crypto.randomUUID(),ageGroup:team.age_group,season:`${start}/${start+1}`,calendarId:null,opponent:'',date:`${get('year')}-${get('month')}-${get('day')}`,time:'',venue:'',competition:'',home:true,recorder,notes:'',status:'draft',outcome:'',rules:{fieldSize:team.field_size,periodMinutes:team.period_minutes,periods:team.periods,reentry:team.reentry,recordGoals:true},clock:{period:1,elapsedMs:0,startedAt:null},squad:[],events:[]};
+  return {schema:1,id:crypto.randomUUID(),ageGroup:team.age_group,season:`${start}/${start+1}`,calendarId:null,opponent:'',date:`${get('year')}-${get('month')}-${get('day')}`,time:'',venue:'',competition:'',home:true,recorder,notes:'',status:'draft',outcome:'',rules:{fieldSize:team.field_size,periodMinutes:45,periods:team.periods,reentry:team.reentry,recordGoals:true},clock:{period:1,elapsedMs:0,startedAt:null},squad:[],events:[]};
 }
 
 // Presentation follows home/away order; stored events remain club/opponent based.
@@ -93,8 +93,24 @@ export function matchPresentation(sheet) {
   return {first,second,title:`${first.name} × ${second.name}`,result:`${first.goals} – ${second.goals}`};
 }
 
+// The same actions drive the controls and validate clock transitions.
+export function matchClockActions(sheet) {
+  if(sheet.status==='finished')return [];
+  if(sheet.status==='draft')return [{action:'start',label:'Iniciar jogo'}];
+  if(sheet.status==='interval')return sheet.clock.period<sheet.rules.periods
+    ?[{action:'next',label:sheet.rules.periods===2?'Iniciar 2.ª parte':`Iniciar ${sheet.clock.period+1}.º período`}]
+    :[{action:'finish',label:'Fim de jogo'}];
+  return [
+    sheet.clock.period<sheet.rules.periods?{action:'interval',label:'Intervalo'}:{action:'finish',label:'Fim de jogo'},
+    sheet.clock.startedAt!==null?{action:'pause',label:'Pausar'}:{action:'start',label:'Retomar'},
+  ];
+}
+
 // Preserve completed periods so stoppage time survives advancing the clock.
 export function updateMatchClock(sheet, action, now=Date.now()) {
+  // Finishing early remains available from the report for interrupted matches.
+  const canFinish=action==='finish'&&['live','interval'].includes(sheet.status);
+  if(!canFinish&&!matchClockActions(sheet).some(item=>item.action===action))return sheet;
   const elapsed=clockAt(sheet,now).elapsedMs;
   const durations={...sheet.periodDurations};
   if(action==='next') {
