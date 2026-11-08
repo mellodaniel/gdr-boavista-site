@@ -10,6 +10,8 @@ O token de leitura é derivado no servidor por HMAC da chave existente, com dom�
 
 Atualização automática a cada 15 segundos com a página visível. Não é push: depende da sincronização e da ligação da equipa. Falhas mantêm a última leitura identificada como desatualizada. Cada leitor ativo gera aproximadamente quatro consultas por minuto; monitorizar uso de funções/base de dados antes de divulgação alargada e considerar cache de curta duração/SSE se necessário.
 
+Após o início confirmado na ficha, o marcador apresenta um cronómetro com minutos e segundos, parte e estado do jogo. A API transmite o tempo decorrido e a duração de cada parte; o browser avança o relógio a cada segundo com tempo monotónico e acerta-o em cada consulta, sem pedidos adicionais. Respeita intervalo, pausa, segunda parte, descontos e fim de jogo. Estas mudanças chegam aos adeptos na próxima atualização após sincronização da ficha. Em falha de ligação ou após 45 segundos sem leitura nova, mostra o último tempo confirmado, parado e identificado. Antes do início mantém a contagem decrescente existente; não inicia jogos pelo horário previsto.
+
 SMS adiado: implica custo por mensagem, fornecedor, consentimento/cancelamento e prevenção de notificações duplicadas. Esta fase não recolhe números de telefone.
 
 Validação: `npm run test:fan-live`, `npm run test:match-sheet`, `npm run build`. Demonstração sintética exclusivamente no servidor local em `/scripts/fixtures/fan-live.html`, com variante de viewport móvel em `/scripts/fixtures/fan-mobile.html`; não incluída no build de produção.

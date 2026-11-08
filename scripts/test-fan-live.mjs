@@ -29,3 +29,44 @@ test('verified Portomosense crest resolves aliases and unsafe images are rejecte
 test('only validated opponent crest is projected with public match data',()=>{const m=publicMatch({...row,document:{...row.document,opponent:'AD Portomosense'}});assert.equal(m.opponentBadgeUrl,'/club-badges/ad-portomosense.png');assert.ok(!JSON.stringify(m).includes('PRIVATE'));});
 
 test('incomplete preparations remain absent from the fan feed even if sharing was previously enabled',()=>{assert.equal(publicMatch({...row,document:{...s,status:'draft',opponent:''}}),null);assert.equal(publicMatch({...row,document:{...s,status:'draft',opponent:'Adversário',date:''}}),null);});
+
+import {fanClockReading,CLOCK_FRESH_MS} from '../src/features/fan-live/clock-reading.js';
+import {updateMatchClock,clockAt} from '../src/features/match-sheet/model.js';
+test('fan timer matches the sheet through start, stoppage time, interval, second half, pause and finish',()=>{
+ let sheet={...s,status:'draft',opponent:'Adversário',date:'2026-11-08'};
+ const project=(at)=>publicMatch({document:sheet},at);
+ assert.equal(fanClockReading(project(1000),30000).text,'00:00');
+ sheet=updateMatchClock(sheet,'start',1000);
+ let reading=project(1000+44*60000+59000);
+ assert.equal(fanClockReading(reading,2000).text,'45:01');
+ reading=project(1000+47*60000+3000);
+ assert.equal(fanClockReading(reading,4000).text,'45+2:07');
+ sheet=updateMatchClock(sheet,'interval',1000+47*60000+3000);
+ assert.equal(fanClockReading(project(1000+50*60000),5000).text,'45+2:03');
+ assert.equal(fanClockReading(project(1000+50*60000)).label,'Intervalo');
+ sheet=updateMatchClock(sheet,'next',1000+60*60000);
+ assert.equal(fanClockReading(project(1000+60*60000),2000).text,'45:02');
+ sheet=updateMatchClock(sheet,'pause',1000+61*60000+5000);
+ assert.equal(fanClockReading(project(1000+62*60000),10000).text,'46:05');
+ assert.equal(fanClockReading(project(1000+62*60000)).label,'Jogo em pausa');
+ sheet=updateMatchClock(sheet,'start',1000+63*60000);
+ sheet=updateMatchClock(sheet,'finish',1000+108*60000);
+ assert.equal(fanClockReading(project(1000+109*60000),30000).text,'90+1:05');
+ assert.equal(fanClockReading(project(1000+109*60000)).label,'Fim de jogo');
+ assert.equal(project(1000+109*60000).clock.elapsedMs,clockAt(sheet,1000+109*60000).elapsedMs);
+});
+test('clock uses server elapsed time, respects custom duration and freezes on failed or stale reads',()=>{
+ const m={status:'live',clock:{period:2,minute:43,added:0,running:true,elapsedMs:3*60000+7000,periodMinutes:40}};
+ assert.equal(fanClockReading(m,5000).text,'43:12');
+ for(const [age,failed] of [[5000,true],[CLOCK_FRESH_MS,false],[3600000,false]]){
+  const r=fanClockReading(m,age,failed);assert.equal(r.text,'43:07');assert.equal(r.running,false);assert.equal(r.stale,true);assert.match(r.label,/última leitura/);
+ }
+ assert.equal(fanClockReading({...m,clock:{...m.clock,elapsedMs:2*60000}},0).text,'42:00');
+ assert.equal(fanClockReading({...m,clock:{period:2,minute:43,added:0,running:true}},10000).text,'43′');
+ assert.equal(fanClockReading({...m,status:'finished'},10000).text,'43:07');
+});
+test('clock projection contains only safe timing values and no private clock or document fields',()=>{
+ const m=publicMatch({...row,document:{...row.document,clock:{period:1,elapsedMs:1000,startedAt:1000,secret:'PRIVATE'}}},6000);
+ assert.deepEqual(m.clock,{period:1,minute:0,added:0,elapsedMs:6000,periodMinutes:45,running:true});
+ assert.ok(!JSON.stringify(m).includes('PRIVATE'));assert.ok(!('startedAt' in m.clock));
+});
