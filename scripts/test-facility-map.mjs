@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {canonicalGame,fields,conflicts,validate,validDate,offsetTime,normalize} from '../mapa-piloto/schedule.ts';
+const game={id:'a',date:'2026-11-07',start:'10:00',end:'11:00',home:'GDRB',away:'Visitante',level:'Sub 13',type:'Particular',field:'7',homeRoom:'2',awayRoom:'3',notes:'',roomStart:'09:30',roomEnd:'11:30'};
+test('field geometry includes the full pitch and subdivisions',()=>{assert.equal(conflicts(game,[{...game,id:'b',field:'9',homeRoom:'',awayRoom:''}]).length,1);assert.equal(conflicts(game,[{...game,id:'b',field:'8',homeRoom:'',awayRoom:''}]).length,0);assert.equal(conflicts({...game,field:'10'},[{...game,id:'b',field:'1',homeRoom:'',awayRoom:''}]).length,1);});
+test('adjacent times and different days do not conflict',()=>{assert.deepEqual(conflicts(game,[{...game,id:'b',start:'11:00',end:'12:00',roomStart:'11:30',roomEnd:'12:30'}]),[]);assert.deepEqual(conflicts(game,[{...game,id:'b',date:'2026-11-08'}]),[]);});
+test('room warnings require known occupancy periods',()=>{assert.equal(conflicts(game,[{...game,id:'b',field:'10',roomStart:'',roomEnd:''}]).length,0);assert.equal(conflicts(game,[{...game,id:'b',field:'10'}]).length,2);});
+test('validate real dates and occupancy covering the game',()=>{assert.equal(validDate('2026-02-30'),false);assert.equal(validDate('2028-02-29'),true);assert.deepEqual(validate(game),{});assert.ok(validate({...game,roomStart:'10:30'}).roomStart);assert.ok(validate({...game,end:'09:59'}).end);assert.ok(validate({...game,away:''}).away);assert.equal(validate({...game,type:'Treino',away:''}).away,undefined);});
+test('suggestions respect day bounds and searches ignore accents',()=>{assert.equal(offsetTime('00:10',-30),'00:00');assert.equal(offsetTime('23:50',30),'23:59');assert.equal(normalize('  Evolução  '),'evolucao');});
+
+test('combined fields use Campo 9 without changing activity details',()=>{assert.deepEqual(canonicalGame({...game,field:'7 + 8'}),{...game,field:'9'});assert.ok(!fields.includes('7 + 8'));assert.equal(conflicts({...game,field:'9'},[{...game,id:'b',field:'8',homeRoom:'',awayRoom:''}]).length,1);});
