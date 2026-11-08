@@ -23,7 +23,7 @@ export function publicMatch(row,now=Date.now()) {
   return {id:s.id,ageGroup:s.ageGroup,season:s.season,date:s.date,time:s.time,venue:s.venue,competition:s.competition,
     kickoffAt:fanKickoff(s.date,s.time),home:s.home,club:MATCH_SHEET_CLUB_NAME,opponent:s.opponent,opponentBadgeUrl:opponentBadge(s.opponent,s.opponentBadgeUrl),status:s.status,
     score:s.status!=='draft'?tally:null,outcome:null,
-    clock:{period:clock.period,minute:clock.minute,added:clock.added,running:s.status==='live'&&s.clock.startedAt!==null},
+    clock:{period:clock.period,minute:clock.minute,added:clock.added,elapsedMs:clock.elapsedMs,periodMinutes:s.rules.periodMinutes,running:s.status==='live'&&s.clock.startedAt!==null},
     updatedAt:row.updated_at,events};
 }
 export function createFanLiveHandler({env=process.env,fetcher=fetch,now=Date.now}={}) {
