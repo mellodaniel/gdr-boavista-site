@@ -60,4 +60,7 @@
 
 .fl-feed{min-width:0}
 
+/* Compensate for the transparent margin in the club crest without moving team labels. */
+.fl-team .fl-team-badge--club{transform:scale(1.5)}
+
 .fl-match-clock{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 12px 24px;border-top:1px solid #ffffff26;color:#fff;text-align:center}.fl-match-clock-phase{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#d5d5d5}.fl-match-clock strong{font-size:clamp(36px,7vw,56px);line-height:1.1;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.03em}.fl-match-clock-status{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;color:#ddd}.fl-match-clock-status i{width:7px;height:7px;flex-shrink:0;border-radius:50%;background:#aaa}.fl-match-clock-status i.is-running{background:#8de3a4}.fl-match-clock.is-stale .fl-match-clock-status{color:#ffd6a3}
